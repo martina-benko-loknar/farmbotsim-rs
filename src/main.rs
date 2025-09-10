@@ -26,8 +26,34 @@ pub mod utilities;
 pub mod units;
 pub mod cfg;
 pub mod logger;
+pub mod experiment;
+pub mod optimization;
 
 fn main() -> Result<(), eframe::Error> {
+    let args: Vec<String> = std::env::args().collect();
+    
+    // Check for experiment argument
+    if args.contains(&"--experiment".to_string()) {
+        experiment::run_experiment(); // Call the experiment function
+        return Ok(());
+    } else if args.contains(&"--optimize".to_string()) {
+        optimization::optimize_station_positions_ego(50);
+        return Ok(());                
+    } else if args.contains(&"--grid-search".to_string()) {
+        // Check for grid resolution argument
+        let grid_resolution = if let Some(pos) = args.iter().position(|x| x == "--grid-search") {
+            if pos + 1 < args.len() {
+                args[pos + 1].parse::<usize>().unwrap_or(10)
+            } else {
+                10 // Default resolution
+            }
+        } else {
+            10
+        };
+        experiment::run_grid_search_experiment(grid_resolution);
+        return Ok(());
+    }
+
     let options = eframe::NativeOptions {
         vsync: true,
         viewport: egui::ViewportBuilder::default()

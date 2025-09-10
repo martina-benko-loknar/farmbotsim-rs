@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use egui::Vec2;
 use serde::{Deserialize, Serialize};
 
@@ -56,7 +58,7 @@ impl Default for RombaMovement {
     fn default() -> Self {
         Self {
             max_velocity: LinearVelocity::kilometers_per_hour(10.0),
-            max_angular_velocity: AngularVelocity::radians_per_second(0.1),
+            max_angular_velocity: AngularVelocity::radians_per_second(0.4),
             wheel_distance: Length::meters(0.2),
             wheel_radius: Length::meters(0.05),
         }
@@ -131,8 +133,13 @@ impl IsMovement for RombaMovement {
             }
             (true, false) => {
                 // Drive straight toward the target
-                let forward_strength = (position_error * 0.3).clamp(0.0, 1.0);
-                (forward_strength, forward_strength)
+                if position_error < 0.5 {
+                    let forward_strength = position_error * 3.6/3.0;
+                    (forward_strength, forward_strength)
+                } else {
+                    let forward_strength = (position_error * 0.3).clamp(0.0, 1.0);
+                    (forward_strength, forward_strength)
+                }
             }
             (false, true) => {
                 // We're close to the target position, now match final orientation
@@ -150,7 +157,13 @@ impl RombaMovement {
     fn turning_inputs(current: Angle, target: Angle) -> (f32, f32) {
         let delta = (target.to_degrees() - current.to_degrees() + 180.0).rem_euclid(360.0) - 180.0;
         let norm = delta / 180.0;
-        let strength = (norm.abs() * 0.1).clamp(0.0, 1.0);
+
+        let strength = if delta.abs() < 25.0 {
+            delta.abs() * 3.6 * 0.2 * PI / (6.0 * 180.0)
+            //(norm.abs() * 0.5).clamp(0.0, 1.0)
+        } else {
+            (norm.abs() * 0.1).clamp(0.0, 1.0)
+        };
 
         if norm < 0.0 {
             (strength, -strength) // Turn right

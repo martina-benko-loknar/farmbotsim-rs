@@ -17,3 +17,4 @@ pub mod field_config_editor_tool;
 pub mod scene_config_editor_tool;
 pub mod performance_matrix_tool;
 pub mod general_help_tool;
+pub mod experiment_tool;

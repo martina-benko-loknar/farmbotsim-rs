@@ -28,3 +28,6 @@ pub const SCENE_CONFIGS_PATH: &str = "configs/scene_configs/";
 pub const DEFAULT_SCENE_CONFIG_PATH: &str = "configs/scene_configs/default.json";
 
 pub const PERFORMANCE_MATRIX_PATH: &str = "performance_matrix/";
+pub const EXPERIMENTS_PATH: &str = "experiments/";
+
+pub const OPTIMIZATION_RESULTS_PATH: &str = "results/optimization/";

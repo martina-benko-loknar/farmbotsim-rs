@@ -77,11 +77,18 @@ impl TaskManager {
     fn get_initial_work_list(farm_entities: &HashMap<u32, FarmEntity>) -> (u32, VecDeque<Task>) {
         let mut work_list = VecDeque::new();
         let mut task_id_counter = 0;
-        for entity in farm_entities.values() {
-            let task = entity.stages()[0].to_task(task_id_counter);
-            if let Some(task) = task {
-                work_list.push_back(task);
-                task_id_counter += 1;
+        // Collect and sort the keys of the HashMap
+        let mut sorted_keys: Vec<_> = farm_entities.keys().collect();
+        sorted_keys.sort();
+
+        // Iterate over the sorted keys to ensure deterministic order
+        for key in sorted_keys {
+            if let Some(entity) = farm_entities.get(key) {
+                let task = entity.stages()[0].to_task(task_id_counter);
+                if let Some(task) = task {
+                    work_list.push_back(task);
+                    task_id_counter += 1;
+                }
             }
         }
 
@@ -426,7 +433,6 @@ impl TaskManager {
                 }
             }
         }
-
         tasks
     }
 
