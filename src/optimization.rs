@@ -23,13 +23,35 @@ use egui::Pos2;
 use plotly::{Plot, Scatter3D};
 use plotly::layout::{Layout, Axis};
 use plotly::common::{Marker, Mode};
+use serde::{Deserialize, Serialize};
+
+// Serializable structure for convergence history
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct ConvergenceRecord {
+    pub iteration: usize,
+    pub best_energy: f64,
+    pub best_positions: Vec<(f32, f32)>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct OptimizationResults {
+    pub timestamp: String,
+    pub max_iterations: usize,
+    pub total_evaluations: usize,
+    pub optimization_time_seconds: f64,
+    pub final_best_energy: f64,
+    pub convergence_history: Vec<ConvergenceRecord>,
+    pub field_boundaries: (f32, f32, f32, f32), // (min_x, max_x, min_y, max_y)
+    pub station_margin: f32,
+    pub obstacle_margin: f32,
+}
 
 
 // Define field boundaries for optimization (adjust these based on your actual farm layout)
 const FIELD_MIN_X: f32 = 0.0;
-const FIELD_MAX_X: f32 = 12.0;  // 12 meters width
+const FIELD_MAX_X: f32 = 8.0;  // width in meters
 const FIELD_MIN_Y: f32 = 0.0;
-const FIELD_MAX_Y: f32 = 12.0;  // 12 meters height
+const FIELD_MAX_Y: f32 = 28.0;  // height in meters
 const STATION_MARGIN: f32 = 0.4; // Keep stations at least 0.4m from field edges
 const OBSTACLE_MARGIN: f32 = 0.4; // Keep stations at least 0.4m from obstacles
 
@@ -219,7 +241,7 @@ impl StationPositions {
         env_config.scene_config_path = temp_scene_path.clone();
         env_config.agent_config_path = DEFAULT_AGENT_CONFIG_PATH.to_string();
         env_config.datetime_config = DateTimeConfig::from_string("01.01.2025 08:00:00".to_string());
-        env_config.n_agents = 4;
+        env_config.n_agents = 1;
 
         env_config.task_manager_config.charging_strategy = ChargingStrategy::CriticalOnly;
         env_config.task_manager_config.choose_station_strategy = ChooseStationStrategy::ClosestManhattan;
@@ -232,7 +254,7 @@ impl StationPositions {
             agent_config_path: env_config.agent_config_path.clone(),
             datetime_config: env_config.datetime_config.clone(),
             env_config,
-            termination_condition: TerminationCondition::NumberCompletedTasks(100),
+            termination_condition: TerminationCondition::NumberCompletedTasks(1000),
             env: None,
             save_to_file: false,
             save_file_name: format!("station_opt_{}", runner_random_id),
@@ -259,15 +281,15 @@ impl StationPositions {
         let _ = std::fs::remove_file(temp_scene_path);
         
         // Add penalty for stations too close to obstacles (extra safety check)
-        /* let mut penalty = 0.0;
+        let mut penalty = 0.0;
         for position in &self.station_positions {
             if !Self::is_position_valid(*position, &self.obstacles) {
                 penalty += 1000000000.0; // Heavy penalty for invalid positions
             }
-        } */
+        }
         
         // Return the energy consumption plus penalty
-        runner.total_energy_consumed.value as f64 //+ penalty
+        runner.total_energy_consumed.value as f64 + penalty
     }
     
     // Helper method to create station configs from optimized positions
@@ -343,8 +365,11 @@ fn station_objective_function(
     x: &ArrayView2<f64>,
     context: &OptimizationContext,
     evaluated_positions: &mut Vec<(Vec<(f32, f32)>, f64)>,
+    convergence_history: &mut Vec<(usize, f64, Vec<(f32, f32)>)>, // Track (iteration, best_energy, best_positions)
 ) -> Array2<f64> {
     let mut y: Array2<f64> = Array2::zeros((x.nrows(), 1));
+    let mut current_best = f64::INFINITY;
+    let mut current_best_positions = Vec::new();
 
     for (i, xi) in x.rows().into_iter().enumerate() {
         let positions = StationPositions::from_optimization_vector(
@@ -353,6 +378,16 @@ fn station_objective_function(
             context.n_stations,
         );
         let energy = positions.evaluate();
+
+        // Update current best for this batch
+        if energy < current_best {
+            current_best = energy;
+            current_best_positions = positions
+                .station_positions
+                .iter()
+                .map(|p| (p.x, p.y))
+                .collect();
+        }
 
         // Log the evaluation
         println!("Evaluated positions: {} -> Energy: {:.2} Wh", positions, energy);
@@ -369,6 +404,23 @@ fn station_objective_function(
 
         y[[i, 0]] = energy;
     }
+
+    // Update convergence history with the best value found in this evaluation batch
+    let current_iteration = convergence_history.len() + 1;
+    
+    // Get the global best so far (including previous iterations)
+    let (global_best_energy, global_best_positions) = if let Some((_, prev_best_energy, prev_best_positions)) = convergence_history.last() {
+        if current_best < *prev_best_energy {
+            (current_best, current_best_positions)
+        } else {
+            (*prev_best_energy, prev_best_positions.clone())
+        }
+    } else {
+        (current_best, current_best_positions)
+    };
+    
+    convergence_history.push((current_iteration, global_best_energy, global_best_positions));
+    println!("Iteration {}: Best energy so far: {:.2} Wh", current_iteration, global_best_energy);
 
     y
 }
@@ -408,7 +460,7 @@ pub fn optimize_station_positions_ego(max_iterations: usize) -> StationPositions
 
     // Generate initial valid starting points
     let mut rng = rand::rng();
-    let initial_positions = StationPositions::generate_initial_population(&obstacles, n_stations, 100, &mut rng);
+    let initial_positions = StationPositions::generate_initial_population(&obstacles, n_stations, 20, &mut rng);
     
     // Convert initial population to optimization vectors
     let initial_x: Array2<f64> = Array2::from_shape_vec(
@@ -424,6 +476,7 @@ pub fn optimize_station_positions_ego(max_iterations: usize) -> StationPositions
     ).unwrap();
 
     let evaluated_positions = Arc::new(RwLock::new(Vec::new()));
+    let convergence_history = Arc::new(RwLock::new(Vec::new())); // Track best values over iterations
 
     // Create a closure that captures the context
     let objective_fn = {
@@ -432,9 +485,11 @@ pub fn optimize_station_positions_ego(max_iterations: usize) -> StationPositions
             n_stations,
         };
         let evaluated_positions = Arc::clone(&evaluated_positions); // Clone the Arc
+        let convergence_history = Arc::clone(&convergence_history); // Clone the Arc for convergence tracking
         move |x: &ArrayView2<f64>| {
             let mut positions = evaluated_positions.write().unwrap(); // Lock for writing
-            station_objective_function(x, &context, &mut positions)
+            let mut convergence = convergence_history.write().unwrap(); // Lock for writing
+            station_objective_function(x, &context, &mut positions, &mut convergence)
         }
     };
 
@@ -512,8 +567,15 @@ pub fn optimize_station_positions_ego(max_iterations: usize) -> StationPositions
             
             println!("Optimal configuration: {}", best_positions);
 
+            // Generate research-ready visualizations
             visualize_optimization_results(&evaluated_positions.read().unwrap(), &obstacles);
+            generate_convergence_plot(&convergence_history.read().unwrap());
             
+            // Save convergence history to JSON file
+            let convergence_data = convergence_history.read().unwrap();
+            let total_evaluations = evaluated_positions.read().unwrap().len();
+            save_convergence_history(&convergence_data, max_iterations, total_evaluations, elapsed);
+
             best_positions
         },
         Err(e) => {
@@ -522,7 +584,7 @@ pub fn optimize_station_positions_ego(max_iterations: usize) -> StationPositions
             
             // Return a random valid configuration as fallback
             let mut rng = rand::rng();
-            StationPositions::generate_initial_population(&obstacles, n_stations, 100, &mut rng)
+            StationPositions::generate_initial_population(&obstacles, n_stations, 50, &mut rng)
                 .into_iter()
                 .next()
                 .unwrap()
@@ -683,4 +745,112 @@ pub fn save_optimal_station_config(positions: &StationPositions, filename: &str)
     }
     
     path
+}
+
+
+/// Generate convergence analysis plot
+pub fn generate_convergence_plot(convergence_history: &[(usize, f64, Vec<(f32, f32)>)]) {
+    if convergence_history.is_empty() {
+        println!("No convergence data available for plotting");
+        return;
+    }
+
+    let iterations: Vec<f64> = convergence_history.iter().map(|(iter, _, _)| *iter as f64).collect();
+    let best_energies: Vec<f64> = convergence_history.iter().map(|(_, energy, _)| *energy).collect();
+    
+    // Create convergence plot showing best solution over iterations
+    let trace_convergence = plotly::Scatter::new(iterations.clone(), best_energies.clone())
+        .mode(plotly::common::Mode::LinesMarkers)
+        .line(plotly::common::Line::new().color("#ff0000").width(3.0))
+        .marker(plotly::common::Marker::new().size(6).color("#ff0000"))
+        .name("Best Solution Convergence");
+    
+    let mut plot = Plot::new();
+    plot.add_trace(trace_convergence);
+    
+    let layout = Layout::new()
+        .title("EGO Optimization Convergence Analysis")
+        .width(1000)
+        .height(600)
+        .font(plotly::common::Font::new().size(14).family("Arial"))
+        .x_axis(plotly::layout::Axis::new()
+            .title("Iteration Number")
+            .tick_font(plotly::common::Font::new().size(12)))
+        .y_axis(plotly::layout::Axis::new()
+            .title("Best Energy Consumption (Wh)")
+            .tick_font(plotly::common::Font::new().size(12)))
+        .legend(
+            plotly::layout::Legend::new()
+                .font(plotly::common::Font::new().size(12))
+        );
+    
+    plot.set_layout(layout);
+    
+    let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
+    let filename = format!("{}{}_convergence.html", OPTIMIZATION_RESULTS_PATH, timestamp);
+    plot.write_html(&filename);
+    
+    println!("Convergence plot saved to: {}", filename);
+    println!("Convergence summary:");
+    println!("  Initial best: {:.2} Wh", best_energies.first().unwrap_or(&0.0));
+    println!("  Final best: {:.2} Wh", best_energies.last().unwrap_or(&0.0));
+    if let (Some(initial), Some(final_val)) = (best_energies.first(), best_energies.last()) {
+        let improvement = ((initial - final_val) / initial) * 100.0;
+        println!("  Improvement: {:.1}%", improvement);
+    }
+}
+
+/// Save convergence history to JSON file
+pub fn save_convergence_history(
+    convergence_history: &[(usize, f64, Vec<(f32, f32)>)],
+    max_iterations: usize,
+    total_evaluations: usize,
+    optimization_time: std::time::Duration,
+) {
+    let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
+    
+    let convergence_records: Vec<ConvergenceRecord> = convergence_history
+        .iter()
+        .map(|(iteration, energy, positions)| ConvergenceRecord {
+            iteration: *iteration,
+            best_energy: *energy,
+            best_positions: positions.clone(),
+        })
+        .collect();
+    
+    let final_best_energy = convergence_history
+        .last()
+        .map(|(_, energy, _)| *energy)
+        .unwrap_or(f64::INFINITY);
+    
+    let optimization_results = OptimizationResults {
+        timestamp: timestamp.to_string(),
+        max_iterations,
+        total_evaluations,
+        optimization_time_seconds: optimization_time.as_secs_f64(),
+        final_best_energy,
+        convergence_history: convergence_records,
+        field_boundaries: (FIELD_MIN_X, FIELD_MAX_X, FIELD_MIN_Y, FIELD_MAX_Y),
+        station_margin: STATION_MARGIN,
+        obstacle_margin: OBSTACLE_MARGIN,
+    };
+    
+    let filename = format!("{}optimization_results_{}.json", OPTIMIZATION_RESULTS_PATH, timestamp);
+    
+    match serde_json::to_string_pretty(&optimization_results) {
+        Ok(json_string) => {
+            match std::fs::write(&filename, json_string) {
+                Ok(_) => {
+                    println!("Optimization results saved to: {}", filename);
+                    println!("Results summary:");
+                    println!("  Total iterations: {}", convergence_history.len());
+                    println!("  Total evaluations: {}", total_evaluations);
+                    println!("  Optimization time: {:.2} seconds", optimization_time.as_secs_f64());
+                    println!("  Final best energy: {:.2} Wh", final_best_energy);
+                },
+                Err(e) => eprintln!("Failed to write optimization results to file: {}", e),
+            }
+        },
+        Err(e) => eprintln!("Failed to serialize optimization results: {}", e),
+    }
 }

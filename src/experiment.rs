@@ -40,7 +40,7 @@ pub fn run_experiment() {
         agent_config_path: env_config.agent_config_path.clone(),
         datetime_config: env_config.datetime_config.clone(),
         env_config,
-        termination_condition: TerminationCondition::NumberCompletedTasks(100), // Options: AllTasksCompleted, EnvDuration(Duration::days(1.0)), NumberCompletedTasks(3)
+        termination_condition: TerminationCondition::NumberCompletedTasks(1000), // Options: AllTasksCompleted, EnvDuration(Duration::days(1.0)), NumberCompletedTasks(3)
         env: None,
         save_to_file: true,
         save_file_name: "my_experiment_2025".to_string(),
@@ -78,10 +78,16 @@ pub fn run_experiment() {
         runner.save_file_name);
 }
 
-/// Grid search experiment for finding optimal charging station position
-pub fn run_grid_search_experiment(grid_resolution: usize) {
+
+/// Grid search experiment with optional optimization minimum point and value for visualization
+pub fn run_grid_search_experiment(grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {
     println!("Starting grid search experiment for charging station optimization...");
     println!("Grid resolution: {}x{}", grid_resolution, grid_resolution);
+    
+    if let Some((opt_pos, opt_value)) = optimization_minimum {
+        println!("Will visualize optimization minimum at: ({:.2}, {:.2}) with value: {:.2} Wh", 
+                 opt_pos.x, opt_pos.y, opt_value);
+    }
     
     // Load scene configuration to get field boundaries and obstacles
     let scene_config: SceneConfig = crate::utilities::utils::load_json_or_panic(DEFAULT_SCENE_CONFIG_PATH.to_string());
@@ -90,9 +96,9 @@ pub fn run_grid_search_experiment(grid_resolution: usize) {
     
     // Define field boundaries (should match those in optimization.rs)
     const FIELD_MIN_X: f32 = 0.0;
-    const FIELD_MAX_X: f32 = 12.0;
+    const FIELD_MAX_X: f32 = 8.0;
     const FIELD_MIN_Y: f32 = 0.0;
-    const FIELD_MAX_Y: f32 = 12.0;
+    const FIELD_MAX_Y: f32 = 28.0;
     const STATION_MARGIN: f32 = 0.4;
     const OBSTACLE_MARGIN: f32 = 0.4;
     
@@ -111,7 +117,7 @@ pub fn run_grid_search_experiment(grid_resolution: usize) {
              grid_points.len(), grid_resolution * grid_resolution);
     
     // Store results for analysis
-    let mut results: Vec<(Pos2, f64)> = Vec::new();
+    let mut results: Vec<(Pos2, f64, f64, f64)> = Vec::new(); // (position, energy, total_distance, charging_distance)
     let total_points = grid_points.len();
     
     // Run experiment for each grid point
@@ -120,10 +126,11 @@ pub fn run_grid_search_experiment(grid_resolution: usize) {
                  i + 1, total_points, grid_point.x, grid_point.y);
         
         // Update scene config with new station position
-        let energy_consumption = run_single_grid_experiment(*grid_point, &scene_config);
-        results.push((*grid_point, energy_consumption));
+        let (energy_consumption, total_distance, charging_distance) = run_single_grid_experiment(*grid_point, &scene_config);
+        results.push((*grid_point, energy_consumption, total_distance, charging_distance));
         
-        println!("  → Energy consumption: {:.2} Wh", energy_consumption);
+        println!("  → Energy: {:.2} Wh, Distance: {:.2} m, Charging dist: {:.2} m", 
+                 energy_consumption, total_distance, charging_distance);
     }
     
     // Save results to file
@@ -131,9 +138,9 @@ pub fn run_grid_search_experiment(grid_resolution: usize) {
     save_grid_search_results(&results, &results_file);
     
     // Generate plots
-    generate_grid_search_plots(&results, &obstacles, grid_resolution);
+    generate_grid_search_plots(&results, &obstacles, grid_resolution, optimization_minimum);
     
-    // Find and report best position
+    // Find and report best position (based on energy consumption)
     let best_result = results.iter()
         .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
         .unwrap();
@@ -141,6 +148,8 @@ pub fn run_grid_search_experiment(grid_resolution: usize) {
     println!("\nGrid Search Experiment Completed!");
     println!("Best position: ({:.2}, {:.2})", best_result.0.x, best_result.0.y);
     println!("Best energy consumption: {:.2} Wh", best_result.1);
+    println!("Total distance at best position: {:.2} m", best_result.2);
+    println!("Charging distance at best position: {:.2} m", best_result.3);
     println!("Results saved to: {}", results_file);
 }
 
@@ -207,7 +216,7 @@ fn is_position_valid(position: Pos2, obstacles: &[Obstacle], margin: f32) -> boo
 }
 
 /// Run a single experiment with a specific station position
-fn run_single_grid_experiment(station_position: Pos2, original_scene: &SceneConfig) -> f64 {
+fn run_single_grid_experiment(station_position: Pos2, original_scene: &SceneConfig) -> (f64, f64, f64) {
     // Create a modified scene config with the new station position
     let mut modified_scene = original_scene.clone();
     
@@ -230,7 +239,7 @@ fn run_single_grid_experiment(station_position: Pos2, original_scene: &SceneConf
     env_config.scene_config_path = temp_scene_path.clone();
     env_config.agent_config_path = DEFAULT_AGENT_CONFIG_PATH.to_string();
     env_config.datetime_config = DateTimeConfig::from_string("01.01.2025 08:00:00".to_string());
-    env_config.n_agents = 1; // Use single agent for consistency
+    env_config.n_agents = 1;
     env_config.task_manager_config.charging_strategy = ChargingStrategy::CriticalOnly;
     env_config.task_manager_config.choose_station_strategy = ChooseStationStrategy::ClosestManhattan;
     
@@ -241,7 +250,7 @@ fn run_single_grid_experiment(station_position: Pos2, original_scene: &SceneConf
         agent_config_path: env_config.agent_config_path.clone(),
         datetime_config: env_config.datetime_config.clone(),
         env_config,
-        termination_condition: TerminationCondition::NumberCompletedTasks(10000), // Smaller number for grid search
+        termination_condition: TerminationCondition::NumberCompletedTasks(1000), // Smaller number for grid search
         env: None,
         save_to_file: false, // Don't save individual experiment files
         save_file_name: format!("grid_temp_{}", random_id),
@@ -267,49 +276,55 @@ fn run_single_grid_experiment(station_position: Pos2, original_scene: &SceneConf
     // Clean up the temporary file
     let _ = std::fs::remove_file(temp_scene_path);
     
-    // Return energy consumption
-    runner.total_energy_consumed.value as f64
+    // Return energy consumption, total distance driven, and total charging distance
+    (
+        runner.total_energy_consumed.value as f64,
+        runner.total_distance_driven as f64,
+        runner.total_charging_distance as f64,
+    )
+
 }
 
 /// Save grid search results to JSON file
-fn save_grid_search_results(results: &[(Pos2, f64)], filename: &str) {
+fn save_grid_search_results(results: &[(Pos2, f64, f64, f64)], filename: &str) {
     use serde_json::{json, Value};
     
     let results_json: Vec<Value> = results.iter()
-        .map(|(pos, energy)| {
+        .map(|(pos, energy, total_dist, charging_dist)| {
             json!({
-                "position": {
-                    "x": pos.x,
-                    "y": pos.y
-                },
-                "energy_consumption": energy
+                "x": pos.x,
+                "y": pos.y,
+                "energy_consumption": energy,
+                "total_distance": total_dist,
+                "charging_distance": charging_dist
             })
         })
         .collect();
     
     let output = json!({
-        "timestamp": chrono::Utc::now().to_rfc3339(),
-        "grid_search_results": results_json
+        "grid_search_results": results_json,
+        "total_points": results.len()
     });
     
-    // Ensure results directory exists
-    std::fs::create_dir_all("results").unwrap();
-    
-    std::fs::write(filename, serde_json::to_string_pretty(&output).unwrap())
-        .expect("Failed to save grid search results");
+    match std::fs::write(filename, serde_json::to_string_pretty(&output).unwrap()) {
+        Ok(_) => println!("Grid search results saved to: {}", filename),
+        Err(e) => eprintln!("Failed to save results: {}", e),
+    }
 }
 
 /// Generate visualization plots for grid search results
-fn generate_grid_search_plots(results: &[(Pos2, f64)], obstacles: &[Obstacle], grid_resolution: usize) {
-    generate_3d_plot(results, obstacles, grid_resolution);
-    generate_heatmap_plot(results, obstacles, grid_resolution);
+fn generate_grid_search_plots(results: &[(Pos2, f64, f64, f64)], obstacles: &[Obstacle], grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {
+    generate_3d_plot(results, obstacles, grid_resolution, optimization_minimum);
+    generate_energy_heatmap_plot(results, obstacles, grid_resolution, optimization_minimum);
+    generate_distance_heatmap_plot(results, obstacles, grid_resolution, optimization_minimum);
+    generate_charging_distance_heatmap_plot(results, obstacles, grid_resolution, optimization_minimum);
 }
 
 /// Generate 3D scatter plot (similar to optimization.rs)
-fn generate_3d_plot(results: &[(Pos2, f64)], obstacles: &[Obstacle], grid_resolution: usize) {
-    let x_coords: Vec<f64> = results.iter().map(|(pos, _)| pos.x as f64).collect();
-    let y_coords: Vec<f64> = results.iter().map(|(pos, _)| pos.y as f64).collect();
-    let energy_values: Vec<f64> = results.iter().map(|(_, energy)| *energy).collect();
+fn generate_3d_plot(results: &[(Pos2, f64, f64, f64)], obstacles: &[Obstacle], grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {
+    let x_coords: Vec<f64> = results.iter().map(|(pos, _, _, _)| pos.x as f64).collect();
+    let y_coords: Vec<f64> = results.iter().map(|(pos, _, _, _)| pos.y as f64).collect();
+    let energy_values: Vec<f64> = results.iter().map(|(_, energy, _, _)| *energy).collect();
     
     // Find the optimal (minimum) energy value for obstacle z-level
     let min_energy = energy_values.iter().fold(f64::INFINITY, |a, &b| a.min(b));
@@ -320,6 +335,20 @@ fn generate_3d_plot(results: &[(Pos2, f64)], obstacles: &[Obstacle], grid_resolu
     
     let mut plot = Plot::new();
     plot.add_trace(trace);
+    
+    // Add optimization minimum point if provided (using the actual energy value from optimization)
+    if let Some((opt_pos, opt_value)) = optimization_minimum {
+        let opt_trace = Scatter3D::new(
+            vec![opt_pos.x as f64], 
+            vec![opt_pos.y as f64], 
+            vec![opt_value]
+        )
+        .mode(Mode::Markers)
+        .name("Optimization Minimum")
+        .marker(Marker::new().size(12).color("red"));
+        
+        plot.add_trace(opt_trace);
+    }
     
     // Add obstacle boundaries as 3D traces
     for (i, obstacle) in obstacles.iter().enumerate() {
@@ -355,8 +384,14 @@ fn generate_3d_plot(results: &[(Pos2, f64)], obstacles: &[Obstacle], grid_resolu
         .title(&format!("Grid Search Results - 3D View ({}x{})", grid_resolution, grid_resolution))
         .width(1200)
         .height(800)
-        .x_axis(plotly::layout::Axis::new().title("X Position (m)"))
-        .y_axis(plotly::layout::Axis::new().title("Y Position (m)"));
+        .x_axis(plotly::layout::Axis::new()
+            .title("X Position (m)")
+            .tick_font(plotly::common::Font::new().size(14)))
+        .y_axis(plotly::layout::Axis::new()
+            .title("Y Position (m)")
+            .tick_font(plotly::common::Font::new().size(14)))
+        .legend(plotly::layout::Legend::new()
+            .font(plotly::common::Font::new().size(14)));
     
     plot.set_layout(layout);
     
@@ -365,13 +400,23 @@ fn generate_3d_plot(results: &[(Pos2, f64)], obstacles: &[Obstacle], grid_resolu
     println!("3D plot saved to: {}", filename);
 }
 
-/// Generate 2D heatmap plot with interpolation
-fn generate_heatmap_plot(results: &[(Pos2, f64)], obstacles: &[Obstacle], grid_resolution: usize) {
+/// Generate 2D heatmap plot for energy consumption with interpolation
+fn generate_energy_heatmap_plot(results: &[(Pos2, f64, f64, f64)], obstacles: &[Obstacle], grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {
+    // Extract energy data for heatmap
+    let energy_results: Vec<(Pos2, f64)> = results.iter()
+        .map(|(pos, energy, _, _)| (*pos, *energy))
+        .collect();
+    
     // Create interpolated grid for smooth heatmap
     let interp_resolution = 1000; // Higher resolution for smooth interpolation
-    let (x_grid, y_grid, z_grid) = interpolate_results(results, obstacles, interp_resolution);
+    let (x_grid, y_grid, z_grid) = interpolate_results(&energy_results, obstacles, interp_resolution);
     
-    let heatmap = HeatMap::new(x_grid, y_grid, z_grid);
+    let heatmap = HeatMap::new(x_grid, y_grid, z_grid)
+        .color_bar(
+            plotly::common::ColorBar::new()
+                .title("Energy Consumption (Wh)")
+                .tick_font(plotly::common::Font::new().size(14))
+        );
     
     let mut plot = Plot::new();
     plot.add_trace(heatmap);
@@ -403,18 +448,262 @@ fn generate_heatmap_plot(results: &[(Pos2, f64)], obstacles: &[Obstacle], grid_r
         plot.add_trace(obstacle_trace);
     }
     
-    let layout = Layout::new()
-        .title(&format!("Grid Search Results - Heatmap ({}x{})", grid_resolution, grid_resolution))
-        .width(1200)
-        .height(800)
-        .x_axis(plotly::layout::Axis::new().title("X Position (m)"))
-        .y_axis(plotly::layout::Axis::new().title("Y Position (m)"));
+    // Add optimization minimum point if provided (using black marker for better visibility)
+    if let Some((opt_pos, _opt_value)) = optimization_minimum {
+        let opt_trace = Scatter::new(vec![opt_pos.x as f64], vec![opt_pos.y as f64])
+            .mode(Mode::Markers)
+            .name("Optimization Minimum")
+            .show_legend(false)  // Don't show in legend
+            .marker(Marker::new().size(15).color("black"));
+        
+        plot.add_trace(opt_trace);
+        
+        // Add text annotation above the marker
+        let annotation = plotly::layout::Annotation::new()
+            .x(opt_pos.x as f64)
+            .y(opt_pos.y as f64 + 0.4)  // Position text slightly above the marker
+            .text(&format!("Minimum"))
+            .show_arrow(false)
+            .font(plotly::common::Font::new().size(18).color("black"));
+
+        let layout = Layout::new()
+            .title(&format!("Grid Search Results - Energy Consumption Heatmap ({}x{})", grid_resolution, grid_resolution))
+            .width(1200)
+            .height(800)
+            .font(plotly::common::Font::new().size(16).color("black"))
+            .x_axis(plotly::layout::Axis::new()
+                .title("X Position (m)")
+                .tick_font(plotly::common::Font::new().size(16)))
+            .y_axis(plotly::layout::Axis::new()
+                .title("Y Position (m)")
+                .tick_font(plotly::common::Font::new().size(16)))
+            .annotations(vec![annotation]);
+        
+        plot.set_layout(layout);
+
+    } else {
+        let layout = Layout::new()
+                .title(&format!("Grid Search Results - Energy Consumption Heatmap ({}x{})", grid_resolution, grid_resolution))
+                .width(1200)
+                .height(800)
+                .font(plotly::common::Font::new().size(16).color("black"))
+                .x_axis(plotly::layout::Axis::new()
+                    .title("X Position (m)")
+                    .tick_font(plotly::common::Font::new().size(16)))
+                .y_axis(plotly::layout::Axis::new()
+                    .title("Y Position (m)")
+                    .tick_font(plotly::common::Font::new().size(16)));
+            
+            plot.set_layout(layout);
+    }    
     
-    plot.set_layout(layout);
-    
-    let filename = format!("results/grid_search_{}x{}_heatmap.html", grid_resolution, grid_resolution);
+    let filename = format!("results/grid_search_{}x{}_energy_heatmap.html", grid_resolution, grid_resolution);
     plot.write_html(&filename);
-    println!("Heatmap saved to: {}", filename);
+    println!("Energy heatmap saved to: {}", filename);
+}
+
+/// Generate 2D heatmap plot for total distance driven with interpolation
+fn generate_distance_heatmap_plot(results: &[(Pos2, f64, f64, f64)], obstacles: &[Obstacle], grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {
+    // Extract distance data for heatmap
+    let distance_results: Vec<(Pos2, f64)> = results.iter()
+        .map(|(pos, _, total_distance, _)| (*pos, *total_distance))
+        .collect();
+    
+    // Create interpolated grid for smooth heatmap
+    let interp_resolution = 1000; // Higher resolution for smooth interpolation
+    let (x_grid, y_grid, z_grid) = interpolate_results(&distance_results, obstacles, interp_resolution);
+    
+    let heatmap = HeatMap::new(x_grid, y_grid, z_grid)
+        .color_bar(
+            plotly::common::ColorBar::new()
+                .title("Total Distance Driven (m)")
+                .tick_font(plotly::common::Font::new().size(14))
+        );
+    
+    let mut plot = Plot::new();
+    plot.add_trace(heatmap);
+    
+    // Add obstacle boundaries as traces
+    for (i, obstacle) in obstacles.iter().enumerate() {
+        let mut obstacle_x = Vec::new();
+        let mut obstacle_y = Vec::new();
+
+        // Add each edge of the obstacle
+        for point in &obstacle.points {
+            obstacle_x.push(point.x as f64);
+            obstacle_y.push(point.y as f64);
+        }
+
+        // Close the polygon by connecting the last point to the first
+        if let Some(first_point) = obstacle.points.first() {
+            obstacle_x.push(first_point.x as f64);
+            obstacle_y.push(first_point.y as f64);
+        }
+
+        // Create a trace for the obstacle
+        let obstacle_trace = Scatter::new(obstacle_x, obstacle_y)
+            .mode(Mode::Lines)
+            .name(&format!("Obstacle {}", i + 1))
+            .show_legend(false)
+            .line(plotly::common::Line::new().color("black").width(2.0));
+        
+        plot.add_trace(obstacle_trace);
+    }
+    
+    // Add optimization minimum point if provided (using black marker for better visibility)
+    if let Some((opt_pos, _opt_value)) = optimization_minimum {
+        let opt_trace = Scatter::new(vec![opt_pos.x as f64], vec![opt_pos.y as f64])
+            .mode(Mode::Markers)
+            .name("Energy Consumption Optimization Minimum")
+            .show_legend(false)  // Don't show in legend
+            .marker(Marker::new().size(15).color("black"));
+        
+        plot.add_trace(opt_trace);
+        
+        // Add text annotation above the marker
+        let annotation = plotly::layout::Annotation::new()
+            .x(opt_pos.x as f64)
+            .y(opt_pos.y as f64 + 0.4)  // Position text slightly above the marker
+            .text(&format!("Minimum"))
+            .show_arrow(false)
+            .font(plotly::common::Font::new().size(18).color("black"));
+
+        let layout = Layout::new()
+            .title(&format!("Grid Search Results - Total Distance Heatmap ({}x{})", grid_resolution, grid_resolution))
+            .width(1200)
+            .height(800)
+            .font(plotly::common::Font::new().size(16).color("black"))
+            .x_axis(plotly::layout::Axis::new()
+                .title("X Position (m)")
+                .tick_font(plotly::common::Font::new().size(16)))
+            .y_axis(plotly::layout::Axis::new()
+                .title("Y Position (m)")
+                .tick_font(plotly::common::Font::new().size(16)))
+            .annotations(vec![annotation]);
+        
+        plot.set_layout(layout);
+
+    } else {
+        let layout = Layout::new()
+                .title(&format!("Grid Search Results - Total Distance Heatmap ({}x{})", grid_resolution, grid_resolution))
+                .width(1200)
+                .height(800)
+                .font(plotly::common::Font::new().size(16).color("black"))
+                .x_axis(plotly::layout::Axis::new()
+                    .title("X Position (m)")
+                    .tick_font(plotly::common::Font::new().size(16)))
+                .y_axis(plotly::layout::Axis::new()
+                    .title("Y Position (m)")
+                    .tick_font(plotly::common::Font::new().size(16)));
+            
+            plot.set_layout(layout);
+    }    
+    
+    let filename = format!("results/grid_search_{}x{}_distance_heatmap.html", grid_resolution, grid_resolution);
+    plot.write_html(&filename);
+    println!("Total distance heatmap saved to: {}", filename);
+}
+
+/// Generate 2D heatmap plot for charging distance with interpolation
+fn generate_charging_distance_heatmap_plot(results: &[(Pos2, f64, f64, f64)], obstacles: &[Obstacle], grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {
+    // Extract charging distance data for heatmap
+    let charging_distance_results: Vec<(Pos2, f64)> = results.iter()
+        .map(|(pos, _, _, charging_distance)| (*pos, *charging_distance))
+        .collect();
+    
+    // Create interpolated grid for smooth heatmap
+    let interp_resolution = 1000; // Higher resolution for smooth interpolation
+    let (x_grid, y_grid, z_grid) = interpolate_results(&charging_distance_results, obstacles, interp_resolution);
+    
+    let heatmap = HeatMap::new(x_grid, y_grid, z_grid)
+        .color_bar(
+            plotly::common::ColorBar::new()
+                .title("Total Charging Distance (m)")
+                .tick_font(plotly::common::Font::new().size(14))
+        );
+    
+    let mut plot = Plot::new();
+    plot.add_trace(heatmap);
+    
+    // Add obstacle boundaries as traces
+    for (i, obstacle) in obstacles.iter().enumerate() {
+        let mut obstacle_x = Vec::new();
+        let mut obstacle_y = Vec::new();
+
+        // Add each edge of the obstacle
+        for point in &obstacle.points {
+            obstacle_x.push(point.x as f64);
+            obstacle_y.push(point.y as f64);
+        }
+
+        // Close the polygon by connecting the last point to the first
+        if let Some(first_point) = obstacle.points.first() {
+            obstacle_x.push(first_point.x as f64);
+            obstacle_y.push(first_point.y as f64);
+        }
+
+        // Create a trace for the obstacle
+        let obstacle_trace = Scatter::new(obstacle_x, obstacle_y)
+            .mode(Mode::Lines)
+            .name(&format!("Obstacle {}", i + 1))
+            .show_legend(false)
+            .line(plotly::common::Line::new().color("black").width(2.0));
+        
+        plot.add_trace(obstacle_trace);
+    }
+    
+    // Add optimization minimum point if provided (using black marker for better visibility)
+    if let Some((opt_pos, _opt_value)) = optimization_minimum {
+        let opt_trace = Scatter::new(vec![opt_pos.x as f64], vec![opt_pos.y as f64])
+            .mode(Mode::Markers)
+            .name("Energy Consumption Optimization Minimum")
+            .show_legend(false)  // Don't show in legend
+            .marker(Marker::new().size(15).color("black"));
+        
+        plot.add_trace(opt_trace);
+        
+        // Add text annotation above the marker
+        let annotation = plotly::layout::Annotation::new()
+            .x(opt_pos.x as f64)
+            .y(opt_pos.y as f64 + 0.4)  // Position text slightly above the marker
+            .text(&format!("Minimum"))
+            .show_arrow(false)
+            .font(plotly::common::Font::new().size(18).color("black"));
+
+        let layout = Layout::new()
+            .title(&format!("Grid Search Results - Charging Distance Heatmap ({}x{})", grid_resolution, grid_resolution))
+            .width(1200)
+            .height(800)
+            .font(plotly::common::Font::new().size(16).color("black"))
+            .x_axis(plotly::layout::Axis::new()
+                .title("X Position (m)")
+                .tick_font(plotly::common::Font::new().size(16)))
+            .y_axis(plotly::layout::Axis::new()
+                .title("Y Position (m)")
+                .tick_font(plotly::common::Font::new().size(16)))
+            .annotations(vec![annotation]);
+        
+        plot.set_layout(layout);
+
+    } else {
+        let layout = Layout::new()
+                .title(&format!("Grid Search Results - Charging Distance Heatmap ({}x{})", grid_resolution, grid_resolution))
+                .width(1200)
+                .height(800)
+                .font(plotly::common::Font::new().size(16).color("black"))
+                .x_axis(plotly::layout::Axis::new()
+                    .title("X Position (m)")
+                    .tick_font(plotly::common::Font::new().size(16)))
+                .y_axis(plotly::layout::Axis::new()
+                    .title("Y Position (m)")
+                    .tick_font(plotly::common::Font::new().size(16)));
+            
+            plot.set_layout(layout);
+    }    
+    
+    let filename = format!("results/grid_search_{}x{}_charging_distance_heatmap.html", grid_resolution, grid_resolution);
+    plot.write_html(&filename);
+    println!("Charging distance heatmap saved to: {}", filename);
 }
 
 /// Interpolate results to create smooth heatmap
@@ -462,12 +751,12 @@ fn interpolate_results(
             for (result_pos, energy) in results {
                 let distance = ((point.x - result_pos.x).powi(2) + (point.y - result_pos.y).powi(2)).sqrt();
                 
-                if distance < 0.01 {
+                if distance < 0.001 {
                     // Very close to a data point, use exact value
                     z_grid[j][i] = *energy;
                     break;
                 } else {
-                    let weight = 1.0 / (distance as f64).powi(2);
+                    let weight = 1.0 / (distance as f64).powi(4);
                     weighted_sum += weight * energy;
                     weight_sum += weight;
                 }
@@ -481,6 +770,7 @@ fn interpolate_results(
     
     (x_grid, y_grid, z_grid)
 }
+
 
 // Helper functions (copied from optimization.rs to avoid duplication)
 
@@ -528,5 +818,215 @@ fn point_to_line_distance(point: Pos2, line_start: Pos2, line_end: Pos2) -> f32 
     
     let dist_vec = Pos2::new(point.x - projection.x, point.y - projection.y);
     (dist_vec.x * dist_vec.x + dist_vec.y * dist_vec.y).sqrt()
+}
+
+/// Generate 2D multi-station visualization with heatmap-style appearance
+pub fn generate_multi_station_plot(
+    optimal_stations: &[Pos2],
+    optimal_energy: f64,
+    suboptimal_configs: &[(Vec<Pos2>, f64)], // Up to 4-5 suboptimal configurations
+    obstacles: &[Obstacle],
+    field_bounds: (f32, f32, f32, f32), // (min_x, max_x, min_y, max_y)
+) {
+    let mut plot = Plot::new();
+    
+    // Collect all energy values for ranking
+    let mut all_configs = vec![(optimal_stations.to_vec(), optimal_energy)];
+    for (stations, energy) in suboptimal_configs {
+        all_configs.push((stations.clone(), *energy));
+    }
+    
+    // Sort by energy (ascending) to determine color ranking
+    let mut energy_rank: Vec<(usize, f64)> = all_configs.iter().enumerate()
+        .map(|(i, (_, energy))| (i, *energy))
+        .collect();
+    energy_rank.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+    
+    // Heatmap-style color scheme (blue to red)
+    let colors = [
+        "#321decff",  "#5754f7ff", "#adb3ffff", "#f0c49cff", "#f3a172ff", "#f3584dff", "#ee2e2eff"
+    ];
+    
+    // Add optimal configuration (first in sorted list)
+    let opt_x: Vec<f64> = optimal_stations.iter().map(|p| p.x as f64).collect();
+    let opt_y: Vec<f64> = optimal_stations.iter().map(|p| p.y as f64).collect();
+    let optimal_rank = energy_rank.iter().position(|(i, _)| *i == 0).unwrap_or(0);
+    let optimal_color_idx = optimal_rank.min(colors.len() - 1);
+    
+    let optimal_trace = Scatter::new(opt_x.clone(), opt_y.clone())
+        .mode(Mode::Markers)
+        .name(&format!("Optimal ({:.1} Wh)", optimal_energy))
+        .marker(Marker::new()
+            .size(18)
+            .color(colors[optimal_color_idx])
+            .line(plotly::common::Line::new().width(3.0).color("black"))
+            .symbol(plotly::common::MarkerSymbol::Star)); // Always use star for optimal
+    
+    plot.add_trace(optimal_trace);
+    
+    
+    // Add suboptimal configurations
+    for (i, (stations, energy)) in suboptimal_configs.iter().enumerate() {
+        let x_coords: Vec<f64> = stations.iter().map(|p| p.x as f64).collect();
+        let y_coords: Vec<f64> = stations.iter().map(|p| p.y as f64).collect();
+        
+        let config_rank = energy_rank.iter().position(|(idx, _)| *idx == i + 1).unwrap_or(colors.len() - 1);
+        let color_idx = config_rank.min(colors.len() - 1);
+        
+        // Use different marker shape for each config (cycle through available shapes)
+        let marker_symbol = match i {
+            0 => plotly::common::MarkerSymbol::Circle,
+            1 => plotly::common::MarkerSymbol::Square,
+            2 => plotly::common::MarkerSymbol::Diamond,
+            3 => plotly::common::MarkerSymbol::Cross,
+            4 => plotly::common::MarkerSymbol::X,
+            _ => plotly::common::MarkerSymbol::Hexagon,
+        };
+        
+        let trace = Scatter::new(x_coords.clone(), y_coords.clone())
+            .mode(Mode::Markers)
+            .name(&format!("Config {} ({:.1} Wh)", i + 1, energy))
+            .marker(Marker::new()
+                .size(14)
+                .color(colors[color_idx])
+                .line(plotly::common::Line::new().width(2.0).color("black"))
+                .symbol(marker_symbol));
+        
+        plot.add_trace(trace);
+    }
+    
+    // Add obstacles (same style as heatmap)
+    for (i, obstacle) in obstacles.iter().enumerate() {
+        let mut obstacle_x = Vec::new();
+        let mut obstacle_y = Vec::new();
+
+        for point in &obstacle.points {
+            obstacle_x.push(point.x as f64);
+            obstacle_y.push(point.y as f64);
+        }
+
+        // Close the polygon
+        if let Some(first_point) = obstacle.points.first() {
+            obstacle_x.push(first_point.x as f64);
+            obstacle_y.push(first_point.y as f64);
+        }
+
+        let obstacle_trace = Scatter::new(obstacle_x, obstacle_y)
+            .mode(Mode::Lines)
+            .name(&format!("Obstacle {}", i + 1))
+            .show_legend(false)
+            .line(plotly::common::Line::new().color("black").width(2.0));
+
+        
+        plot.add_trace(obstacle_trace);
+    }
+    
+    // Add field boundaries as visible lines
+    let boundary_x = vec![
+        field_bounds.0 as f64, field_bounds.1 as f64, field_bounds.1 as f64, 
+        field_bounds.0 as f64, field_bounds.0 as f64
+    ];
+    let boundary_y = vec![
+        field_bounds.2 as f64, field_bounds.2 as f64, field_bounds.3 as f64, 
+        field_bounds.3 as f64, field_bounds.2 as f64
+    ];
+    
+    let boundary_trace = Scatter::new(boundary_x, boundary_y)
+        .mode(Mode::Lines)
+        .name("Field Boundary")
+        .show_legend(false)
+        .line(plotly::common::Line::new().color("black").width(2.0));
+    
+    plot.add_trace(boundary_trace);
+    
+    // Create layout matching heatmap style
+    let layout = Layout::new()
+        .title("Charging Station Position Optimization Results")
+        .width(1200)  // Match heatmap size
+        .height(800)
+        .font(plotly::common::Font::new().size(16).color("black"))
+        .x_axis(plotly::layout::Axis::new()
+            .title("X Position (m)")
+            .range(vec![field_bounds.0 as f64 - 0.5, field_bounds.1 as f64 + 0.5])
+            .tick_font(plotly::common::Font::new().size(16))
+            .show_grid(false)  // Remove grid
+            .show_line(true)   // Show axis line
+            .line_color("black")
+            .line_width(1))
+        .y_axis(plotly::layout::Axis::new()
+            .title("Y Position (m)")
+            .range(vec![field_bounds.2 as f64 - 0.5, field_bounds.3 as f64 + 0.5])
+            .tick_font(plotly::common::Font::new().size(16))
+            .show_grid(false)  // Remove grid
+            .show_line(true)   // Show axis line
+            .line_color("black")
+            .line_width(1))
+        .legend(plotly::layout::Legend::new()
+            .x(1.02)
+            .y(1.0)
+            .font(plotly::common::Font::new().size(11)))
+        .plot_background_color("white")
+        .paper_background_color("white")
+        .show_legend(true);
+    
+    plot.set_layout(layout);
+    
+    // Save plot
+    let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
+    let filename = format!("results/multi_station_optimization_journal_{}.html", timestamp);
+    plot.write_html(&filename);
+    
+    println!("Multi-station journal plot saved to: {}", filename);
+}
+
+
+
+/// Example function demonstrating how to generate journal-ready plots for multi-station configurations
+pub fn multi_station_plot_function() {
+    use egui::Pos2;
+    use crate::environment::obstacle::Obstacle;
+    
+    // Example optimal and suboptimal station configurations
+    let optimal_stations = vec![Pos2::new(300.0, 200.0), Pos2::new(700.0, 400.0)];
+    let optimal_energy = 2150.0;
+    
+    let suboptimal_configs = vec![
+        (vec![Pos2::new(250.0, 150.0), Pos2::new(750.0, 450.0)], 2300.0),
+        (vec![Pos2::new(400.0, 100.0), Pos2::new(600.0, 500.0)], 2450.0),
+        (vec![Pos2::new(200.0, 300.0), Pos2::new(800.0, 300.0)], 2600.0),
+        (vec![Pos2::new(350.0, 350.0), Pos2::new(650.0, 350.0)], 2750.0),
+    ];
+    
+    // Example obstacles
+    let obstacles = vec![
+        Obstacle {
+            points: vec![
+                Pos2::new(450.0, 250.0),
+                Pos2::new(550.0, 250.0),
+                Pos2::new(550.0, 350.0),
+                Pos2::new(450.0, 350.0),
+            ],
+        },
+    ];
+    
+    // Field boundaries (min_x, max_x, min_y, max_y)
+    let field_bounds = (0.0, 1000.0, 0.0, 600.0);
+    
+    // Generate journal plot
+    generate_multi_station_plot(
+        &optimal_stations,
+        optimal_energy,
+        &suboptimal_configs,
+        &obstacles,
+        field_bounds,
+    );
+    
+    // Generate energy comparison plot with all configurations
+    let mut all_configs = vec![(optimal_stations, optimal_energy)];
+    all_configs.extend(suboptimal_configs);
+    
+    println!("Demo journal plots generated successfully!");
+    println!("Optimal configuration: 2 stations at ({:.0}, {:.0}) and ({:.0}, {:.0}) with {:.1} Wh energy consumption",
+        300.0, 200.0, 700.0, 400.0, optimal_energy);
 }
 

@@ -150,7 +150,7 @@ impl ExperimentRunner {
                 env.step(); // Perform the simulation step
                 
                 // Track agent actions
-                for (i, agent) in env.agents.iter().enumerate() {
+                /* for (i, agent) in env.agents.iter().enumerate() {
                     if i < self.previous_agent_states.len() && i < self.previous_agent_positions.len() {
                         let current_state = &agent.state;
                         let current_position = agent.pose.position;
@@ -205,7 +205,7 @@ impl ExperimentRunner {
                         self.previous_agent_states[i] = current_state.clone();
                         self.previous_agent_positions[i] = current_position;
                     }
-                }
+                } */
 
                 // Track energy levels after the step
                 let energy_after: Vec<Energy> = env.agents.iter()

@@ -13,6 +13,7 @@
 
 pub mod app_module;
 use crate::app_module::app::App;
+use egui::Pos2;
 
 pub mod tool_module;
 pub mod rendering;
@@ -50,7 +51,23 @@ fn main() -> Result<(), eframe::Error> {
         } else {
             10
         };
-        experiment::run_grid_search_experiment(grid_resolution);
+        // Check for minimum argument (expects: --min x y value)
+        let optimization_minimum = if let Some(pos) = args.iter().position(|x| x == "--min") {
+            if pos + 3 < args.len() {
+                let x = args[pos + 1].parse::<f32>().unwrap_or(0.0);
+                let y = args[pos + 2].parse::<f32>().unwrap_or(0.0);
+                let value = args[pos + 3].parse::<f64>().unwrap_or(0.0);
+                Some((Pos2::new(x, y), value))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        experiment::run_grid_search_experiment(grid_resolution, optimization_minimum);
+        return Ok(());
+    } else if args.contains(&"--plot-multiple".to_string()) {
+        experiment::multi_station_plot_function();
         return Ok(());
     }
 
