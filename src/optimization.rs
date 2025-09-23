@@ -20,7 +20,7 @@ use std::fmt;
 use std::sync::{Arc, RwLock};
 use std::time::Instant;
 use egui::Pos2;
-use plotly::{Plot, Scatter3D};
+use plotly::{Plot, Scatter3D, ImageFormat};
 use plotly::layout::{Layout, Axis};
 use plotly::common::{Marker, Mode};
 use serde::{Deserialize, Serialize};
@@ -49,9 +49,9 @@ pub struct OptimizationResults {
 
 // Define field boundaries for optimization (adjust these based on your actual farm layout)
 const FIELD_MIN_X: f32 = 0.0;
-const FIELD_MAX_X: f32 = 8.0;  // width in meters
+const FIELD_MAX_X: f32 = 25.0;  // width in meters
 const FIELD_MIN_Y: f32 = 0.0;
-const FIELD_MAX_Y: f32 = 28.0;  // height in meters
+const FIELD_MAX_Y: f32 = 25.0;  // height in meters
 const STATION_MARGIN: f32 = 0.4; // Keep stations at least 0.4m from field edges
 const OBSTACLE_MARGIN: f32 = 0.4; // Keep stations at least 0.4m from obstacles
 
@@ -241,7 +241,7 @@ impl StationPositions {
         env_config.scene_config_path = temp_scene_path.clone();
         env_config.agent_config_path = DEFAULT_AGENT_CONFIG_PATH.to_string();
         env_config.datetime_config = DateTimeConfig::from_string("01.01.2025 08:00:00".to_string());
-        env_config.n_agents = 1;
+        env_config.n_agents = 4;
 
         env_config.task_manager_config.charging_strategy = ChargingStrategy::CriticalOnly;
         env_config.task_manager_config.choose_station_strategy = ChooseStationStrategy::ClosestManhattan;
@@ -460,7 +460,7 @@ pub fn optimize_station_positions_ego(max_iterations: usize) -> StationPositions
 
     // Generate initial valid starting points
     let mut rng = rand::rng();
-    let initial_positions = StationPositions::generate_initial_population(&obstacles, n_stations, 20, &mut rng);
+    let initial_positions = StationPositions::generate_initial_population(&obstacles, n_stations, 100, &mut rng);
     
     // Convert initial population to optimization vectors
     let initial_x: Array2<f64> = Array2::from_shape_vec(
@@ -584,7 +584,7 @@ pub fn optimize_station_positions_ego(max_iterations: usize) -> StationPositions
             
             // Return a random valid configuration as fallback
             let mut rng = rand::rng();
-            StationPositions::generate_initial_population(&obstacles, n_stations, 50, &mut rng)
+            StationPositions::generate_initial_population(&obstacles, n_stations, 200, &mut rng)
                 .into_iter()
                 .next()
                 .unwrap()
@@ -720,7 +720,16 @@ pub fn visualize_optimization_results(
 
     // Save the plot to an HTML file => concat timestamp with path
     let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
-    plot.write_html(format!("{}{}", OPTIMIZATION_RESULTS_PATH, timestamp));
+    let filename_html = format!("{}{}.html", OPTIMIZATION_RESULTS_PATH, timestamp);
+    let filename_svg = format!("{}{}.svg", OPTIMIZATION_RESULTS_PATH, timestamp);
+    
+    plot.write_html(&filename_html);
+    if let Err(e) = plot.write_image(&filename_svg, ImageFormat::SVG, 860, 800, 1.0) {
+        eprintln!("Failed to write SVG file: {}", e);
+        println!("Optimization plot saved to: {}", filename_html);
+    } else {
+        println!("Optimization plot saved to: {} and {}", filename_html, filename_svg);
+    }
 }
 
 // Save the optimal station configuration
@@ -787,10 +796,16 @@ pub fn generate_convergence_plot(convergence_history: &[(usize, f64, Vec<(f32, f
     plot.set_layout(layout);
     
     let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
-    let filename = format!("{}{}_convergence.html", OPTIMIZATION_RESULTS_PATH, timestamp);
-    plot.write_html(&filename);
+    let filename_html = format!("{}{}_convergence.html", OPTIMIZATION_RESULTS_PATH, timestamp);
+    let filename_svg = format!("{}{}_convergence.svg", OPTIMIZATION_RESULTS_PATH, timestamp);
     
-    println!("Convergence plot saved to: {}", filename);
+    plot.write_html(&filename_html);
+    if let Err(e) = plot.write_image(&filename_svg, ImageFormat::SVG, 860, 800, 1.0) {
+        eprintln!("Failed to write SVG file: {}", e);
+        println!("Convergence plot saved to: {}", filename_html);
+    } else {
+        println!("Convergence plot saved to: {} and {}", filename_html, filename_svg);
+    }
     println!("Convergence summary:");
     println!("  Initial best: {:.2} Wh", best_energies.first().unwrap_or(&0.0));
     println!("  Final best: {:.2} Wh", best_energies.last().unwrap_or(&0.0));
