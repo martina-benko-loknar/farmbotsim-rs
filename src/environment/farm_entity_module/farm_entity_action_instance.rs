@@ -67,7 +67,7 @@ impl FarmEntityActionInstance {
                     .iter()
                     .map(|pos| Pose {
                         position: *pos,
-                        orientation: Angle::ZERO,
+                        orientation: Angle::degrees(90.0),
                     })
                     .collect();
                 Some(Task::Moving {

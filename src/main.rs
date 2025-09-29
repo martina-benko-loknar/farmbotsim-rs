@@ -38,7 +38,7 @@ fn main() -> Result<(), eframe::Error> {
         experiment::run_experiment(); // Call the experiment function
         return Ok(());
     } else if args.contains(&"--optimize".to_string()) {
-        optimization::optimize_station_positions_ego(100);
+        optimization::optimize_station_positions_ego(50);
         return Ok(());                
     } else if args.contains(&"--grid-search".to_string()) {
         // Check for grid resolution argument

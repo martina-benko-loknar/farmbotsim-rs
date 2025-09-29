@@ -55,6 +55,14 @@ const FIELD_MAX_Y: f32 = 25.0;  // height in meters
 const STATION_MARGIN: f32 = 0.4; // Keep stations at least 0.4m from field edges
 const OBSTACLE_MARGIN: f32 = 0.4; // Keep stations at least 0.4m from obstacles
 
+/// Round coordinates to 2 decimal places (centimeters) to prevent floating-point precision issues
+fn round_to_centimeters(pos: Pos2) -> Pos2 {
+    Pos2::new(
+        (pos.x * 100.0).round() / 100.0,
+        (pos.y * 100.0).round() / 100.0
+    )
+}
+
 // Define the parameters for station position optimization 
 #[derive(Clone)]
 pub struct StationPositions {
@@ -102,7 +110,8 @@ impl StationPositions {
             let x_clamped = x_coord.clamp(FIELD_MIN_X + STATION_MARGIN, FIELD_MAX_X - STATION_MARGIN);
             let y_clamped = y_coord.clamp(FIELD_MIN_Y + STATION_MARGIN, FIELD_MAX_Y - STATION_MARGIN);
             
-            station_positions.push(Pos2::new(x_clamped, y_clamped));
+            // Round to centimeters to prevent floating-point precision issues
+            station_positions.push(round_to_centimeters(Pos2::new(x_clamped, y_clamped)));
         }
         
         Self {
@@ -118,7 +127,7 @@ impl StationPositions {
         for _ in 0..max_attempts {
             let x = rng.random_range((FIELD_MIN_X + STATION_MARGIN)..(FIELD_MAX_X - STATION_MARGIN));
             let y = rng.random_range((FIELD_MIN_Y + STATION_MARGIN)..(FIELD_MAX_Y - STATION_MARGIN));
-            let candidate = Pos2::new(x, y);
+            let candidate = round_to_centimeters(Pos2::new(x, y));
             
             // Check if this position is valid (doesn't intersect with obstacles)
             if Self::is_position_valid(candidate, obstacles) {
@@ -128,10 +137,10 @@ impl StationPositions {
         
         // Fallback: return a position at field center if no valid position found
         println!("Warning: Could not find valid position after {} attempts, using field center", max_attempts);
-        Pos2::new(
+        round_to_centimeters(Pos2::new(
             (FIELD_MIN_X + FIELD_MAX_X) / 2.0,
             (FIELD_MIN_Y + FIELD_MAX_Y) / 2.0
-        )
+        ))
     }
     
     // Check if a position is valid (not inside or too close to obstacles)
@@ -244,7 +253,7 @@ impl StationPositions {
         env_config.n_agents = 4;
 
         env_config.task_manager_config.charging_strategy = ChargingStrategy::CriticalOnly;
-        env_config.task_manager_config.choose_station_strategy = ChooseStationStrategy::ClosestManhattan;
+        env_config.task_manager_config.choose_station_strategy = ChooseStationStrategy::ClosestMinQueueManhattan;
 
         // Create experiment runner
         let runner_random_id: u32 = rand::random();
@@ -307,9 +316,6 @@ impl StationPositions {
             // Create new station config with optimized position but keep other properties
             let mut station_config = original_station.clone();
             station_config.pose.position = *position;
-            
-            // Update slot positions based on new pose
-            station_config.update_slots_pose();
             
             station_configs.push(station_config);
         }
@@ -526,7 +532,8 @@ pub fn optimize_station_positions_ego(max_iterations: usize) -> StationPositions
             let x_clamped = x_coord.clamp(FIELD_MIN_X + STATION_MARGIN, FIELD_MAX_X - STATION_MARGIN);
             let y_clamped = y_coord.clamp(FIELD_MIN_Y + STATION_MARGIN, FIELD_MAX_Y - STATION_MARGIN);
             
-            let position = Pos2::new(x_clamped, y_clamped);
+            // Round to centimeters to prevent floating-point precision issues
+            let position = round_to_centimeters(Pos2::new(x_clamped, y_clamped));
             
             // Check if position is valid
             if !StationPositions::is_position_valid(position, &obstacles) {
@@ -584,7 +591,7 @@ pub fn optimize_station_positions_ego(max_iterations: usize) -> StationPositions
             
             // Return a random valid configuration as fallback
             let mut rng = rand::rng();
-            StationPositions::generate_initial_population(&obstacles, n_stations, 200, &mut rng)
+            StationPositions::generate_initial_population(&obstacles, n_stations, 100, &mut rng)
                 .into_iter()
                 .next()
                 .unwrap()

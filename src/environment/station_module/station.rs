@@ -12,7 +12,7 @@ pub enum StationPosType {
 }
 
 /// Represents station ID
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct StationId(u32);
 impl StationId {
     pub fn new(id: u32) -> Self {

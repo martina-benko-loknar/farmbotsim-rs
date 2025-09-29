@@ -231,7 +231,11 @@ impl TaskManager {
 
     /// Updates stations by moving agents from queues to slots, updating their tasks and paths accordingly and adds to updated agent IDs.
     pub fn update_stations_on_agent_release(&mut self, station_ids_updated: HashSet<StationId>, agent_ids_updated: &mut HashSet<AgentId>, stations: &mut [Station], agents: &mut [Agent]) {
-        for station_id in station_ids_updated {
+        // Convert HashSet to sorted Vec to ensure deterministic processing order
+        let mut sorted_station_ids: Vec<_> = station_ids_updated.into_iter().collect();
+        sorted_station_ids.sort();
+        
+        for station_id in sorted_station_ids {
             if let Some(station) = stations.iter_mut().find(|s| s.id == station_id) {
                 if station.queue.is_empty() {continue;}
 
@@ -535,8 +539,10 @@ impl TaskManager {
                 stations
                     .iter()
                     .enumerate()
-                    .min_by_key(|(_, station)| {
-                        (manhattan_distance(agent.pose.position, station.pose.position) * 1000.0) as usize
+                    .min_by(|(_, station_a), (_, station_b)| {
+                        let dist_a = manhattan_distance(agent.pose.position, station_a.pose.position);
+                        let dist_b = manhattan_distance(agent.pose.position, station_b.pose.position);
+                        dist_a.partial_cmp(&dist_b).unwrap_or(std::cmp::Ordering::Equal)
                     })
                     .map(|(idx, _)| idx)
                     .unwrap_or(0)
@@ -570,10 +576,16 @@ impl TaskManager {
                 stations
                     .iter()
                     .enumerate()
-                    .min_by_key(|(_, station)| {
-                        let base_dist = manhattan_distance(agent.pose.position, station.pose.position);
-                        let penalty = 40.0 * (station.n_occupied_slots() as usize + station.queue.len()) as f32;
-                        ((base_dist + penalty) * 1000.0) as usize
+                    .min_by(|(_, station_a), (_, station_b)| {
+                        let base_dist_a = manhattan_distance(agent.pose.position, station_a.pose.position);
+                        let penalty_a = 40.0 * (station_a.n_occupied_slots() as usize + station_a.queue.len()) as f32;
+                        let total_a = base_dist_a + penalty_a;
+                        
+                        let base_dist_b = manhattan_distance(agent.pose.position, station_b.pose.position);
+                        let penalty_b = 40.0 * (station_b.n_occupied_slots() as usize + station_b.queue.len()) as f32;
+                        let total_b = base_dist_b + penalty_b;
+                        
+                        total_a.partial_cmp(&total_b).unwrap_or(std::cmp::Ordering::Equal)
                     })
                     .map(|(idx, _)| idx)
                     .unwrap_or(0)

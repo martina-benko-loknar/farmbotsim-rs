@@ -10,7 +10,7 @@ use crate::environment::{
     obstacle::Obstacle,
 };
 use crate::task_module::strategies::{ChargingStrategy, ChooseStationStrategy};
-use crate::units::energy::Energy;
+use crate::units::{energy::Energy, duration::Duration};
 use egui::Pos2;
 use plotly::{Plot, Scatter, Scatter3D, HeatMap, Layout, common::{Marker, Mode}, ImageFormat};
 use rand;
@@ -24,7 +24,7 @@ pub fn run_experiment() {
     
     // Configure task manager strategies (this is how PerformanceMatrixTool does it)
     env_config.task_manager_config.charging_strategy = ChargingStrategy::CriticalOnly;
-    env_config.task_manager_config.choose_station_strategy = ChooseStationStrategy::ClosestManhattan;
+    env_config.task_manager_config.choose_station_strategy = ChooseStationStrategy::ClosestMinQueueManhattan;
     
     // Set scene and agent config paths
     env_config.scene_config_path = DEFAULT_SCENE_CONFIG_PATH.to_string();
@@ -46,7 +46,7 @@ pub fn run_experiment() {
         save_file_name: "my_experiment_2025".to_string(),
         start_datetime: None,
         start_time: None,
-        total_energy_consumed: Energy::ZERO,
+        total_energy_consumed: Energy::watt_hours(0.0),
         total_distance_driven: 0.0,
         total_charging_distance: 0.0,
         total_charging_approach_distance: 0.0,
@@ -57,7 +57,7 @@ pub fn run_experiment() {
         agent_actions: Vec::new(),
         previous_agent_states: Vec::new(),
         previous_agent_positions: Vec::new(),
-        step_start_time: crate::units::duration::Duration::ZERO,
+        step_start_time: Duration::ZERO,
     };
     
     println!("Configuration:");
@@ -78,6 +78,13 @@ pub fn run_experiment() {
         runner.save_file_name);
 }
 
+/// Round coordinates to 2 decimal places (centimeters) to prevent floating-point precision issues
+fn round_to_centimeters(pos: Pos2) -> Pos2 {
+    Pos2::new(
+        (pos.x * 100.0).round() / 100.0,
+        (pos.y * 100.0).round() / 100.0
+    )
+}
 
 /// Grid search experiment with optional optimization minimum point and value for visualization
 pub fn run_grid_search_experiment(grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {
@@ -135,7 +142,7 @@ pub fn run_grid_search_experiment(grid_resolution: usize, optimization_minimum: 
     
     // Save results to file
     let results_file = format!("results/grid_search_{}x{}_results.json", grid_resolution, grid_resolution);
-    save_grid_search_results(&results, &results_file);
+    save_grid_search_results(&results, &results_file, optimization_minimum, &field_config, grid_resolution);
     
     // Generate plots
     generate_grid_search_plots(&results, &obstacles, grid_resolution, optimization_minimum);
@@ -172,7 +179,7 @@ fn generate_valid_grid_points(
         for j in 0..resolution {
             let x = min_x + i as f32 * step_x;
             let y = min_y + j as f32 * step_y;
-            let point = Pos2::new(x, y);
+            let point = round_to_centimeters(Pos2::new(x, y));
             
             // Check if point is valid (not too close to obstacles)
             if is_position_valid(point, obstacles, obstacle_margin) {
@@ -223,7 +230,6 @@ fn run_single_grid_experiment(station_position: Pos2, original_scene: &SceneConf
     // Update the first (and only) station position
     if !modified_scene.station_configs.is_empty() {
         modified_scene.station_configs[0].pose.position = station_position;
-        modified_scene.station_configs[0].update_slots_pose();
     } else {
         panic!("No charging stations found in scene config");
     }
@@ -267,7 +273,7 @@ fn run_single_grid_experiment(station_position: Pos2, original_scene: &SceneConf
         agent_actions: Vec::new(),
         previous_agent_states: Vec::new(),
         previous_agent_positions: Vec::new(),
-        step_start_time: crate::units::duration::Duration::ZERO,
+        step_start_time: Duration::ZERO,
     };
     
     // Run the simulation
@@ -286,7 +292,13 @@ fn run_single_grid_experiment(station_position: Pos2, original_scene: &SceneConf
 }
 
 /// Save grid search results to JSON file
-fn save_grid_search_results(results: &[(Pos2, f64, f64, f64)], filename: &str) {
+fn save_grid_search_results(
+    results: &[(Pos2, f64, f64, f64)], 
+    filename: &str, 
+    optimization_minimum: Option<(Pos2, f64)>,
+    field_config: &FieldConfig,
+    grid_resolution: usize
+) {
     use serde_json::{json, Value};
     
     let results_json: Vec<Value> = results.iter()
@@ -301,9 +313,51 @@ fn save_grid_search_results(results: &[(Pos2, f64, f64, f64)], filename: &str) {
         })
         .collect();
     
+    // Convert optimization minimum to JSON
+    let optimization_minimum_json = optimization_minimum.map(|(pos, value)| {
+        json!({
+            "x": pos.x,
+            "y": pos.y,
+            "energy_consumption": value
+        })
+    });
+    
+    // Store field config information and reference to original file
+    const FIELD_MIN_X: f32 = 0.0;
+    const FIELD_MAX_X: f32 = 25.0;
+    const FIELD_MIN_Y: f32 = 0.0;
+    const FIELD_MAX_Y: f32 = 25.0;
+    
+    // Load the original field config path from scene config
+    let scene_config: SceneConfig = crate::utilities::utils::load_json_or_panic(DEFAULT_SCENE_CONFIG_PATH.to_string());
+    let field_config_path = scene_config.field_config_path.clone();
+    
+    // Read the raw JSON content from the original field config file
+    let field_config_raw_json = match std::fs::read_to_string(&field_config_path) {
+        Ok(content) => Some(content),
+        Err(_) => None,
+    };
+    
+    let field_config_json = json!({
+        "field_config_path": field_config_path,
+        "field_config_raw": field_config_raw_json,
+        "field_boundaries_used_in_grid_search": {
+            "min_x": FIELD_MIN_X,
+            "max_x": FIELD_MAX_X,
+            "min_y": FIELD_MIN_Y,
+            "max_y": FIELD_MAX_Y
+        },
+        "num_obstacles": field_config.get_obstacles().len(),
+        "num_field_configs": field_config.configs.len()
+    });
+    
     let output = json!({
         "grid_search_results": results_json,
-        "total_points": results.len()
+        "total_points": results.len(),
+        "grid_resolution": grid_resolution,
+        "optimization_minimum": optimization_minimum_json,
+        "field_config": field_config_json,
+        "generated_at": chrono::Utc::now().to_rfc3339()
     });
     
     match std::fs::write(filename, serde_json::to_string_pretty(&output).unwrap()) {
@@ -471,7 +525,10 @@ fn generate_energy_heatmap_plot(results: &[(Pos2, f64, f64, f64)], obstacles: &[
             .y(opt_pos.y as f64 + 1.0) 
             .text(&format!("Minimum"))
             .show_arrow(false)
-            .font(plotly::common::Font::new().size(18).color("black"));
+            .font(plotly::common::Font::new().size(18).color("black"))
+            .background_color("white")
+            .border_color("black")
+            .border_width(1.0);
 
         let layout = Layout::new()
             .title(&format!("Grid Search Results - Energy Consumption Heatmap ({}x{})", grid_resolution, grid_resolution))
@@ -580,7 +637,10 @@ fn generate_distance_heatmap_plot(results: &[(Pos2, f64, f64, f64)], obstacles: 
             .y(opt_pos.y as f64 + 1.0)  // Position text slightly above the marker
             .text(&format!("Minimum"))
             .show_arrow(false)
-            .font(plotly::common::Font::new().size(18).color("black"));
+            .font(plotly::common::Font::new().size(18).color("black"))
+            .background_color("white")
+            .border_color("black")
+            .border_width(1.0);
 
         let layout = Layout::new()
             .title(&format!("Grid Search Results - Total Distance Heatmap ({}x{})", grid_resolution, grid_resolution))
@@ -689,7 +749,10 @@ fn generate_charging_distance_heatmap_plot(results: &[(Pos2, f64, f64, f64)], ob
             .y(opt_pos.y as f64 + 1.0)  // Position text slightly above the marker
             .text(&format!("Minimum"))
             .show_arrow(false)
-            .font(plotly::common::Font::new().size(18).color("black"));
+            .font(plotly::common::Font::new().size(18).color("black"))
+            .background_color("white")
+            .border_color("black")
+            .border_width(1.0);
 
         let layout = Layout::new()
             .title(&format!("Grid Search Results - Charging Distance Heatmap ({}x{})", grid_resolution, grid_resolution))
@@ -1219,27 +1282,27 @@ pub fn multi_station_plot_function() {
     let field_bounds = (FIELD_MIN_X, FIELD_MAX_X, FIELD_MIN_Y, FIELD_MAX_Y);
     
     // Example optimal and suboptimal station configurations (scaled to field dimensions)
-    let optimal_stations = vec![Pos2::new(11.5, 21.6), Pos2::new(13.6, 6.7)];
-    let optimal_energy = 16857.2;
-    let optimal_distance = 45553.9; // Example optimal total traveling distance
-    
-    let suboptimal_configs_energy = vec![
-        (vec![Pos2::new(2.0, 2.0), Pos2::new(23.0, 23.0)], 17062.0),
-        (vec![Pos2::new(2.0, 12.5), Pos2::new(23.0, 12.5)], 17928.8),
-        (vec![Pos2::new(6.25, 2.0), Pos2::new(6.25, 23.0)], 17348.5),
-        (vec![Pos2::new(12.5, 7.5), Pos2::new(12.5, 17.5)], 17307.1),
-        (vec![Pos2::new(17.5, 2.0), Pos2::new(20.0, 2.0)], 20526.6),
-        (vec![Pos2::new(12.5, 11.5), Pos2::new(12.5, 13.5)], 18599.8),
+    let optimal_stations = vec![Pos2::new(17.11, 1.29), Pos2::new(12.47, 14.34)];
+    let optimal_energy = 15049.52;
+    let optimal_distance = 46105.30; // Example optimal total traveling distance
+
+    let suboptimal_configs_energy = vec![        
+        (vec![Pos2::new(12.5, 7.5), Pos2::new(12.5, 17.5)], 15110.14),
+        (vec![Pos2::new(17.5, 1.5), Pos2::new(20.0, 1.5)], 15231.02),
+        (vec![Pos2::new(12.5, 11.5), Pos2::new(12.5, 13.5)], 15341.80),
+        (vec![Pos2::new(6.25, 1.5), Pos2::new(6.25, 23.5)], 15494.18),        
+        (vec![Pos2::new(1.5, 1.5), Pos2::new(23.0, 23.5)], 15497.50),
+        (vec![Pos2::new(1.5, 12.5), Pos2::new(23.0, 12.5)], 15726.52),
     ];
     
     // Example distance data for the same configurations (in meters)
-    let suboptimal_configs_distance = vec![
-        (vec![Pos2::new(2.0, 2.0), Pos2::new(23.0, 23.0)], 47268.2),
-        (vec![Pos2::new(2.0, 12.5), Pos2::new(23.0, 12.5)], 48364.0),
-        (vec![Pos2::new(6.25, 2.0), Pos2::new(6.25, 23.0)], 46135.0),
-        (vec![Pos2::new(12.5, 7.5), Pos2::new(12.5, 17.5)], 46683.8),
-        (vec![Pos2::new(17.5, 2.0), Pos2::new(20.0, 2.0)], 46872.1),
-        (vec![Pos2::new(12.5, 11.5), Pos2::new(12.5, 13.5)], 48109.0),
+    let suboptimal_configs_distance = vec![   
+        (vec![Pos2::new(12.5, 7.5), Pos2::new(12.5, 17.5)], 46306.12),
+        (vec![Pos2::new(17.5, 1.5), Pos2::new(20.0, 1.5)], 46797.55),
+        (vec![Pos2::new(12.5, 11.5), Pos2::new(12.5, 13.5)], 47181.80),
+        (vec![Pos2::new(6.25, 1.5), Pos2::new(6.25, 23.5)], 47766.84),
+        (vec![Pos2::new(1.5, 1.5), Pos2::new(23.0, 23.5)], 47773.37), 
+        (vec![Pos2::new(1.5, 12.5), Pos2::new(23.0, 12.5)], 48678.67),
     ];
     
     // Generate energy-focused plot
