@@ -119,9 +119,9 @@ fn main() -> Result<(), eframe::Error> {
         println!("Loading results from: {}", file_path);
         
         match load_grid_search_results(&file_path) {
-            Ok(results) => {
+            Ok((results, optimization_minimum)) => {
                 println!("Successfully loaded {} data points", results.results.len());
-                visualization::generate_all_grid_plots(&results, None);
+                visualization::generate_all_grid_plots(&results, optimization_minimum);
                 println!("Plots generated from: {}", file_path);
             }
             Err(e) => {
@@ -146,9 +146,9 @@ fn main() -> Result<(), eframe::Error> {
         let results_file = format!("results/grid_search_{}x{}_results.json", grid_resolution, grid_resolution);
         
         match load_grid_search_results(&results_file) {
-            Ok(results) => {
+            Ok((results, optimization_minimum)) => {
                 println!("Loaded results from: {}", results_file);
-                visualization::generate_all_grid_plots(&results, None);
+                visualization::generate_all_grid_plots(&results, optimization_minimum);
                 println!("Plots generated from saved data!");
             }
             Err(e) => {
@@ -183,14 +183,14 @@ fn main() -> Result<(), eframe::Error> {
 }
 
 /// Load grid search results from JSON file with metadata
-fn load_grid_search_results(filename: &str) -> Result<visualization::GridSearchResults, Box<dyn std::error::Error>> {
+fn load_grid_search_results(filename: &str) -> Result<(visualization::GridSearchResults, Option<(Pos2, f64)>), Box<dyn std::error::Error>> {
     use serde_json::Value;
     
     let content = std::fs::read_to_string(filename)?;
     let json: Value = serde_json::from_str(&content)?;
     
     // Try new format first (with metadata section), then fall back to old format
-    let (grid_resolution, field_bounds, obstacles) = if let Some(metadata) = json.get("metadata") {
+    let (grid_resolution, field_bounds, obstacles, optimization_minimum) = if let Some(metadata) = json.get("metadata") {
         // New format with metadata section
         let grid_res = metadata["grid_resolution"].as_u64()
             .ok_or("Missing grid_resolution in metadata")? as usize;
@@ -205,6 +205,16 @@ fn load_grid_search_results(filename: &str) -> Result<visualization::GridSearchR
             field_bounds_obj["max_y"].as_f64().ok_or("Missing max_y")? as f32,
         );
         
+        // Extract optimization minimum if present
+        let opt_min = if let Some(opt_min_obj) = metadata.get("optimization_minimum") {
+            let x = opt_min_obj["x"].as_f64().ok_or("Missing x in optimization_minimum")? as f32;
+            let y = opt_min_obj["y"].as_f64().ok_or("Missing y in optimization_minimum")? as f32;
+            let energy = opt_min_obj["energy"].as_f64().ok_or("Missing energy in optimization_minimum")?;
+            Some((Pos2::new(x, y), energy))
+        } else {
+            None
+        };
+        
         // Load obstacles from default scene config for new format
         use crate::cfg::DEFAULT_SCENE_CONFIG_PATH;
         use crate::environment::{scene_config::SceneConfig, field_config::FieldConfig};
@@ -213,7 +223,7 @@ fn load_grid_search_results(filename: &str) -> Result<visualization::GridSearchR
         let field_config: FieldConfig = crate::utilities::utils::load_json_or_panic(scene_config.field_config_path);
         let obs = field_config.get_obstacles();
         
-        (grid_res, bounds, obs)
+        (grid_res, bounds, obs, opt_min)
     } else {
         // Old format with field_config at top level
         let grid_res = json["grid_resolution"].as_u64()
@@ -231,6 +241,21 @@ fn load_grid_search_results(filename: &str) -> Result<visualization::GridSearchR
             field_bounds_obj["min_y"].as_f64().ok_or("Missing min_y")? as f32,
             field_bounds_obj["max_y"].as_f64().ok_or("Missing max_y")? as f32,
         );
+        
+        // Extract optimization minimum if present in old format
+        let opt_min = if let Some(opt_min_obj) = json.get("optimization_minimum") {
+            if let (Some(x), Some(y), Some(energy)) = (
+                opt_min_obj["x"].as_f64(),
+                opt_min_obj["y"].as_f64(),
+                opt_min_obj["energy_consumption"].as_f64()
+            ) {
+                Some((Pos2::new(x as f32, y as f32), energy))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
         
         // Load obstacles from field_config_raw in the JSON file
         let obs = if let Some(field_config_raw) = field_config.get("field_config_raw") {
@@ -250,7 +275,7 @@ fn load_grid_search_results(filename: &str) -> Result<visualization::GridSearchR
             field_config.get_obstacles()
         };
         
-        (grid_res, bounds, obs)
+        (grid_res, bounds, obs, opt_min)
     };
     
     // Extract results data
@@ -273,12 +298,19 @@ fn load_grid_search_results(filename: &str) -> Result<visualization::GridSearchR
              field_bounds.0, field_bounds.2, field_bounds.1, field_bounds.3);
     println!("Loaded {} obstacles from field configuration", obstacles.len());
     
-    Ok(visualization::GridSearchResults {
-        results,
-        grid_resolution,
-        obstacles,
-        field_bounds,
-    })
+    if let Some((pos, energy)) = optimization_minimum {
+        println!("Optimization minimum found: ({:.2}, {:.2}) with energy {:.2} Wh", pos.x, pos.y, energy);
+    }
+    
+    Ok((
+        visualization::GridSearchResults {
+            results,
+            grid_resolution,
+            obstacles,
+            field_bounds,
+        },
+        optimization_minimum
+    ))
 }
 
 /// Print help information for command-line usage

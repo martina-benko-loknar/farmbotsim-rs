@@ -23,6 +23,20 @@ pub struct MultiStationResults {
     pub field_bounds: (f32, f32, f32, f32),
 }
 
+// ============================================================================
+// LaTeX-style Font Helper Functions
+// ============================================================================
+
+/// Create a LaTeX-style font with specified size
+fn latex_font(size: usize) -> plotly::common::Font {
+    plotly::common::Font::new()
+        .size(size)
+        .family("serif")
+        .color("black")
+}
+
+// ============================================================================
+
 /// Generate all plots for grid search results
 pub fn generate_all_grid_plots(
     results: &GridSearchResults,
@@ -96,13 +110,13 @@ pub fn generate_3d_plot(
         .width(1200)
         .height(800)
         .x_axis(plotly::layout::Axis::new()
-            .title("X Position (m)")
-            .tick_font(plotly::common::Font::new().size(14)))
+            .title("x (m)")
+            .tick_font(latex_font(14)))
         .y_axis(plotly::layout::Axis::new()
-            .title("Y Position (m)")
-            .tick_font(plotly::common::Font::new().size(14)))
+            .title("y (m)")
+            .tick_font(latex_font(14)))
         .legend(plotly::layout::Legend::new()
-            .font(plotly::common::Font::new().size(14)));
+            .font(latex_font(14)));
     
     plot.set_layout(layout);
     
@@ -127,7 +141,7 @@ pub fn generate_energy_heatmap_plot(
         .color_bar(
             plotly::common::ColorBar::new()
                 .title("Energy<br>Consumption<br>(Wh)")
-                .tick_font(plotly::common::Font::new().size(14))
+                .tick_font(latex_font(14))
         );
     
     let mut plot = Plot::new();
@@ -163,7 +177,7 @@ pub fn generate_distance_heatmap_plot(
         .color_bar(
             plotly::common::ColorBar::new()
                 .title("Total<br>Distance<br>Driven<br>(m)")
-                .tick_font(plotly::common::Font::new().size(14))
+                .tick_font(latex_font(14))
         );
     
     let mut plot = Plot::new();
@@ -199,7 +213,7 @@ pub fn generate_charging_distance_heatmap_plot(
         .color_bar(
             plotly::common::ColorBar::new()
                 .title("Total<br>Charging<br>Distance<br>(m)")
-                .tick_font(plotly::common::Font::new().size(14))
+                .tick_font(latex_font(14))
         );
     
     let mut plot = Plot::new();
@@ -527,13 +541,13 @@ fn create_2d_layout(title: &str, width: usize) -> Layout {
         .title(title)
         .width(width)
         .height(800)
-        .font(plotly::common::Font::new().size(16).color("black"))
+        .font(latex_font(18))
         .x_axis(plotly::layout::Axis::new()
-            .title("X Position (m)")
-            .tick_font(plotly::common::Font::new().size(16)))
+            .title("x (m)")
+            .tick_font(latex_font(16)))
         .y_axis(plotly::layout::Axis::new()
-            .title("Y Position (m)")
-            .tick_font(plotly::common::Font::new().size(16)))
+            .title("y (m)")
+            .tick_font(latex_font(16)))
 }
 
 fn create_multi_station_layout(title: &str, width: usize) -> Layout {
@@ -541,10 +555,10 @@ fn create_multi_station_layout(title: &str, width: usize) -> Layout {
         .title(title)
         .width(width)
         .height(800)
-        .font(plotly::common::Font::new().size(16).color("black"))
+        .font(latex_font(18))
         .x_axis(plotly::layout::Axis::new()
-            .title("X Position (m)")
-            .tick_font(plotly::common::Font::new().size(16))
+            .title("x (m)")
+            .tick_font(latex_font(16))
             .show_grid(false)
             .show_line(true)
             .line_color("black")
@@ -555,8 +569,8 @@ fn create_multi_station_layout(title: &str, width: usize) -> Layout {
             .tick_width(1)
             .tick_color("black"))
         .y_axis(plotly::layout::Axis::new()
-            .title("Y Position (m)")
-            .tick_font(plotly::common::Font::new().size(16))
+            .title("y (m)")
+            .tick_font(latex_font(16))
             .show_grid(false)
             .show_line(true)
             .line_color("black")
@@ -569,7 +583,7 @@ fn create_multi_station_layout(title: &str, width: usize) -> Layout {
         .legend(plotly::layout::Legend::new()
             .x(1.02)
             .y(1.0)
-            .font(plotly::common::Font::new().size(16)))
+            .font(latex_font(16)))
         .plot_background_color("white")
         .paper_background_color("white")
         .show_legend(true)
