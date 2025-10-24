@@ -31,7 +31,7 @@ pub struct MultiStationResults {
 fn latex_font(size: usize) -> plotly::common::Font {
     plotly::common::Font::new()
         .size(size)
-        .family("serif")
+        .family("Latin Modern Roman")
         .color("black")
 }
 
@@ -111,12 +111,12 @@ pub fn generate_3d_plot(
         .height(800)
         .x_axis(plotly::layout::Axis::new()
             .title("x (m)")
-            .tick_font(latex_font(14)))
+            .tick_font(latex_font(16)))
         .y_axis(plotly::layout::Axis::new()
             .title("y (m)")
-            .tick_font(latex_font(14)))
+            .tick_font(latex_font(16)))
         .legend(plotly::layout::Legend::new()
-            .font(latex_font(14)));
+            .font(latex_font(16)));
     
     plot.set_layout(layout);
     
@@ -140,8 +140,9 @@ pub fn generate_energy_heatmap_plot(
     let heatmap = HeatMap::new(x_grid, y_grid, z_grid)
         .color_bar(
             plotly::common::ColorBar::new()
-                .title("Energy<br>Consumption<br>(Wh)")
-                .tick_font(latex_font(14))
+                // .title("Total<br>Energy<br>Consumption<br>(Wh)")
+                .title("E<sub>tot</sub> (W h)")
+                .tick_font(latex_font(18))
         );
     
     let mut plot = Plot::new();
@@ -176,8 +177,9 @@ pub fn generate_distance_heatmap_plot(
     let heatmap = HeatMap::new(x_grid, y_grid, z_grid)
         .color_bar(
             plotly::common::ColorBar::new()
-                .title("Total<br>Distance<br>Driven<br>(m)")
-                .tick_font(latex_font(14))
+                //.title("Total<br>Distance<br>Travelled<br>(m)")
+                .title("d (m)")
+                .tick_font(latex_font(20))
         );
     
     let mut plot = Plot::new();
@@ -212,8 +214,9 @@ pub fn generate_charging_distance_heatmap_plot(
     let heatmap = HeatMap::new(x_grid, y_grid, z_grid)
         .color_bar(
             plotly::common::ColorBar::new()
-                .title("Total<br>Charging<br>Distance<br>(m)")
-                .tick_font(latex_font(14))
+                //.title("Total<br>Charging<br>Distance<br>(m)")
+                .title("d<sup>ch</sup> (m)")
+                .tick_font(latex_font(20))
         );
     
     let mut plot = Plot::new();
@@ -265,7 +268,7 @@ pub fn generate_multi_station_plot(
         .mode(Mode::Markers)
         .name(&format!("Optimal ({:.1} Wh)", optimal_energy))
         .marker(Marker::new()
-            .size(18)
+            .size(16)
             .color(colors[optimal_color_idx])
             .line(plotly::common::Line::new().width(3.0).color("black"))
             .symbol(plotly::common::MarkerSymbol::Star));
@@ -293,7 +296,7 @@ pub fn generate_multi_station_plot(
             .mode(Mode::Markers)
             .name(&format!("Config {} ({:.1} Wh)", i + 1, energy))
             .marker(Marker::new()
-                .size(14)
+                .size(16)
                 .color(colors[color_idx])
                 .line(plotly::common::Line::new().width(2.0).color("black"))
                 .symbol(marker_symbol));
@@ -345,7 +348,7 @@ pub fn generate_multi_station_distance_plot(
         .mode(Mode::Markers)
         .name(&format!("Optimal ({:.1} m)", optimal_distance))
         .marker(Marker::new()
-            .size(18)
+            .size(16)
             .color(colors[optimal_color_idx])
             .line(plotly::common::Line::new().width(3.0).color("black"))
             .symbol(plotly::common::MarkerSymbol::Star));
@@ -373,7 +376,7 @@ pub fn generate_multi_station_distance_plot(
             .mode(Mode::Markers)
             .name(&format!("Config {} ({:.1} m)", i + 1, distance))
             .marker(Marker::new()
-                .size(14)
+                .size(16)
                 .color(colors[color_idx])
                 .line(plotly::common::Line::new().width(2.0).color("black"))
                 .symbol(marker_symbol));
@@ -511,7 +514,7 @@ fn add_optimization_minimum_to_2d_plot(plot: &mut Plot, optimization_minimum: Op
             .mode(Mode::Markers)
             .name("Optimization Minimum")
             .show_legend(false)
-            .marker(Marker::new().size(15).color("black"));
+            .marker(Marker::new().size(16).color("black"));
         
         plot.add_trace(opt_trace);
     }
@@ -541,13 +544,13 @@ fn create_2d_layout(title: &str, width: usize) -> Layout {
         .title(title)
         .width(width)
         .height(800)
-        .font(latex_font(18))
+        .font(latex_font(20))
         .x_axis(plotly::layout::Axis::new()
             .title("x (m)")
-            .tick_font(latex_font(16)))
+            .tick_font(latex_font(20)))
         .y_axis(plotly::layout::Axis::new()
             .title("y (m)")
-            .tick_font(latex_font(16)))
+            .tick_font(latex_font(20)))
 }
 
 fn create_multi_station_layout(title: &str, width: usize) -> Layout {
@@ -555,10 +558,10 @@ fn create_multi_station_layout(title: &str, width: usize) -> Layout {
         .title(title)
         .width(width)
         .height(800)
-        .font(latex_font(18))
+        .font(latex_font(20))
         .x_axis(plotly::layout::Axis::new()
             .title("x (m)")
-            .tick_font(latex_font(16))
+            .tick_font(latex_font(20))
             .show_grid(false)
             .show_line(true)
             .line_color("black")
@@ -570,7 +573,7 @@ fn create_multi_station_layout(title: &str, width: usize) -> Layout {
             .tick_color("black"))
         .y_axis(plotly::layout::Axis::new()
             .title("y (m)")
-            .tick_font(latex_font(16))
+            .tick_font(latex_font(20))
             .show_grid(false)
             .show_line(true)
             .line_color("black")
@@ -583,7 +586,7 @@ fn create_multi_station_layout(title: &str, width: usize) -> Layout {
         .legend(plotly::layout::Legend::new()
             .x(1.02)
             .y(1.0)
-            .font(latex_font(16)))
+            .font(latex_font(20)))
         .plot_background_color("white")
         .paper_background_color("white")
         .show_legend(true)
