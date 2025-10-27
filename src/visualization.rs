@@ -90,6 +90,26 @@ pub fn generate_3d_plot(
     
     // Add optimization minimum point if provided
     if let Some((opt_pos, opt_value)) = optimization_minimum {
+        // Add white padding cross first (larger, underneath)
+        let padding_trace = Scatter3D::new(
+            vec![opt_pos.x as f64], 
+            vec![opt_pos.y as f64], 
+            vec![opt_value]
+        )
+        .mode(Mode::Markers)
+        .name("Minimum Padding")
+        .show_legend(false)
+        .marker(
+            Marker::new()
+                .size(20)
+                .color("white")
+                .symbol(plotly::common::MarkerSymbol::X)
+                .line(plotly::common::Line::new().width(3.0).color("white"))
+        );
+        
+        plot.add_trace(padding_trace);
+        
+        // Add black cross on top (thinner)
         let opt_trace = Scatter3D::new(
             vec![opt_pos.x as f64], 
             vec![opt_pos.y as f64], 
@@ -97,7 +117,13 @@ pub fn generate_3d_plot(
         )
         .mode(Mode::Markers)
         .name("Optimization Minimum")
-        .marker(Marker::new().size(12).color("red"));
+        .marker(
+            Marker::new()
+                .size(15)
+                .color("black")
+                .symbol(plotly::common::MarkerSymbol::X)
+                .line(plotly::common::Line::new().width(2.0).color("black"))
+        );
         
         plot.add_trace(opt_trace);
     }
@@ -151,9 +177,16 @@ pub fn generate_energy_heatmap_plot(
     add_obstacles_to_2d_plot(&mut plot, obstacles);
     add_optimization_minimum_to_2d_plot(&mut plot, optimization_minimum);
     
-    let layout = create_2d_layout(
+    // Create layout with optional annotation
+    let mut annotations = Vec::new();
+    if let Some(annotation) = create_minimum_annotation(optimization_minimum, "minimum", 1.0, 18) {
+        annotations.push(annotation);
+    }
+    
+    let layout = create_2d_layout_with_annotations(
         &format!("Grid Search Results - Energy Consumption Heatmap ({}x{})", grid_resolution, grid_resolution),
-        860
+        860,
+        annotations
     );
     plot.set_layout(layout);
     
@@ -188,9 +221,16 @@ pub fn generate_distance_heatmap_plot(
     add_obstacles_to_2d_plot(&mut plot, obstacles);
     add_optimization_minimum_to_2d_plot(&mut plot, optimization_minimum);
     
-    let layout = create_2d_layout(
+    // Create layout with optional annotation
+    let mut annotations = Vec::new();
+    if let Some(annotation) = create_minimum_annotation(optimization_minimum, "minimum", 1.0, 18) {
+        annotations.push(annotation);
+    }
+    
+    let layout = create_2d_layout_with_annotations(
         &format!("Grid Search Results - Total Distance Heatmap ({}x{})", grid_resolution, grid_resolution),
-        820
+        820,
+        annotations
     );
     plot.set_layout(layout);
     
@@ -225,9 +265,16 @@ pub fn generate_charging_distance_heatmap_plot(
     add_obstacles_to_2d_plot(&mut plot, obstacles);
     add_optimization_minimum_to_2d_plot(&mut plot, optimization_minimum);
     
-    let layout = create_2d_layout(
+    // Create layout with optional annotation
+    let mut annotations = Vec::new();
+    if let Some(annotation) = create_minimum_annotation(optimization_minimum, "minimum", 1.0, 18) {
+        annotations.push(annotation);
+    }
+    
+    let layout = create_2d_layout_with_annotations(
         &format!("Grid Search Results - Charging Distance Heatmap ({}x{})", grid_resolution, grid_resolution),
-        820
+        820,
+        annotations
     );
     plot.set_layout(layout);
     
@@ -266,7 +313,7 @@ pub fn generate_multi_station_plot(
     
     let optimal_trace = Scatter::new(opt_x.clone(), opt_y.clone())
         .mode(Mode::Markers)
-        .name(&format!("Optimal ({:.1} Wh)", optimal_energy))
+        .name(&format!("Opt. ({:.1} W h)", optimal_energy))
         .marker(Marker::new()
             .size(16)
             .color(colors[optimal_color_idx])
@@ -294,7 +341,7 @@ pub fn generate_multi_station_plot(
         
         let trace = Scatter::new(x_coords.clone(), y_coords.clone())
             .mode(Mode::Markers)
-            .name(&format!("Config {} ({:.1} Wh)", i + 1, energy))
+            .name(&format!("Cfg. {} ({:.1} W h)", i + 1, energy))
             .marker(Marker::new()
                 .size(16)
                 .color(colors[color_idx])
@@ -346,7 +393,7 @@ pub fn generate_multi_station_distance_plot(
     
     let optimal_trace = Scatter::new(opt_x.clone(), opt_y.clone())
         .mode(Mode::Markers)
-        .name(&format!("Optimal ({:.1} m)", optimal_distance))
+        .name(&format!("Opt. ({:.1} m)", optimal_distance))
         .marker(Marker::new()
             .size(16)
             .color(colors[optimal_color_idx])
@@ -374,7 +421,7 @@ pub fn generate_multi_station_distance_plot(
         
         let trace = Scatter::new(x_coords.clone(), y_coords.clone())
             .mode(Mode::Markers)
-            .name(&format!("Config {} ({:.1} m)", i + 1, distance))
+            .name(&format!("Cfg. {} ({:.1} m)", i + 1, distance))
             .marker(Marker::new()
                 .size(16)
                 .color(colors[color_idx])
@@ -508,16 +555,124 @@ fn add_obstacles_to_2d_plot(plot: &mut Plot, obstacles: &[Obstacle]) {
     }
 }
 
+/// Add optimization minimum marker to 2D plot
+/// 
+/// # Arguments
+/// * `plot` - The plot to add the marker to
+/// * `optimization_minimum` - Optional tuple of (position, value)
 fn add_optimization_minimum_to_2d_plot(plot: &mut Plot, optimization_minimum: Option<(Pos2, f64)>) {
+    if let Some((opt_pos, _opt_value)) = optimization_minimum {
+        let x = opt_pos.x as f64;
+        let y = opt_pos.y as f64;
+        let cross_size = 0.4; // Size of the cross in plot units
+        
+        // Draw white padding cross (thicker lines, underneath)
+        // Diagonal line 1 (top-left to bottom-right)
+        let padding_line1 = Scatter::new(
+            vec![x - cross_size, x + cross_size],
+            vec![y + cross_size, y - cross_size]
+        )
+        .mode(Mode::Lines)
+        .show_legend(false)
+        .line(plotly::common::Line::new().width(10.0).color("white"));
+        
+        // Diagonal line 2 (top-right to bottom-left)
+        let padding_line2 = Scatter::new(
+            vec![x - cross_size, x + cross_size],
+            vec![y - cross_size, y + cross_size]
+        )
+        .mode(Mode::Lines)
+        .show_legend(false)
+        .line(plotly::common::Line::new().width(10.0).color("white"));
+        
+        plot.add_trace(padding_line1);
+        plot.add_trace(padding_line2);
+        
+        // Draw black cross on top (thinner lines)
+        // Diagonal line 1 (top-left to bottom-right)
+        let black_line1 = Scatter::new(
+            vec![x - cross_size, x + cross_size],
+            vec![y + cross_size, y - cross_size]
+        )
+        .mode(Mode::Lines)
+        .name("Optimization Minimum")
+        .show_legend(false)
+        .line(plotly::common::Line::new().width(4.0).color("black"));
+        
+        // Diagonal line 2 (top-right to bottom-left)
+        let black_line2 = Scatter::new(
+            vec![x - cross_size, x + cross_size],
+            vec![y - cross_size, y + cross_size]
+        )
+        .mode(Mode::Lines)
+        .show_legend(false)
+        .line(plotly::common::Line::new().width(4.0).color("black"));
+        
+        plot.add_trace(black_line1);
+        plot.add_trace(black_line2);
+    }
+}
+
+/// Add optimization minimum marker to 2D plot with custom styling
+/// 
+/// # Arguments
+/// * `plot` - The plot to add the marker to
+/// * `optimization_minimum` - Optional tuple of (position, value)
+/// * `marker_size` - Size of the marker
+/// * `marker_color` - Color of the marker as a string
+/// * `marker_symbol` - Symbol for the marker (e.g., "circle", "x", "cross", "diamond")
+fn add_optimization_minimum_to_2d_plot_custom(
+    plot: &mut Plot, 
+    optimization_minimum: Option<(Pos2, f64)>,
+    marker_size: usize,
+    marker_color: &str,
+    marker_symbol: &str
+) {
     if let Some((opt_pos, _opt_value)) = optimization_minimum {
         let opt_trace = Scatter::new(vec![opt_pos.x as f64], vec![opt_pos.y as f64])
             .mode(Mode::Markers)
             .name("Optimization Minimum")
             .show_legend(false)
-            .marker(Marker::new().size(16).color("black"));
+            .marker(
+                Marker::new()
+                    .size(marker_size)
+                    .color(marker_color.to_string())
+                    .symbol(plotly::common::MarkerSymbol::X)
+            );
         
         plot.add_trace(opt_trace);
     }
+}
+
+/// Add optimization minimum annotation to a layout
+/// 
+/// Creates a text annotation above the minimum point with customizable styling.
+/// 
+/// # Arguments
+/// * `optimization_minimum` - Optional tuple of (position, value) for the minimum
+/// * `label` - Text to display in the annotation (e.g., "Minimum")
+/// * `y_offset` - Vertical offset from the marker position (default: 1.0)
+/// * `font_size` - Font size for the annotation text (default: 18)
+/// 
+/// # Returns
+/// * `Option<plotly::layout::Annotation>` - The annotation if a minimum exists, None otherwise
+fn create_minimum_annotation(
+    optimization_minimum: Option<(Pos2, f64)>,
+    label: &str,
+    y_offset: f64,
+    font_size: usize
+) -> Option<plotly::layout::Annotation> {
+    optimization_minimum.map(|(opt_pos, _opt_value)| {
+        plotly::layout::Annotation::new()
+            .x(opt_pos.x as f64)
+            .y(opt_pos.y as f64 + y_offset)
+            .text(label)
+            .show_arrow(false)
+            .font(latex_font(font_size))
+            .background_color("white")
+            .border_color("black")
+            .border_width(1.0)
+    })
 }
 
 fn add_field_boundaries_to_plot(plot: &mut Plot, field_bounds: (f32, f32, f32, f32)) {
@@ -540,7 +695,15 @@ fn add_field_boundaries_to_plot(plot: &mut Plot, field_bounds: (f32, f32, f32, f
 }
 
 fn create_2d_layout(title: &str, width: usize) -> Layout {
-    Layout::new()
+    create_2d_layout_with_annotations(title, width, vec![])
+}
+
+fn create_2d_layout_with_annotations(
+    title: &str, 
+    width: usize, 
+    annotations: Vec<plotly::layout::Annotation>
+) -> Layout {
+    let mut layout = Layout::new()
         .title(title)
         .width(width)
         .height(800)
@@ -550,7 +713,13 @@ fn create_2d_layout(title: &str, width: usize) -> Layout {
             .tick_font(latex_font(20)))
         .y_axis(plotly::layout::Axis::new()
             .title("y (m)")
-            .tick_font(latex_font(20)))
+            .tick_font(latex_font(20)));
+    
+    if !annotations.is_empty() {
+        layout = layout.annotations(annotations);
+    }
+    
+    layout
 }
 
 fn create_multi_station_layout(title: &str, width: usize) -> Layout {
