@@ -1,5 +1,4 @@
-use crate::cfg::{DEFAULT_SCENE_CONFIG_PATH, DEFAULT_AGENT_CONFIG_PATH, 
-    OPTIMIZATION_RESULTS_PATH};
+use crate::cfg::{DEFAULT_SCENE_CONFIG_PATH, DEFAULT_AGENT_CONFIG_PATH};
 use crate::environment::{
     datetime::DateTimeConfig, 
     env_module::env_config::EnvConfig,
@@ -20,30 +19,9 @@ use std::fmt;
 use std::sync::{Arc, RwLock};
 use std::time::Instant;
 use egui::Pos2;
-use serde::{Deserialize, Serialize};
-
-// Serializable structure for convergence history
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct ConvergenceRecord {
-    pub iteration: usize,
-    pub best_energy: f64,
-    pub best_positions: Vec<(f32, f32)>,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct OptimizationResults {
-    pub timestamp: String,
-    pub max_iterations: usize,
-    pub total_evaluations: usize,
-    pub optimization_time_seconds: f64,
-    pub final_best_energy: f64,
-    pub convergence_history: Vec<ConvergenceRecord>,
-    pub field_boundaries: (f32, f32, f32, f32), // (min_x, max_x, min_y, max_y)
-    pub station_margin: f32,
-    pub obstacle_margin: f32,
-}
 
 pub mod visualization;
+pub mod results;
 
 // Define field boundaries for optimization (adjust these based on your actual farm layout)
 const FIELD_MIN_X: f32 = 0.0;
@@ -64,8 +42,8 @@ fn round_to_centimeters(pos: Pos2) -> Pos2 {
 // Define the parameters for station position optimization 
 #[derive(Clone)]
 pub struct StationPositions {
-    station_positions: Vec<Pos2>,
-    obstacles: Vec<Obstacle>, // Keep obstacles for validation
+    pub station_positions: Vec<Pos2>,
+    pub obstacles: Vec<Obstacle>, // Keep obstacles for validation
 }
 
 impl StationPositions {
@@ -142,7 +120,7 @@ impl StationPositions {
     }
     
     // Check if a position is valid (not inside or too close to obstacles)
-    fn is_position_valid(position: Pos2, obstacles: &[Obstacle]) -> bool {
+    pub fn is_position_valid(position: Pos2, obstacles: &[Obstacle]) -> bool {
         for obstacle in obstacles {
             // Check if position is inside obstacle or too close to it
             if Self::is_point_near_obstacle(position, obstacle, OBSTACLE_MARGIN) {
@@ -300,7 +278,7 @@ impl StationPositions {
     }
     
     // Helper method to create station configs from optimized positions
-    fn create_station_configs(&self, original_scene: &SceneConfig) -> Vec<StationConfig> {
+    pub fn create_station_configs(&self, original_scene: &SceneConfig) -> Vec<StationConfig> {
         let mut station_configs = Vec::new();
         
         // Use original stations as template but with new positions
@@ -579,7 +557,7 @@ pub fn optimize_station_positions_ego(max_iterations: usize) -> StationPositions
             // Save convergence history to JSON file
             let convergence_data = convergence_history.read().unwrap();
             let total_evaluations = evaluated_positions.read().unwrap().len();
-            save_convergence_history(&convergence_data, max_iterations, total_evaluations, elapsed);
+            results::save_convergence_history(&convergence_data, max_iterations, total_evaluations, elapsed);
 
             best_positions
         },
@@ -594,84 +572,5 @@ pub fn optimize_station_positions_ego(max_iterations: usize) -> StationPositions
                 .next()
                 .unwrap()
         }
-    }
-}
-
-// Save the optimal station configuration
-pub fn save_optimal_station_config(positions: &StationPositions, filename: &str) -> String {
-    // Create a scene config from the optimal parameters
-    let scene_config: SceneConfig = load_json_or_panic(DEFAULT_SCENE_CONFIG_PATH.to_string());
-    let mut new_scene_config = scene_config.clone();
-    new_scene_config.station_configs = positions.create_station_configs(&scene_config);
-    
-    // Save to a file
-    let path = format!("configs/scenes/{}", filename);
-    let serialized = serde_json::to_string_pretty(&new_scene_config).unwrap();
-    std::fs::write(&path, serialized).unwrap_or_else(|e| {
-        eprintln!("Failed to save optimal configuration: {}", e);
-    });
-    
-    println!("Station positions validation:");
-    for (i, pos) in positions.station_positions.iter().enumerate() {
-        let valid = StationPositions::is_position_valid(*pos, &positions.obstacles);
-        println!("  Station {}: ({:.1}, {:.1}) - {}", 
-                i + 1, pos.x, pos.y, if valid { "✓ Valid" } else { "✗ Invalid" });
-    }
-    
-    path
-}
-
-/// Save convergence history to JSON file
-pub fn save_convergence_history(
-    convergence_history: &[(usize, f64, Vec<(f32, f32)>)],
-    max_iterations: usize,
-    total_evaluations: usize,
-    optimization_time: std::time::Duration,
-) {
-    let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
-    
-    let convergence_records: Vec<ConvergenceRecord> = convergence_history
-        .iter()
-        .map(|(iteration, energy, positions)| ConvergenceRecord {
-            iteration: *iteration,
-            best_energy: *energy,
-            best_positions: positions.clone(),
-        })
-        .collect();
-    
-    let final_best_energy = convergence_history
-        .last()
-        .map(|(_, energy, _)| *energy)
-        .unwrap_or(f64::INFINITY);
-    
-    let optimization_results = OptimizationResults {
-        timestamp: timestamp.to_string(),
-        max_iterations,
-        total_evaluations,
-        optimization_time_seconds: optimization_time.as_secs_f64(),
-        final_best_energy,
-        convergence_history: convergence_records,
-        field_boundaries: (FIELD_MIN_X, FIELD_MAX_X, FIELD_MIN_Y, FIELD_MAX_Y),
-        station_margin: STATION_MARGIN,
-        obstacle_margin: OBSTACLE_MARGIN,
-    };
-    
-    let filename = format!("{}optimization_results_{}.json", OPTIMIZATION_RESULTS_PATH, timestamp);
-    
-    match serde_json::to_string_pretty(&optimization_results) {
-        Ok(json_string) => {
-            match std::fs::write(&filename, json_string) {
-                Ok(_) => {
-                    println!("Optimization results saved to: {}", filename);
-                    println!("Results summary:");
-                    println!("  Total iterations: {}", convergence_history.len());
-                    println!("  Total evaluations: {}", total_evaluations);
-                    println!("  Optimization time: {:.2} seconds", optimization_time.as_secs_f64());
-                    println!("  Final best energy: {:.2} Wh", final_best_energy);
-                },
-                Err(e) => eprintln!("Failed to write optimization results to file: {}", e),
-            }
-        },
-        Err(e) => eprintln!("Failed to serialize optimization results: {}", e),
     }
 }
