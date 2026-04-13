@@ -7,6 +7,7 @@ use crate::environment::{
 
 use crate::utilities::utils::load_json_or_panic;
 use crate::optimization::StationPositions;
+use crate::optimization::geometry::is_position_valid;
 
 use serde::{Deserialize, Serialize};
 
@@ -55,7 +56,7 @@ pub fn save_optimal_station_config(positions: &StationPositions, filename: &str)
     
     println!("Station positions validation:");
     for (i, pos) in positions.station_positions.iter().enumerate() {
-        let valid = StationPositions::is_position_valid(*pos, &positions.obstacles);
+        let valid = is_position_valid(*pos, &positions.obstacles);
         println!("  Station {}: ({:.1}, {:.1}) - {}", 
                 i + 1, pos.x, pos.y, if valid { "✓ Valid" } else { "✗ Invalid" });
     }

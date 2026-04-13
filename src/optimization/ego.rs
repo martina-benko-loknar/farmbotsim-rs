@@ -10,6 +10,7 @@ use crate::optimization::station_objective_function;
 use crate::optimization::round_to_centimeters;
 use crate::optimization::visualization;
 use crate::optimization::results;
+use crate::optimization::geometry::is_position_valid;
 
 // Main EGO optimization function
 use egobox_ego::EgorBuilder;
@@ -128,7 +129,7 @@ pub fn optimize_station_positions_ego(max_iterations: usize) -> StationPositions
             let position = round_to_centimeters(Pos2::new(x_clamped, y_clamped));
             
             // Check if position is valid
-            if !StationPositions::is_position_valid(position, &obstacles) {
+            if !is_position_valid(position, &obstacles) {
                 constraint_violation += 1.0; // Positive value indicates constraint violation
             }
         }
