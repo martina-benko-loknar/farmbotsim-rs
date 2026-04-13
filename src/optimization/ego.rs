@@ -4,10 +4,10 @@ use crate::environment::{
     field_config::FieldConfig
 };
 use crate::utilities::utils::load_json_or_panic;
-use crate::optimization::StationPositions;
+use crate::optimization::station_positions::StationPositions;
 use crate::optimization::objective::OptimizationContext;
 use crate::optimization::objective::station_objective_function;
-use crate::optimization::round_to_centimeters;
+use crate::optimization::geometry::round_to_centimeters;
 use crate::optimization::visualization;
 use crate::optimization::results;
 use crate::optimization::geometry::is_position_valid;

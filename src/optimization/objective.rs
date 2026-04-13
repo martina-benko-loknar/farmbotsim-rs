@@ -4,7 +4,7 @@ use crate::environment::{
 };
 use ndarray::{Array2, ArrayView2};
 
-use crate::optimization::StationPositions;
+use crate::optimization::station_positions::StationPositions;
 
 // Context struct to hold optimization parameters
 #[derive(Clone)]

@@ -6,7 +6,7 @@ use crate::environment::{
 };
 
 use crate::utilities::utils::load_json_or_panic;
-use crate::optimization::StationPositions;
+use crate::optimization::station_positions::StationPositions;
 use crate::optimization::geometry::is_position_valid;
 
 use serde::{Deserialize, Serialize};
