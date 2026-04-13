@@ -14,6 +14,7 @@
 pub mod app_module;
 use crate::app_module::app::App;
 use crate::optimization::ego::optimize_station_positions_ego;
+use crate::experiment::runner::run_experiment;
 use egui::Pos2;
 
 pub mod tool_module;
@@ -36,7 +37,7 @@ fn main() -> Result<(), eframe::Error> {
     
     // Check for experiment argument
     if args.contains(&"--experiment".to_string()) {
-        experiment::run_experiment(); // Call the experiment function
+        run_experiment(); // Call the experiment function
         return Ok(());
     } else if args.contains(&"--optimize".to_string()) {
         optimize_station_positions_ego(50);
