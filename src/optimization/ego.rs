@@ -5,8 +5,8 @@ use crate::environment::{
 };
 use crate::utilities::utils::load_json_or_panic;
 use crate::optimization::StationPositions;
-use crate::optimization::OptimizationContext;
-use crate::optimization::station_objective_function;
+use crate::optimization::objective::OptimizationContext;
+use crate::optimization::objective::station_objective_function;
 use crate::optimization::round_to_centimeters;
 use crate::optimization::visualization;
 use crate::optimization::results;
