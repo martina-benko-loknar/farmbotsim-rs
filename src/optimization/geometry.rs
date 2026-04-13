@@ -1,10 +1,8 @@
 use crate::environment::{
     obstacle::Obstacle
 };
+use crate::optimization::constants::*;
 use egui::Pos2;
-
-// Define field boundaries for optimization (adjust these based on your actual farm layout)
-const OBSTACLE_MARGIN: f32 = 0.4; // Keep stations at least 0.4m from obstacles
 
 /// Round coordinates to 2 decimal places (centimeters) to prevent floating-point precision issues
 pub fn round_to_centimeters(pos: Pos2) -> Pos2 {

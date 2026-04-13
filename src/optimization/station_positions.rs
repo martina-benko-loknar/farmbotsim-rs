@@ -13,18 +13,12 @@ use crate::utilities::utils::load_json_or_panic;
 use crate::task_module::strategies::{ChargingStrategy, ChooseStationStrategy};
 use crate::optimization::geometry::round_to_centimeters;
 use crate::optimization::geometry::is_position_valid;
+use crate::optimization::constants::*;
 
 use ndarray::{ArrayView2};
 use rand::Rng;
 use std::fmt;
 use egui::Pos2;
-
-// Define field boundaries for optimization (adjust these based on your actual farm layout)
-const FIELD_MIN_X: f32 = 0.0;
-const FIELD_MAX_X: f32 = 25.0;  // width in meters
-const FIELD_MIN_Y: f32 = 0.0;
-const FIELD_MAX_Y: f32 = 25.0;  // height in meters
-const STATION_MARGIN: f32 = 0.4; // Keep stations at least 0.4m from field edges
 
 // Define the parameters for station position optimization 
 #[derive(Clone)]

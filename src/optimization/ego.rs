@@ -11,6 +11,7 @@ use crate::optimization::geometry::round_to_centimeters;
 use crate::optimization::visualization;
 use crate::optimization::results;
 use crate::optimization::geometry::is_position_valid;
+use crate::optimization::constants::*;
 
 // Main EGO optimization function
 use egobox_ego::EgorBuilder;
@@ -18,14 +19,6 @@ use ndarray::{Array2, ArrayView2};
 use std::sync::{Arc, RwLock};
 use std::time::Instant;
 use egui::Pos2;
-
-// Define field boundaries for optimization (adjust these based on your actual farm layout)
-const FIELD_MIN_X: f32 = 0.0;
-const FIELD_MAX_X: f32 = 25.0;  // width in meters
-const FIELD_MIN_Y: f32 = 0.0;
-const FIELD_MAX_Y: f32 = 25.0;  // height in meters
-const STATION_MARGIN: f32 = 0.4; // Keep stations at least 0.4m from field edges
-const OBSTACLE_MARGIN: f32 = 0.4; // Keep stations at least 0.4m from obstacles
 
 pub fn optimize_station_positions_ego(max_iterations: usize) -> StationPositions {
     println!("Starting EGO optimization for charging station positions...");
