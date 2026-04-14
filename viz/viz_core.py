@@ -12,6 +12,8 @@ from scipy.interpolate import griddata
 from dataclasses import dataclass
 from typing import List, Tuple, Optional
 import os
+from viz_utils import setup_latex_fonts, add_obstacles_to_2d_plot
+from plot_heatmaps import generate_energy_heatmap_plot, generate_charging_distance_heatmap_plot, generate_distance_heatmap_plot
 
 
 # ============================================================================
@@ -50,23 +52,6 @@ class MultiStationResults:
     suboptimal_configs_distance: List[Tuple[List[Pos2], float]]
     obstacles: List[Obstacle]
     field_bounds: Tuple[float, float, float, float]
-
-
-# ============================================================================
-# LaTeX-style Font Configuration
-# ============================================================================
-
-def setup_latex_fonts(font_size=30):
-    """Configure matplotlib to use LaTeX-style fonts"""
-    plt.rcParams['text.usetex'] = True  # Enable LaTeX rendering
-    plt.rcParams['font.family'] = 'serif'
-    plt.rcParams['font.serif'] = ['Computer Modern Roman']
-    plt.rcParams['font.size'] = font_size
-    plt.rcParams['axes.labelsize'] = font_size
-    plt.rcParams['axes.titlesize'] = font_size
-    plt.rcParams['xtick.labelsize'] = font_size
-    plt.rcParams['ytick.labelsize'] = font_size
-    plt.rcParams['legend.fontsize'] = font_size
 
 
 # ============================================================================
@@ -206,179 +191,6 @@ def add_obstacles_to_3d_plot(ax, obstacles: List[Obstacle], z_level: float):
         z_coords = [z_level] * len(x_coords)
         
         ax.plot(x_coords, y_coords, z_coords, 'k-', linewidth=2, label='Obstacle' if obstacles.index(obstacle) == 0 else '_nolegend_')
-
-
-# ============================================================================
-# 2D Heatmap Plots
-# ============================================================================
-
-def generate_energy_heatmap_plot(
-    results: List[Tuple[Pos2, float, float, float]], 
-    obstacles: List[Obstacle], 
-    grid_resolution: int, 
-    optimization_minimum: Optional[Tuple[Pos2, float]] = None,
-    output_dir: str = "results"
-):
-    """Generate 2D heatmap plot for energy consumption with discrete grid (like Rust)"""
-    setup_latex_fonts(30)
-    
-    energy_results = [(pos, energy) for pos, energy, _, _ in results]
-    
-    # Extract unique x and y coordinates
-    x_vals = sorted(set(pos.x for pos, _ in energy_results))
-    y_vals = sorted(set(pos.y for pos, _ in energy_results))
-    
-    # Create grid matching actual data points
-    Z_grid = np.full((len(y_vals), len(x_vals)), np.nan)
-    
-    for (pos, val) in energy_results:
-        i = y_vals.index(pos.y)
-        j = x_vals.index(pos.x)
-        Z_grid[i, j] = val
-    
-    fig, ax = plt.subplots(figsize=(10.75, 10))
-    
-    # Create discrete heatmap (blue to red)
-    im = ax.pcolormesh(x_vals, y_vals, Z_grid, cmap='RdYlBu_r', shading='auto')
-    cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04, shrink=0.8)
-    cbar.ax.set_title(r'$E_{\mathrm{tot}}$ (Wh)', fontsize=25, pad=20, loc='left')
-    cbar.ax.tick_params(labelsize=25)
-    
-    add_obstacles_to_2d_plot(ax, obstacles)
-    add_optimization_minimum_to_2d_plot(ax, optimization_minimum)
-    
-    # Add annotation if minimum exists
-    if optimization_minimum is not None:
-        opt_pos, _ = optimization_minimum
-        ax.annotate('minimum', xy=(opt_pos.x, opt_pos.y), xytext=(opt_pos.x, opt_pos.y +  0.75),
-                   fontsize=25, ha='center', va='bottom',
-                   bbox=dict(boxstyle='round,pad=0.1', facecolor='white', edgecolor='black', linewidth=1))
-    
-    ax.set_xlabel('$x$ (m)')
-    ax.set_ylabel('$y$ (m)')
-    #(f'Grid Search Results - Energy Consumption Heatmap ({grid_resolution}x{grid_resolution})', fontsize=25)
-    ax.tick_params(labelsize=25)
-    
-    plt.tight_layout()
-    filename = f"{output_dir}/grid_search_{grid_resolution}x{grid_resolution}_energy_heatmap"
-    #plt.savefig(f"{filename}.png", dpi=150, bbox_inches='tight')
-    plt.savefig(f"{filename}.pdf", bbox_inches='tight')
-    #print(f"Plot saved to: {filename}.png and {filename}.pdf")
-    print(f"Plot saved to: {filename}.pdf")
-    plt.close()
-
-
-def generate_distance_heatmap_plot(
-    results: List[Tuple[Pos2, float, float, float]], 
-    obstacles: List[Obstacle], 
-    grid_resolution: int, 
-    optimization_minimum: Optional[Tuple[Pos2, float]] = None,
-    output_dir: str = "results"
-):
-    """Generate 2D heatmap plot for total distance driven with discrete grid (like Rust)"""
-    setup_latex_fonts(30)
-    
-    distance_results = [(pos, total_distance) for pos, _, total_distance, _ in results]
-    
-    # Extract unique x and y coordinates
-    x_vals = sorted(set(pos.x for pos, _ in distance_results))
-    y_vals = sorted(set(pos.y for pos, _ in distance_results))
-    
-    # Create grid matching actual data points
-    Z_grid = np.full((len(y_vals), len(x_vals)), np.nan)
-    
-    for (pos, val) in distance_results:
-        i = y_vals.index(pos.y)
-        j = x_vals.index(pos.x)
-        Z_grid[i, j] = val
-    
-    fig, ax = plt.subplots(figsize=(10.75, 10))
-    
-    # Create discrete heatmap (blue to red)
-    im = ax.pcolormesh(x_vals, y_vals, Z_grid, cmap='RdYlBu_r', shading='auto')
-    cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04, shrink=0.8)
-    cbar.ax.set_title('$d$ (m)', fontsize=25, pad=10, loc='left')
-    cbar.ax.tick_params(labelsize=25)
-    
-    add_obstacles_to_2d_plot(ax, obstacles)
-    add_optimization_minimum_to_2d_plot(ax, optimization_minimum)
-    
-    # Add annotation if minimum exists
-    if optimization_minimum is not None:
-        opt_pos, _ = optimization_minimum
-        ax.annotate('minimum', xy=(opt_pos.x, opt_pos.y), xytext=(opt_pos.x, opt_pos.y +  0.75),
-                   fontsize=25, ha='center', va='bottom',
-                   bbox=dict(boxstyle='round,pad=0.1', facecolor='white', edgecolor='black', linewidth=1))
-    
-    ax.set_xlabel('$x$ (m)')
-    ax.set_ylabel('$y$ (m)')
-    #ax.set_title(f'Grid Search Results - Total Distance Heatmap ({grid_resolution}x{grid_resolution})', fontsize=25)
-    ax.tick_params(labelsize=25)
-    
-    plt.tight_layout()
-    filename = f"{output_dir}/grid_search_{grid_resolution}x{grid_resolution}_distance_heatmap"
-    #plt.savefig(f"{filename}.png", dpi=150, bbox_inches='tight')
-    plt.savefig(f"{filename}.pdf", bbox_inches='tight')
-    #print(f"Plot saved to: {filename}.png and {filename}.pdf")
-    print(f"Plot saved to: {filename}.pdf")
-    plt.close()
-
-
-def generate_charging_distance_heatmap_plot(
-    results: List[Tuple[Pos2, float, float, float]], 
-    obstacles: List[Obstacle], 
-    grid_resolution: int, 
-    optimization_minimum: Optional[Tuple[Pos2, float]] = None,
-    output_dir: str = "results"
-):
-    """Generate 2D heatmap plot for charging distance with discrete grid (like Rust)"""
-    setup_latex_fonts(30)
-    
-    charging_results = [(pos, charging_distance) for pos, _, _, charging_distance in results]
-    
-    # Extract unique x and y coordinates
-    x_vals = sorted(set(pos.x for pos, _ in charging_results))
-    y_vals = sorted(set(pos.y for pos, _ in charging_results))
-    
-    # Create grid matching actual data points
-    Z_grid = np.full((len(y_vals), len(x_vals)), np.nan)
-    
-    for (pos, val) in charging_results:
-        i = y_vals.index(pos.y)
-        j = x_vals.index(pos.x)
-        Z_grid[i, j] = val
-    
-    fig, ax = plt.subplots(figsize=(10.75, 10))
-    
-    # Create discrete heatmap (blue to red)
-    im = ax.pcolormesh(x_vals, y_vals, Z_grid, cmap='RdYlBu_r', shading='auto')
-    cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04, shrink=0.8)
-    cbar.ax.set_title(r'$d^{\mathrm{chg}}$ (m)', fontsize=25, pad=10, loc='left')
-    cbar.ax.tick_params(labelsize=25)
-    
-    add_obstacles_to_2d_plot(ax, obstacles)
-    add_optimization_minimum_to_2d_plot(ax, optimization_minimum)
-    
-    # Add annotation if minimum exists
-    if optimization_minimum is not None:
-        opt_pos, _ = optimization_minimum
-        ax.annotate('minimum', xy=(opt_pos.x, opt_pos.y), xytext=(opt_pos.x, opt_pos.y +  0.75),
-                   fontsize=25, ha='center', va='bottom',
-                   bbox=dict(boxstyle='round,pad=0.1', facecolor='white', edgecolor='black', linewidth=1))
-    
-    ax.set_xlabel('$x$ (m)')
-    ax.set_ylabel('$y$ (m)')
-    #ax.set_title(f'Grid Search Results - Charging Distance Heatmap ({grid_resolution}x{grid_resolution})', fontsize=25)
-    ax.tick_params(labelsize=25)
-    
-    plt.tight_layout()
-    filename = f"{output_dir}/grid_search_{grid_resolution}x{grid_resolution}_charging_distance_heatmap"
-    #plt.savefig(f"{filename}.png", dpi=150, bbox_inches='tight')
-    plt.savefig(f"{filename}.pdf", bbox_inches='tight')
-    #print(f"Plot saved to: {filename}.png and {filename}.pdf")
-    print(f"Plot saved to: {filename}.pdf")
-    plt.close()
-
 
 # ============================================================================
 # Multi-Station Plots
@@ -565,48 +377,6 @@ def generate_multi_station_distance_plot(
     #print(f"Plot saved to: {filename}.png and {filename}.pdf")
     print(f"Plot saved to: {filename}.pdf")
     plt.close()
-
-
-# ============================================================================
-# Helper Functions for 2D Plots
-# ============================================================================
-
-def add_obstacles_to_2d_plot(ax, obstacles: List[Obstacle]):
-    """Add obstacle polygons to 2D plot"""
-    for i, obstacle in enumerate(obstacles):
-        if len(obstacle.points) < 3:
-            continue
-        
-        # Create polygon
-        points = [(p.x, p.y) for p in obstacle.points]
-        polygon = MplPolygon(points, closed=True, edgecolor='black', facecolor='black', #hatch='///', 
-                            linewidth=1.5)
-        ax.add_patch(polygon)
-
-
-def add_optimization_minimum_to_2d_plot(
-    ax, 
-    optimization_minimum: Optional[Tuple[Pos2, float]],
-    marker_size: int = 15,
-    marker_color: str = 'black'
-):
-    """Add optimization minimum marker to 2D plot"""
-    if optimization_minimum is not None:
-        opt_pos, _ = optimization_minimum
-        # Layer 1: Larger white circle with black border (background)
-        ax.scatter([opt_pos.x], [opt_pos.y], c='white', marker='o', s=400, 
-                  edgecolors='black', linewidths=3.5, zorder=100)
-        # Layer 2: Black circle on top
-        ax.scatter([opt_pos.x], [opt_pos.y], c='black', marker='o', s=250, 
-                  edgecolors='white', linewidths=2.5, label='Optimization Minimum', zorder=101)
-
-
-def add_field_boundaries_to_plot(ax, field_bounds: Tuple[float, float, float, float]):
-    """Add field boundary rectangle to plot"""
-    min_x, max_x, min_y, max_y = field_bounds
-    boundary_x = [min_x, max_x, max_x, min_x, min_x]
-    boundary_y = [min_y, min_y, max_y, max_y, min_y]
-    ax.plot(boundary_x, boundary_y, 'k-', linewidth=2, label='Field Boundary')
 
 
 # ============================================================================
