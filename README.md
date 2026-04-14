@@ -172,17 +172,25 @@ cd viz
 python load_json.py ../results/your_data.json ../results/figures
 ```
 
-**Examples**
-
-Single-station visualization: 
+**Single-station visualization**
 
 ```
-python load_json.py ../results/paper_results_v2/basic/grid_search_50x50_results.json ../results/paper_results_v2/basic
+python single_station_viz.py <input_json> <output_dir>
+```
+Example: 
+
+```
+python single_station_viz.py ../results/paper_results_v2/basic/grid_search_50x50_results.json ../results/paper_results_v2/basic
 ```
 
-Multi-station visualization:
+**Multi-station visualization**
+
 ```
-python plot_multi_agent.py ../results/paper_results_v2/multi
+python multi_station_viz.py <output_dir>
+```
+Example: 
+```
+python multi_station_viz.py ../results/paper_results_v2/multi
 ```
 
 ### Output
