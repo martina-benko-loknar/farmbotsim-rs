@@ -3,7 +3,7 @@ Script to visualize multi-agent station configurations from table data
 """
 
 import json
-from visualization import (
+from viz_core import (
     Pos2, Obstacle, MultiStationResults,
     generate_all_multi_station_plots
 )

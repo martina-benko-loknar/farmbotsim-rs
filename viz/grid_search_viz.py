@@ -4,7 +4,7 @@ Load and visualize grid search results from JSON file
 
 import json
 import numpy as np
-from visualization import *
+from viz_core import *
 
 
 def load_json_data(json_path):
