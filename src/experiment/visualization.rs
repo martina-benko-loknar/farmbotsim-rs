@@ -9,7 +9,7 @@ use crate::environment::{
 
 use egui::Pos2;
 use plotly::{Plot, Scatter, Scatter3D, HeatMap, Layout, common::{Marker, Mode}, ImageFormat};
-use crate::experiment::interpolate_results;
+use crate::experiment::geometry::interpolate_results;
 
 /// Generate visualization plots for grid search results
 pub fn generate_grid_search_plots(results: &[(Pos2, f64, f64, f64)], obstacles: &[Obstacle], grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {

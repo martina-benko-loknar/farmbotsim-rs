@@ -11,7 +11,7 @@ use crate::environment::{
 use crate::task_module::strategies::{ChargingStrategy, ChooseStationStrategy};
 use crate::units::{energy::Energy, duration::Duration};
 use crate::experiment::visualization::generate_grid_search_plots;
-use crate::experiment::generate_valid_grid_points;
+use crate::experiment::geometry::generate_valid_grid_points;
 use crate::experiment::save_grid_search_results;
 use egui::Pos2;
 use rand;
