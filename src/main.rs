@@ -16,6 +16,7 @@ use crate::app_module::app::App;
 use crate::optimization::ego::optimize_station_positions_ego;
 use crate::experiment::runner::run_experiment;
 use crate::experiment::visualization::multi_station_plot_function;
+use crate::experiment::grid_search::run_grid_search_experiment;
 use egui::Pos2;
 
 pub mod tool_module;
@@ -67,7 +68,7 @@ fn main() -> Result<(), eframe::Error> {
         } else {
             None
         };
-        experiment::run_grid_search_experiment(grid_resolution, optimization_minimum);
+        run_grid_search_experiment(grid_resolution, optimization_minimum);
         return Ok(());
     } else if args.contains(&"--plot-multiple".to_string()) {
         multi_station_plot_function();
