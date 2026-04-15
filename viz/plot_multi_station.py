@@ -57,12 +57,19 @@ def generate_multi_station_plot(
         color_value = (i+1) / 7
         color = cm.RdYlBu_r(color_value)
         #color = cm.hsv(color_value)  # Get RGB color from colormap
-        alpha = 0.9 - (i * 0.05)
+        alpha = 0.9 
         markers = ['o', '^', '<', 'p', 's', 'D']
-        ax.scatter(x_coords, y_coords, c=[color], marker=markers[i], s=150, cmap='RdYlBu_r',
-                  alpha=0.9, edgecolors='black', linewidths=1, 
-                  label=f'{energy/1000:.2f}')
-                  #label=f'Cfg.{i+1} ({energy/1000:.2f} kWh)')
+        ax.scatter(
+            x_coords,
+            y_coords,
+            color=color,
+            marker=markers[i],
+            s=150,
+            alpha=alpha,
+            edgecolors='black',
+            linewidths=1,
+            label=f'{energy/1000:.2f}'
+        )
 
     
     
@@ -102,10 +109,11 @@ def generate_multi_station_plot(
     
     plt.tight_layout()
     filename = f"{output_dir}/multi_station_{len(optimal_stations)}_energy"
+    fname = f"multi_station_{len(optimal_stations)}_energy"
     #plt.savefig(f"{filename}.png", dpi=150, bbox_inches='tight')
     plt.savefig(f"{filename}.pdf", bbox_inches='tight')
     #print(f"Plot saved to: {filename}.png and {filename}.pdf")
-    print(f"Plot saved to: {filename}.pdf")
+    print(f"- {fname}.pdf")
     plt.close()
 
 
@@ -151,11 +159,19 @@ def generate_multi_station_distance_plot(
         color_value = (i+1) / 7
         color = cm.RdYlBu_r(color_value)
         #color = cm.hsv(color_value)  # Get RGB color from colormap
-        alpha = 0.9 - (i * 0.05)
+        alpha = 0.9 
         markers = ['o', '^', '<', 'p', 's', 'D']
-        ax.scatter(x_coords, y_coords, c=[color], marker=markers[i], s=150, cmap='RdYlBu_r',
-                  alpha=0.9, edgecolors='black', linewidths=1, 
-                  label=f'{distance/1000:.3f}')
+        ax.scatter(
+            x_coords,
+            y_coords,
+            color=color,
+            marker=markers[i],
+            s=150,
+            alpha=alpha,
+            edgecolors='black',
+            linewidths=1,
+            label=f'{distance/1000:.3f}'
+        )
                   #label=f'Cfg.{i+1} ({energy/1000:.2f} kWh)')
                   #    
     # # Plot optimal configuration
@@ -197,8 +213,9 @@ def generate_multi_station_distance_plot(
     
     plt.tight_layout()
     filename = f"{output_dir}/multi_station_{len(optimal_stations)}_distance"
+    fname = f"multi_station_{len(optimal_stations)}_distance"
     #plt.savefig(f"{filename}.png", dpi=150, bbox_inches='tight')
     plt.savefig(f"{filename}.pdf", bbox_inches='tight')
     #print(f"Plot saved to: {filename}.png and {filename}.pdf")
-    print(f"Plot saved to: {filename}.pdf")
+    print(f"- {fname}.pdf")
     plt.close()
