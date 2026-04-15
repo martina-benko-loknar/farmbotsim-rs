@@ -70,10 +70,11 @@ def generate_3d_plot(
     
     plt.tight_layout()
     filename = f"{output_dir}/grid_search_{grid_resolution}x{grid_resolution}_3d"
+    fname = f"grid_search_{grid_resolution}x{grid_resolution}_3d"
     # plt.savefig(f"{filename}.png", dpi=150, bbox_inches='tight')
     plt.savefig(f"{filename}.pdf", bbox_inches='tight')
     # print(f"Plot saved to: {filename}.png and {filename}.pdf")
-    print(f"Plot saved to: {filename}.pdf")
+    print(f"- {fname}.pdf")
     plt.close()
 
 

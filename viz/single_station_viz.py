@@ -6,7 +6,6 @@ import json
 import numpy as np
 from viz_core import *
 
-
 def load_json_data(json_path):
     """Load grid search results from JSON file"""
     with open(json_path, 'r') as f:
@@ -82,7 +81,7 @@ def find_optimization_minimum(data, results):
         opt_min = data['optimization_minimum']
         pos = Pos2(opt_min['x'], opt_min['y'])
         energy = opt_min['energy_consumption']
-        print(f"Using optimization minimum from JSON: ({pos.x:.3f}, {pos.y:.3f})")
+        # print(f"Using optimization minimum from JSON: ({pos.x:.3f}, {pos.y:.3f})")
         return (pos, energy)
     
     # Fallback: find minimum from results
@@ -91,127 +90,9 @@ def find_optimization_minimum(data, results):
     
     min_idx = min(range(len(results)), key=lambda i: results[i][1])
     pos, energy, _, _ = results[min_idx]
-    print(f"Calculated optimization minimum from results: ({pos.x:.3f}, {pos.y:.3f})")
+    #print(f"Calculated optimization minimum from results: ({pos.x:.3f}, {pos.y:.3f})")
     
     return (pos, energy)
-
-
-def visualize_json_data(json_path, output_dir="results"):
-    """
-    Main function to load JSON data and generate all visualizations
-    
-    Args:
-        json_path: Path to the JSON file
-        output_dir: Directory to save output plots
-    """
-    print("=" * 70)
-    print(f"Loading data from: {json_path}")
-    print("=" * 70)
-    
-    # Load JSON data
-    data = load_json_data(json_path)
-    
-    # Parse components
-    field_bounds = parse_field_config(data)
-    print(f"\nField bounds: x=[{field_bounds[0]:.1f}, {field_bounds[1]:.1f}], "
-          f"y=[{field_bounds[2]:.1f}, {field_bounds[3]:.1f}]")
-    
-    obstacles = parse_obstacles(data)
-    print(f"Number of obstacles: {len(obstacles)}")
-    
-    results, grid_resolution = parse_grid_search_results(data)
-    print(f"Grid resolution: {grid_resolution}x{grid_resolution}")
-    print(f"Number of grid points: {len(results)}")
-    
-    # Find optimization minimum
-    optimization_minimum = find_optimization_minimum(data, results)
-    if optimization_minimum:
-        pos, energy = optimization_minimum
-        print(f"\nOptimal position: ({pos.x:.3f}, {pos.y:.3f})")
-        print(f"Minimum energy: {energy:.2f} Wh")
-        
-        # Find min/max values for context
-        energies = [e for _, e, _, _ in results]
-        distances = [d for _, _, d, _ in results]
-        charging_dists = [cd for _, _, _, cd in results]
-        
-        print(f"\nEnergy range: [{min(energies):.2f}, {max(energies):.2f}] Wh")
-        print(f"Distance range: [{min(distances):.2f}, {max(distances):.2f}] m")
-        print(f"Charging distance range: [{min(charging_dists):.2f}, {max(charging_dists):.2f}] m")
-    
-    # Create GridSearchResults object
-    grid_results = GridSearchResults(
-        results=results,
-        grid_resolution=grid_resolution,
-        obstacles=obstacles,
-        field_bounds=field_bounds
-    )
-    
-    # Generate all plots
-    print(f"\nGenerating plots in '{output_dir}/' directory...")
-    print("-" * 70)
-    
-    os.makedirs(output_dir, exist_ok=True)
-    generate_all_grid_plots(grid_results, optimization_minimum, output_dir=output_dir)
-    
-    print("-" * 70)
-    print("✓ All plots generated successfully!")
-    print("=" * 70)
-
-
-def create_sample_json_data(output_path="sample_grid_search.json"):
-    """
-    Create a sample JSON file based on the provided excerpt format.
-    This is useful for testing.
-    """
-    # Generate sample grid search results
-    grid_resolution = 30
-    results = []
-    
-    for i in range(grid_resolution):
-        for j in range(grid_resolution):
-            x = 0.4 + i * 11.6 / (grid_resolution - 1)
-            y = 0.4 + j * 11.6 / (grid_resolution - 1)
-            
-            # Simulate energy consumption (parabolic function)
-            energy = 6800 + ((x - 6)**2 + (y - 6)**2) * 10
-            
-            # Simulate distances
-            total_distance = 19200 + ((x - 6)**2 + (y - 6)**2) * 5
-            charging_distance = 550 + np.sqrt((x - 6)**2 + (y - 6)**2) * 10
-            
-            results.append({
-                "x": x,
-                "y": y,
-                "energy_consumption": energy + np.random.normal(0, 10),
-                "total_distance": total_distance + np.random.normal(0, 20),
-                "charging_distance": charging_distance + np.random.normal(0, 5)
-            })
-    
-    # Create full JSON structure
-    data = {
-        "field_config": {
-            "field_boundaries_used_in_grid_search": {
-                "min_x": 0.0,
-                "max_x": 12.0,
-                "min_y": 0.0,
-                "max_y": 12.0
-            },
-            "field_config_path": "configs/field_configs/default.json",
-            "num_field_configs": 1,
-            "num_obstacles": 0
-        },
-        "generated_at": "2025-09-24T12:51:46.303097561+00:00",
-        "grid_resolution": grid_resolution,
-        "grid_search_results": results
-    }
-    
-    # Save to file
-    with open(output_path, 'w') as f:
-        json.dump(data, f, indent=2)
-    
-    print(f"Sample JSON file created: {output_path}")
-    return output_path
 
 
 # ============================================================================
@@ -273,43 +154,41 @@ def add_obstacles_from_lines(data):
                         # Move to next obstacle position
                         pos1_x += line_spacing
                     
-                    print(f"Created {n_lines + 1} obstacles (Rust-style, {obstacle_width}m wide, extended by {height_offset}m)")
-    
+                    # print(f"Created {n_lines + 1} obstacles (Rust-style, {obstacle_width}m wide, extended by {height_offset}m)")
+                    print(f"Obstacles: {n_lines + 1} ({obstacle_width}m width, {height_offset}m extension)")
+
     except Exception as e:
         print(f"Note: Could not parse obstacles from config: {e}")
     
     return obstacles
 
 
-def visualize_json_data_with_lines(json_path, output_dir="results"):
+def visualize_single_station(json_path, output_dir="results"):
     """
     Enhanced version that creates obstacles from line configurations
     """
-    print("=" * 70)
-    print(f"Loading data from: {json_path}")
-    print("=" * 70)
-    
+  
     # Load JSON data
     data = load_json_data(json_path)
     
     # Parse components
     field_bounds = parse_field_config(data)
-    print(f"\nField bounds: x=[{field_bounds[0]:.1f}, {field_bounds[1]:.1f}], "
+    print("-" * 70)
+    print(f"Field bounds: x=[{field_bounds[0]:.1f}, {field_bounds[1]:.1f}], "
           f"y=[{field_bounds[2]:.1f}, {field_bounds[3]:.1f}]")
     
     # Try to create obstacles from line configuration
     obstacles = add_obstacles_from_lines(data)
-    print(f"Number of obstacles: {len(obstacles)}")
+    #print(f"Number of obstacles: {len(obstacles)}")
     
     results, grid_resolution = parse_grid_search_results(data)
-    print(f"Grid resolution: {grid_resolution}x{grid_resolution}")
-    print(f"Number of grid points: {len(results)}")
+    print(f"Grid: {grid_resolution}x{grid_resolution} ({len(results)} points)")
     
     # Find optimization minimum
     optimization_minimum = find_optimization_minimum(data, results)
     if optimization_minimum:
         pos, energy = optimization_minimum
-        print(f"\nOptimal position: ({pos.x:.3f}, {pos.y:.3f})")
+        print(f"Optimal position: ({pos.x:.3f}, {pos.y:.3f})")
         print(f"Minimum energy: {energy:.2f} Wh")
         
         # Statistics
@@ -317,8 +196,8 @@ def visualize_json_data_with_lines(json_path, output_dir="results"):
         distances = [d for _, _, d, _ in results]
         charging_dists = [cd for _, _, _, cd in results]
         
-        print(f"\nEnergy range: [{min(energies):.2f}, {max(energies):.2f}] Wh")
-        print(f"Distance range: [{min(distances):.2f}, {max(distances):.2f}] m")
+        print(f"Energy range:            [{min(energies):.2f}, {max(energies):.2f}] Wh")
+        print(f"Distance range:          [{min(distances):.2f}, {max(distances):.2f}] m")
         print(f"Charging distance range: [{min(charging_dists):.2f}, {max(charging_dists):.2f}] m")
     
     # Create GridSearchResults object
@@ -330,15 +209,11 @@ def visualize_json_data_with_lines(json_path, output_dir="results"):
     )
     
     # Generate all plots
-    print(f"\nGenerating plots in '{output_dir}/' directory...")
     print("-" * 70)
-    
+    print(f"Generating plots...")
+
     os.makedirs(output_dir, exist_ok=True)
     generate_all_grid_plots(grid_results, optimization_minimum, output_dir=output_dir)
-    
-    print("-" * 70)
-    print("✓ All plots generated successfully!")
-    print("=" * 70)
 
 
 # ============================================================================
@@ -347,23 +222,31 @@ def visualize_json_data_with_lines(json_path, output_dir="results"):
 
 if __name__ == "__main__":
     import sys
-    
-    if len(sys.argv) > 1:
-        # User provided a JSON file path
-        json_file = sys.argv[1]
-        output_directory = sys.argv[2] if len(sys.argv) > 2 else "results"
-        
-        print(f"Using JSON file: {json_file}")
-        print(f"Output directory: {output_directory}")
-        
-        # Use the enhanced version that handles line obstacles
-        visualize_json_data_with_lines(json_file, output_directory)
-    
+    import os
+
+    if len(sys.argv) < 2:
+        print("Usage:")
+        print("  python single_station_viz.py <input_json> [output_dir]")
+        sys.exit(1)
+
+    json_file = sys.argv[1]
+
+    # Default: save results next to input file
+    if len(sys.argv) > 2:
+        output_directory = sys.argv[2]
     else:
-        # No file provided - create and use sample data
-        print("No JSON file provided. Creating sample data...\n")
-        sample_file = create_sample_json_data()
-        print()
-        visualize_json_data(sample_file, "sample_results")
-        print("\nTo visualize your own JSON file, run:")
-        print("  python load_json.py your_file.json [output_directory]")
+        output_directory = os.path.dirname(json_file)
+
+    print("=" * 70)
+    print("Single-station visualization")
+    print("=" * 70)
+
+    print(f"Input file: {json_file}")
+    print(f"Output directory: {output_directory}")
+    
+    visualize_single_station(json_file, output_directory)
+
+    print("-" * 70)
+    print("✓ Plots generated successfully!")
+    print(f"Saved to '{output_directory}'")
+    print("=" * 70)
