@@ -165,12 +165,8 @@ pip install -r requirements.txt
 ```
 ### Usage
 
-After running a Rust experiment (which produces JSON files in `results/`): 
+After running a Rust experiment (which produces JSON files in `results/`) go into `viz/` directory.  
 
-```bash
-cd viz
-python load_json.py ../results/your_data.json ../results/figures
-```
 
 **Single-station visualization**
 
