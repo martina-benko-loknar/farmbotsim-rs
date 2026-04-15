@@ -119,7 +119,7 @@ def build_multi_station_results(configs_data, obstacles):
     optimal_idx = min(range(len(configs)), key=lambda i: configs[i]['energy'])
     optimal = configs[optimal_idx]
 
-    print(f"\nOptimal configuration: #{optimal_idx + 1} with energy: {optimal['energy']:.2f} Wh.")
+    #print(f"\nOptimal configuration: #{optimal_idx + 1} with energy: {optimal['energy']:.2f} Wh.")
 
     sub_energy = [(c['stations'], c['energy']) for i, c in enumerate(configs) if i != optimal_idx]
     sub_energy.sort(key=lambda x: x[1])
@@ -143,34 +143,42 @@ def build_multi_station_results(configs_data, obstacles):
 # ---------------------------------------------------------------------
 
 def main():
+    print("=" * 70)
+    print("Multi-station visualization")
+    print("=" * 70)
+
     if len(sys.argv) > 1:
-        input_dir = sys.argv[1]
-        output_dir = sys.argv[2] if len(sys.argv) > 2 else input_dir
-
-        # TODO: replace with real file loading later
-        # print(f"Input directory: {input_dir}")
-        # print(f"Output directory: {output_dir}")
-        
-        print("Currently using hardcoded data from table.txt.\n")
-        configs_data = get_configs_data()
-        field_config = get_field_config_json()
-
+        input_directory = sys.argv[1]
+        output_directory = sys.argv[2] if len(sys.argv) > 2 else input_directory
     else:
-        print("Using hardcoded data from table.txt.\n")
+        input_directory = None
+        output_directory = "sample_results"
 
-        configs_data = get_configs_data()
-        field_config = get_field_config_json()
-        output_dir = "sample_results"
+    print(f"Input: using hardcoded data from table.txt.")
+    print(f"Output directory: {output_directory}")
+    print("-" * 70)
+
+    configs_data = get_configs_data()
+    field_config = get_field_config_json()
 
     obstacles = parse_field_config(field_config)
-    print(f"Generated {len(obstacles)} obstacles.")
+    print(f"Obstacles: {len(obstacles)}")
 
     results = build_multi_station_results(configs_data, obstacles)
+    optimal_energy = results.optimal_energy
+    optimal_station = results.optimal_stations
 
-    print("\nGenerating plots: ")
-    generate_all_multi_station_plots(results, output_dir=output_dir)
+    print(f"Optimal energy: {optimal_energy:.2f} Wh")
+    print(f"Optimal stations: {optimal_station}") 
 
-    print(f"Plots saved to '{output_dir}'")
+    print("-" * 70)
+    print("Generating plots... ")
+    generate_all_multi_station_plots(results, output_dir=output_directory)
+
+    print("-" * 70)
+    print("✓ Plots generated successfully!")
+    print(f"Saved to '{output_directory}'")
+    print("=" * 70)
 
 
 if __name__ == "__main__":
