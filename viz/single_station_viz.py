@@ -27,36 +27,6 @@ def parse_field_config(data):
     
     return field_bounds
 
-
-def parse_obstacles(data):
-    """
-    Parse obstacles from field configuration.
-    Note: The JSON excerpt doesn't show obstacle details, but we know there are 13 obstacles.
-    This function will need to be adapted based on the full JSON structure.
-    """
-    # Placeholder: You'll need to adapt this based on your actual JSON structure
-    # For now, return empty list since obstacles aren't in the excerpt
-    
-    field_config = data.get('field_config', {})
-    
-    # Try to parse from field_config_raw if available
-    config_raw = field_config.get('field_config_raw', '')
-    
-    # TODO: Parse obstacles from the actual JSON structure
-    # The excerpt shows num_obstacles: 13, but doesn't show the obstacle data
-    
-    obstacles = []
-    
-    # If you have obstacle data in the JSON, add parsing logic here
-    # Example format might be:
-    # if 'obstacles' in data:
-    #     for obs_data in data['obstacles']:
-    #         points = [Pos2(p['x'], p['y']) for p in obs_data['points']]
-    #         obstacles.append(Obstacle(points))
-    
-    return obstacles
-
-
 def parse_grid_search_results(data):
     """Parse grid search results from JSON data"""
     results_data = data.get('grid_search_results', [])
@@ -94,7 +64,6 @@ def find_optimization_minimum(data, results):
     
     return (pos, energy)
 
-
 # ============================================================================
 # Enhanced version with obstacle support
 # ============================================================================
@@ -102,7 +71,6 @@ def find_optimization_minimum(data, results):
 def add_obstacles_from_lines(data):
     """
     Create obstacle polygons from field line configurations.
-    Replicates the exact Rust logic from field_config.get_obstacles()
     """
     obstacles = []
     
