@@ -14,7 +14,7 @@
 pub mod app_module;
 use crate::app_module::app::App;
 use crate::optimization::ego::optimize_station_positions_ego;
-use crate::experiment::single_evaluation::run_experiment;
+use crate::experiment::single_evaluation::run_single_evaluation;
 use crate::experiment::visualization::multi_station_plot_function;
 use crate::experiment::grid_search::run_grid_search_experiment;
 use egui::Pos2;
@@ -38,8 +38,8 @@ fn main() -> Result<(), eframe::Error> {
     let args: Vec<String> = std::env::args().collect();
     
     // Check for experiment argument
-    if args.contains(&"--experiment".to_string()) {
-        run_experiment(); // Call the experiment function
+    if args.contains(&"--single-evaluation".to_string()) {
+        run_single_evaluation(); 
         return Ok(());
     } else if args.contains(&"--optimize".to_string()) {
         optimize_station_positions_ego(50);

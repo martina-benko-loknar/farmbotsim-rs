@@ -9,7 +9,7 @@ use crate::environment::{
 use crate::task_module::strategies::{ChargingStrategy, ChooseStationStrategy};
 use crate::units::{energy::Energy, duration::Duration};
 
-pub fn run_experiment() {
+pub fn run_single_evaluation() {
     println!("Starting farmbot simulation experiment...");
     
     // Configure environment settings (similar to PerformanceMatrixTool)
