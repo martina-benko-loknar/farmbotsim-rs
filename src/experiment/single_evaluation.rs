@@ -1,7 +1,7 @@
 use crate::cfg::{
     DEFAULT_SCENE_CONFIG_PATH, DEFAULT_AGENT_CONFIG_PATH,
 };
-use crate::tool_module::experiment_tool::{ExperimentRunner, TerminationCondition};
+use crate::tool_module::experiment_tool::{SingleEvaluation, TerminationCondition};
 use crate::environment::{
     datetime::DateTimeConfig,
     env_module::env_config::EnvConfig
@@ -28,7 +28,7 @@ pub fn run_experiment() {
     env_config.datetime_config = DateTimeConfig::from_string("01.01.2025 08:00:00".to_string());
     
     // Create experiment runner
-    let mut runner = ExperimentRunner {
+    let mut runner = SingleEvaluation {
         running: false,
         scene_config_path: env_config.scene_config_path.clone(),
         agent_config_path: env_config.agent_config_path.clone(),

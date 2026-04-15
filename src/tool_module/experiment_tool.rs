@@ -58,7 +58,7 @@ struct EpisodeResult {
     agent_actions: Vec<AgentAction>,
 }
 
-pub struct ExperimentRunner {
+pub struct SingleEvaluation {
     pub running: bool,
     pub scene_config_path: String,
     pub agent_config_path: String,
@@ -84,7 +84,7 @@ pub struct ExperimentRunner {
     pub step_start_time: Duration,
 }
 
-impl ExperimentRunner {
+impl SingleEvaluation {
     /// Runs the simulation for a single episode and saves the result.
     pub fn run_simulation(&mut self) {
         self.running = true;

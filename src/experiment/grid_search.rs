@@ -1,7 +1,7 @@
 use crate::cfg::{
     DEFAULT_SCENE_CONFIG_PATH, DEFAULT_AGENT_CONFIG_PATH,
 };
-use crate::tool_module::experiment_tool::{ExperimentRunner, TerminationCondition};
+use crate::tool_module::experiment_tool::{SingleEvaluation, TerminationCondition};
 use crate::environment::{
     datetime::DateTimeConfig,
     env_module::env_config::EnvConfig,
@@ -118,7 +118,7 @@ fn run_single_grid_experiment(station_position: Pos2, original_scene: &SceneConf
     env_config.task_manager_config.choose_station_strategy = ChooseStationStrategy::ClosestManhattan;
     
     // Create and run experiment
-    let mut runner = ExperimentRunner {
+    let mut runner = SingleEvaluation {
         running: false,
         scene_config_path: temp_scene_path.clone(),
         agent_config_path: env_config.agent_config_path.clone(),

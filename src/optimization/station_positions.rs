@@ -7,7 +7,7 @@ use crate::environment::{
     field_config::FieldConfig,
     obstacle::Obstacle
 };
-use crate::tool_module::experiment_tool::{ExperimentRunner, TerminationCondition};
+use crate::tool_module::experiment_tool::{SingleEvaluation, TerminationCondition};
 use crate::units::{energy::Energy, duration::Duration};
 use crate::utilities::utils::load_json_or_panic;
 use crate::task_module::strategies::{ChargingStrategy, ChooseStationStrategy};
@@ -128,7 +128,7 @@ impl StationPositions {
 
         // Create experiment runner
         let runner_random_id: u32 = rand::random();
-        let mut runner = ExperimentRunner {
+        let mut runner = SingleEvaluation {
             running: false,
             scene_config_path: temp_scene_path.clone(),
             agent_config_path: env_config.agent_config_path.clone(),
