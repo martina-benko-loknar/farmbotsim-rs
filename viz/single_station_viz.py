@@ -48,7 +48,10 @@ def find_optimization_minimum(data, results):
     """Find the point with minimum energy consumption"""
     # First, check if optimization_minimum is provided in JSON
     if 'optimization_minimum' in data:
-        opt_min = data['optimization_minimum']
+        opt_min = data.get('optimization_minimum')
+        if opt_min is None:
+            return None  
+
         pos = Pos2(opt_min['x'], opt_min['y'])
         energy = opt_min['energy_consumption']
         # print(f"Using optimization minimum from JSON: ({pos.x:.3f}, {pos.y:.3f})")
@@ -147,10 +150,8 @@ def visualize_single_station(json_path, output_dir="results"):
     
     # Try to create obstacles from line configuration
     obstacles = add_obstacles_from_lines(data)
-    #print(f"Number of obstacles: {len(obstacles)}")
     
     results, grid_resolution = parse_grid_search_results(data)
-    print(f"Grid: {grid_resolution}x{grid_resolution} ({len(results)} points)")
     
     # Find optimization minimum
     optimization_minimum = find_optimization_minimum(data, results)
@@ -205,16 +206,10 @@ if __name__ == "__main__":
     else:
         output_directory = os.path.dirname(json_file)
 
-    print("=" * 70)
-    print("Single-station visualization")
-    print("=" * 70)
-
     print(f"Input file: {json_file}")
-    print(f"Output directory: {output_directory}")
     
     visualize_single_station(json_file, output_directory)
 
     print("-" * 70)
-    print("✓ Plots generated successfully!")
-    print(f"Saved to '{output_directory}'")
+    print(f"✓ Plots generated successfully and saved to '{output_directory}'!")
     print("=" * 70)

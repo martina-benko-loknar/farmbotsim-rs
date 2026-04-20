@@ -10,17 +10,23 @@ use crate::environment::{
 };
 use crate::task_module::strategies::{ChargingStrategy, ChooseStationStrategy};
 use crate::units::{energy::Energy, duration::Duration};
-use crate::experiment::visualization::generate_grid_search_plots;
+// use crate::experiment::visualization::generate_grid_search_plots;
 use crate::experiment::geometry::generate_valid_grid_points;
 use crate::experiment::results::save_grid_search_results;
 use egui::Pos2;
 use rand;
 
+fn separator() {
+    println!("{}", "-".repeat(70));
+}
+
 /// Grid search experiment with optional optimization minimum point and value for visualization
-pub fn run_grid_search_experiment(grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {
-    println!("Starting grid search experiment for charging station optimization...");
-    println!("Grid resolution: {}x{}", grid_resolution, grid_resolution);
-    
+pub fn run_grid_search_experiment(
+    grid_resolution: usize, 
+    optimization_minimum: Option<(Pos2, f64)>,
+    output_dir: &str
+    ) {
+
     if let Some((opt_pos, opt_value)) = optimization_minimum {
         println!("Will visualize optimization minimum at: ({:.2}, {:.2}) with value: {:.2} Wh", 
                  opt_pos.x, opt_pos.y, opt_value);
@@ -49,45 +55,87 @@ pub fn run_grid_search_experiment(grid_resolution: usize, optimization_minimum: 
         &obstacles,
         OBSTACLE_MARGIN,
     );
-    
-    println!("Generated {} valid grid points out of {} total grid points", 
-             grid_points.len(), grid_resolution * grid_resolution);
+
+    //separator();
+    println!("Progress | Position |  Energy | Total dist | Charging dist | Time\n");
     
     // Store results for analysis
-    let mut results: Vec<(Pos2, f64, f64, f64)> = Vec::new(); // (position, energy, total_distance, charging_distance)
+    let mut results: Vec<(Pos2, f64, f64, f64, f64)> = Vec::new(); // (position, energy, total_distance, charging_distance, time)
     let total_points = grid_points.len();
     
     // Run experiment for each grid point
     for (i, grid_point) in grid_points.iter().enumerate() {
-        println!("Progress: {}/{} - Testing position ({:.2}, {:.2})", 
-                 i + 1, total_points, grid_point.x, grid_point.y);
-        
+     
+        let start = std::time::Instant::now();
+
         // Update scene config with new station position
         let (energy_consumption, total_distance, charging_distance) = run_single_grid_experiment(*grid_point, &scene_config);
-        results.push((*grid_point, energy_consumption, total_distance, charging_distance));
+
+        let elapsed = start.elapsed().as_secs_f64();
+
+        results.push((
+            *grid_point, 
+            energy_consumption, 
+            total_distance, 
+            charging_distance, 
+            elapsed
+        ));
         
-        println!("  → Energy: {:.2} Wh, Distance: {:.2} m, Charging dist: {:.2} m", 
-                 energy_consumption, total_distance, charging_distance);
+        let progress = ((i + 1) as f64 / total_points as f64) * 100.0;
+
+        let progress_str = if progress >= 100.0 {
+            format!("{:>4.0}", progress)  // no decimals
+        } else {
+            format!("{:>4.1}", progress)  // one decimal
+        };
+
+        //let width = total_points.to_string().len(); // number of digits in total_points
+
+        println!(
+            "[{}%] | ({:>5.2},{:>5.2}) | {:.2} kWh | {:.2} km | {:.2} km | {:.2}s",
+            progress_str, // progress
+            // i + 1,
+            // total_points, //({:>width$}/{})
+            grid_point.x,
+            grid_point.y,
+            energy_consumption/1000.0,
+            total_distance/1000.0,
+            charging_distance/1000.0,
+            elapsed
+        );
+
     }
     
     // Save results to file
-    let results_file = format!("results/grid_search_{}x{}_results.json", grid_resolution, grid_resolution);
+    let results_file = format!(
+        "{}/grid_search_{}x{}_results.json",
+        output_dir,
+        grid_resolution, 
+        grid_resolution);
+
+    std::fs::create_dir_all(output_dir)
+    .expect("Failed to create output directory");
+
     save_grid_search_results(&results, &results_file, optimization_minimum, &field_config, grid_resolution);
     
     // Generate plots
-    generate_grid_search_plots(&results, &obstacles, grid_resolution, optimization_minimum);
+    // generate_grid_search_plots(&results, &obstacles, grid_resolution, optimization_minimum);
     
     // Find and report best position (based on energy consumption)
     let best_result = results.iter()
         .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
         .unwrap();
     
-    println!("\nGrid Search Experiment Completed!");
-    println!("Best position: ({:.2}, {:.2})", best_result.0.x, best_result.0.y);
-    println!("Best energy consumption: {:.2} Wh", best_result.1);
-    println!("Total distance at best position: {:.2} m", best_result.2);
-    println!("Charging distance at best position: {:.2} m", best_result.3);
-    println!("Results saved to: {}", results_file);
+    separator();
+    println!("Summary");
+    println!("\nValid pts/Total pts : {}/{}", 
+             grid_points.len(), grid_resolution * grid_resolution);
+    println!("Best position       : ({:.2}, {:.2})", best_result.0.x, best_result.0.y);
+    println!("Energy              : {:.2} kWh", best_result.1/1000.0);
+    println!("Distance            : {:.2} km", best_result.2/1000.0);
+    println!("Charging dist       : {:.2} km", best_result.3/1000.0);
+    println!("Results saved as    : {}", results_file);
+    // println!("Output directory: {}", output_dir);
 }
 
 /// Run a single experiment with a specific station position

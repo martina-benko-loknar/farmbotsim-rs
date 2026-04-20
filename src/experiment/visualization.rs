@@ -12,7 +12,7 @@ use plotly::{Plot, Scatter, Scatter3D, HeatMap, Layout, common::{Marker, Mode}, 
 use crate::experiment::geometry::interpolate_results;
 
 /// Generate visualization plots for grid search results
-pub fn generate_grid_search_plots(results: &[(Pos2, f64, f64, f64)], obstacles: &[Obstacle], grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {
+pub fn generate_grid_search_plots(results: &[(Pos2, f64, f64, f64, f64)], obstacles: &[Obstacle], grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {
     generate_3d_plot(results, obstacles, grid_resolution, optimization_minimum);
     generate_energy_heatmap_plot(results, obstacles, grid_resolution, optimization_minimum);
     generate_distance_heatmap_plot(results, obstacles, grid_resolution, optimization_minimum);
@@ -20,10 +20,10 @@ pub fn generate_grid_search_plots(results: &[(Pos2, f64, f64, f64)], obstacles: 
 }
 
 /// Generate 3D scatter plot (similar to optimization.rs)
-fn generate_3d_plot(results: &[(Pos2, f64, f64, f64)], obstacles: &[Obstacle], grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {
-    let x_coords: Vec<f64> = results.iter().map(|(pos, _, _, _)| pos.x as f64).collect();
-    let y_coords: Vec<f64> = results.iter().map(|(pos, _, _, _)| pos.y as f64).collect();
-    let energy_values: Vec<f64> = results.iter().map(|(_, energy, _, _)| *energy).collect();
+fn generate_3d_plot(results: &[(Pos2, f64, f64, f64, f64)], obstacles: &[Obstacle], grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {
+    let x_coords: Vec<f64> = results.iter().map(|(pos, _, _, _, _)| pos.x as f64).collect();
+    let y_coords: Vec<f64> = results.iter().map(|(pos, _, _, _, _)| pos.y as f64).collect();
+    let energy_values: Vec<f64> = results.iter().map(|(_, energy, _, _, _)| *energy).collect();
     
     // Find the optimal (minimum) energy value for obstacle z-level
     let min_energy = energy_values.iter().fold(f64::INFINITY, |a, &b| a.min(b));
@@ -107,10 +107,10 @@ fn generate_3d_plot(results: &[(Pos2, f64, f64, f64)], obstacles: &[Obstacle], g
 }
 
 /// Generate 2D heatmap plot for energy consumption with interpolation
-fn generate_energy_heatmap_plot(results: &[(Pos2, f64, f64, f64)], obstacles: &[Obstacle], grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {
+fn generate_energy_heatmap_plot(results: &[(Pos2, f64, f64, f64, f64)], obstacles: &[Obstacle], grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {
     // Extract energy data for heatmap
     let energy_results: Vec<(Pos2, f64)> = results.iter()
-        .map(|(pos, energy, _, _)| (*pos, *energy))
+        .map(|(pos, energy, _, _, _)| (*pos, *energy))
         .collect();
     
     // Create interpolated grid for smooth heatmap
@@ -219,10 +219,10 @@ fn generate_energy_heatmap_plot(results: &[(Pos2, f64, f64, f64)], obstacles: &[
 }
 
 /// Generate 2D heatmap plot for total distance driven with interpolation
-fn generate_distance_heatmap_plot(results: &[(Pos2, f64, f64, f64)], obstacles: &[Obstacle], grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {
+fn generate_distance_heatmap_plot(results: &[(Pos2, f64, f64, f64, f64)], obstacles: &[Obstacle], grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {
     // Extract distance data for heatmap
     let distance_results: Vec<(Pos2, f64)> = results.iter()
-        .map(|(pos, _, total_distance, _)| (*pos, *total_distance))
+        .map(|(pos, _, total_distance, _, _)| (*pos, *total_distance))
         .collect();
     
     // Create interpolated grid for smooth heatmap
@@ -331,10 +331,10 @@ fn generate_distance_heatmap_plot(results: &[(Pos2, f64, f64, f64)], obstacles: 
 }
 
 /// Generate 2D heatmap plot for charging distance with interpolation
-fn generate_charging_distance_heatmap_plot(results: &[(Pos2, f64, f64, f64)], obstacles: &[Obstacle], grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {
+fn generate_charging_distance_heatmap_plot(results: &[(Pos2, f64, f64, f64, f64)], obstacles: &[Obstacle], grid_resolution: usize, optimization_minimum: Option<(Pos2, f64)>) {
     // Extract charging distance data for heatmap
     let charging_distance_results: Vec<(Pos2, f64)> = results.iter()
-        .map(|(pos, _, _, charging_distance)| (*pos, *charging_distance))
+        .map(|(pos, _, _, charging_distance, _)| (*pos, *charging_distance))
         .collect();
     
     // Create interpolated grid for smooth heatmap
