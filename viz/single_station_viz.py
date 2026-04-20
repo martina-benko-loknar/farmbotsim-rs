@@ -77,60 +77,66 @@ def add_obstacles_from_lines(data):
     """
     obstacles = []
     
-    try:
-        # Parse the field_config_raw to get line configurations
-        field_config = data.get('field_config', {})
-        config_raw_str = field_config.get('field_config_raw', '')
-        
-        if config_raw_str:
-            config_raw = json.loads(config_raw_str)
-            configs = config_raw.get('configs', [])
-            
-            for config in configs:
-                if 'Line' in config:
-                    line_config = config['Line']
-                    
-                    # Extract line parameters (matching Rust)
-                    left_top = line_config['left_top_pos']
-                    n_lines = line_config['n_lines']
-                    line_spacing = float(line_config['line_spacing'].split()[0])
-                    length = float(line_config['length'].split()[0])
-                    angle = 0.0  # angle is 0.000 deg in your config
-                    
-                    # Constants from Rust code
-                    obstacle_width = 0.08  # 8cm
-                    height_offset = 0.2    # 20cm
-                    
-                    # Starting position (Rust logic)
-                    # pos1 = left_top_pos + Vec2::new((-line_spacing/2.0), -height_offset)
-                    pos1_x = left_top['x'] - line_spacing / 2.0
-                    pos1_y = left_top['y'] - height_offset
-                    
-                    obstacle_width_half = obstacle_width / 2.0
-                    
-                    # Create n_lines + 1 obstacles
-                    for i in range(n_lines + 1):
-                        # pos2 = pos1 + (0, length + 2*height_offset) [since angle=0, 90deg rotation]
-                        pos2_x = pos1_x
-                        pos2_y = pos1_y + length + 2 * height_offset
-                        
-                        # Four corners of obstacle
-                        p1 = Pos2(pos1_x - obstacle_width_half, pos1_y)
-                        p2 = Pos2(pos1_x + obstacle_width_half, pos1_y)
-                        p3 = Pos2(pos2_x + obstacle_width_half, pos2_y)
-                        p4 = Pos2(pos2_x - obstacle_width_half, pos2_y)
-                        
-                        obstacles.append(Obstacle([p1, p2, p3, p4]))
-                        
-                        # Move to next obstacle position
-                        pos1_x += line_spacing
-                    
-                    # print(f"Created {n_lines + 1} obstacles (Rust-style, {obstacle_width}m wide, extended by {height_offset}m)")
-                    print(f"Obstacles: {n_lines + 1} ({obstacle_width}m width, {height_offset}m extension)")
-
-    except Exception as e:
-        print(f"Note: Could not parse obstacles from config: {e}")
+    field_config = data.get('field_config', {})
+    config_raw_str = field_config.get('field_config_raw', '')
     
+    if not config_raw_str:
+        return obstacles
+
+    config_raw = json.loads(config_raw_str)
+    configs = config_raw.get('configs', [])
+
+    VISUAL_OBSTACLE_WIDTH = 0.08 
+    VISUAL_HEIGHT_PADDING = 0.2   
+
+    total_obstacles = 0
+    n_configs = 0
+    
+    for config in configs:
+        if 'Line' not in config:
+                continue
+        
+        n_configs += 1                
+        line_config = config['Line']
+        
+        # Extract line parameters (matching Rust)
+        left_top = line_config['left_top_pos']
+        n_lines = line_config['n_lines']
+        line_spacing = float(line_config['line_spacing'].split()[0])
+        length = float(line_config['length'].split()[0])
+        
+        # Starting position 
+        pos1_x = left_top['x'] - line_spacing / 2.0
+        pos1_y = left_top['y'] - VISUAL_HEIGHT_PADDING
+        
+        obstacle_width_half = VISUAL_OBSTACLE_WIDTH / 2.0
+        
+        # Create n_lines + 1 obstacles
+        for _ in range(n_lines + 1):
+            pos2_x = pos1_x
+            pos2_y = pos1_y + length + 2 * VISUAL_HEIGHT_PADDING
+            
+            # Four corners of obstacle
+            p1 = Pos2(pos1_x - obstacle_width_half, pos1_y)
+            p2 = Pos2(pos1_x + obstacle_width_half, pos1_y)
+            p3 = Pos2(pos2_x + obstacle_width_half, pos2_y)
+            p4 = Pos2(pos2_x - obstacle_width_half, pos2_y)
+            
+            obstacles.append(Obstacle([p1, p2, p3, p4]))
+            
+            # Move to next obstacle position
+            pos1_x += line_spacing
+        
+        n_obstacles = n_lines + 1
+        total_obstacles += n_obstacles
+        
+        print(
+            f"Config {n_configs} | "
+            f"obstacles: {n_obstacles} | "
+            #f"width: {obstacle_width:.2f} m | "
+            #f"extension: {height_offset:.2f} m"
+        )
+
     return obstacles
 
 
