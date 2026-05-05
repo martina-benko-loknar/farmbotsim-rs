@@ -34,6 +34,15 @@ use crate::experiment::visualization::multi_station_plot_function;
 use crate::optimization::ego::optimize_station_positions_ego;
 
 use egui::Pos2;
+use env_logger::Env;
+
+pub fn init_logging() {
+    let _ = env_logger::Builder::from_env(
+        Env::default().default_filter_or("error")
+    )
+    .is_test(false)
+    .try_init();
+}
 
 fn separator() {
     println!("{}", "=".repeat(70));
@@ -67,17 +76,39 @@ fn run_python_viz(json_path: &str, output_dir: &str) {
     }
 }
 
-fn main() -> Result<(), eframe::Error> {
-    let args: Vec<String> = std::env::args().collect();
+fn run_python_script(script: &str, json_path: &str, output_dir: &str) {
+    let status = Command::new("python")
+        .arg(script)
+        .arg(json_path)
+        .arg(output_dir)
+        .status();
 
+    match status {
+        Ok(s) if s.success() => {}
+        Ok(_) => eprintln!("Python script failed: {}", script),
+        Err(e) => eprintln!("Failed to run {}: {}", script, e),
+    }
+}
+
+fn main() -> Result<(), eframe::Error> {
+    init_logging();
+    let args: Vec<String> = std::env::args().collect();
+    let now = chrono::Local::now();
+
+    let base_output = format!("results/{}", now.format("%Y-%m-%d"));
+    std::fs::create_dir_all(&base_output)
+        .map_err(|e| {
+            eprintln!("Failed to create output directory: {e}");
+            eframe::Error::AppCreation(Box::new(e))
+        })?;
     // -----------------------------
     // Global CLI flags
     // -----------------------------
     let run_viz = args.contains(&"--viz".to_string());
-    let output_name = get_arg_value(&args, "--out")
-        .unwrap_or_else(|| "default_run".to_string());
+    //let output_name = get_arg_value(&args, "--out")
+        //.unwrap_or_else(|| "default_run".to_string());
 
-    let base_output = format!("results/{}", output_name);
+    //let base_output = format!("results/{}", output_name);
 
     // -----------------------------
     // Single evaluation
@@ -91,7 +122,18 @@ fn main() -> Result<(), eframe::Error> {
     // Optimization (EGO)
     // -----------------------------
     if args.contains(&"--optimize".to_string()) {
-        optimize_station_positions_ego(50);
+        separator();
+        println!("OPTIMIZATION (EGO)");
+        separator();
+        let (_, json_path) = optimize_station_positions_ego(
+            20, 
+            &base_output);
+        separator();
+
+        if run_viz {
+            println!("\n====== Phase 3 : VISUALIZATION =======================================");
+            run_python_script("viz/optimization_viz.py", &json_path, &base_output);
+        }
         return Ok(());
     }
 
@@ -128,7 +170,10 @@ fn main() -> Result<(), eframe::Error> {
         // separator_bottom();
         // println!("Phase 1 -- DATA GENERATION");
         // separator_top();
-        run_grid_search_experiment(grid_resolution, optimization_minimum, &base_output);
+        run_grid_search_experiment(
+            grid_resolution, 
+            optimization_minimum, 
+            &base_output);
 
         let json_path = format!(
             "{}/grid_search_{}x{}_results.json",
