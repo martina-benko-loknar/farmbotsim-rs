@@ -6,7 +6,6 @@ use crate::environment::{
 use crate::optimization::constants::*;
 use crate::optimization::geometry::{is_position_valid, round_to_centimeters};
 use crate::optimization::objective::{station_objective_function, OptimizationContext};
-use crate::optimization::results;
 use crate::optimization::station_positions::StationPositions;
 use crate::utilities::utils::load_json_or_panic;
 
@@ -16,6 +15,11 @@ use ndarray::{Array2, ArrayView2};
 use std::sync::{Arc, RwLock};
 use std::time::Instant;
 
+use crate::optimization::results::{self, EvaluationRecord};
+
+// ============================================================
+// Phase enum
+// ============================================================
 #[derive(Clone, Copy)]
 enum EvalPhase {
     Init,
@@ -23,20 +27,17 @@ enum EvalPhase {
 }
 
 // ============================================================
-// Logging helper 
+// Logging + Record creation
 // ============================================================
 fn log_evaluation(
     phase: EvalPhase,
     eval_id: usize,
+    phase_iter: usize,
     x: &ndarray::ArrayView1<f64>,
     energy: f64,
-    best_so_far: &Arc<RwLock<f64>>,
-) {
-    let phase_label = match phase  {
-        EvalPhase::Init => "INIT | Eval",
-        EvalPhase::BO => "EGO  | Iter",
-    };
-
+    best_energy: &Arc<RwLock<f64>>,
+    best_positions: &Arc<RwLock<Vec<(f32, f32)>>>,
+) -> EvaluationRecord {
     let stations: Vec<(f64, f64)> = x
         .iter()
         .cloned()
@@ -45,22 +46,61 @@ fn log_evaluation(
         .map(|c| (c[0], c[1]))
         .collect();
 
+    let mut best_e = best_energy.write().unwrap();
+    let mut best_pos = best_positions.write().unwrap();
+
+    let is_new_best = energy < *best_e;
+
+    if is_new_best {
+        *best_e = energy;
+        *best_pos = stations
+            .iter()
+            .map(|(x, y)| (*x as f32, *y as f32))
+            .collect();
+    }
+
+    let best_energy_now = *best_e;
+    let best_positions_now = best_pos.clone();
+
+    // ---------------- PRINT ----------------
+    let phase_label = match phase {
+        EvalPhase::Init => "INIT | Eval",
+        EvalPhase::BO => "EGO  | Iter",
+    };
+
     print!(
         "[{} {:>3}]   E = {:>7.2} kWh | ",
         phase_label,
-        eval_id,
+        phase_iter,
         energy / 1000.0
     );
 
     for (i, (sx, sy)) in stations.iter().enumerate() {
         print!("S{}({:>5.2},{:>5.2}) ", i + 1, sx, sy);
     }
+
+    if is_new_best {
+        print!(" <-- New best: {:.2} kWh", energy / 1000.0);
+    }
+
     println!();
 
-    let mut best = best_so_far.write().unwrap();
-    if energy < *best {
-        *best = energy;
-        println!("   New best: {:.2} kWh", energy / 1000.0);
+    // ---------------- RECORD ----------------
+    EvaluationRecord {
+        evaluation: eval_id,
+        phase: match phase {
+            EvalPhase::Init => "init".to_string(),
+            EvalPhase::BO => "ego".to_string(),
+        },
+        phase_iteration: phase_iter,
+        energy,
+        best_energy: best_energy_now,
+        is_new_best,
+        positions: stations
+            .iter()
+            .map(|(x, y)| (*x as f32, *y as f32))
+            .collect(),
+        best_positions: best_positions_now,
     }
 }
 
@@ -139,9 +179,10 @@ pub fn optimize_station_positions_ego(
     // ------------------------------
     // Shared state
     // ------------------------------
-    let evaluated_positions = Arc::new(RwLock::new(Vec::new()));
     let eval_counter = Arc::new(RwLock::new(0usize));
-    let best_so_far = Arc::new(RwLock::new(f64::INFINITY));
+    let best_energy = Arc::new(RwLock::new(f64::INFINITY));
+    let best_positions = Arc::new(RwLock::new(Vec::<(f32, f32)>::new()));
+    let evaluation_history = Arc::new(RwLock::new(Vec::<EvaluationRecord>::new()));
 
     // ------------------------------
     // Objective (PURE)
@@ -152,18 +193,19 @@ pub fn optimize_station_positions_ego(
         max_iterations,
     };
 
-    let evaluated_positions_obj = Arc::clone(&evaluated_positions);
+    // let evaluated_positions_obj = Arc::clone(&evaluated_positions);
 
     let objective_fn = move |x: &ArrayView2<f64>| {
-        let mut log = evaluated_positions_obj.write().unwrap();
-        station_objective_function(x, &context, &mut log)
+        station_objective_function(x, &context, &mut Vec::new())
     };
 
     // ------------------------------
     // WRAPPER (logging layer)
     // ------------------------------
     let eval_counter_wrapped = Arc::clone(&eval_counter);
-    let best_so_far_wrapped = Arc::clone(&best_so_far);
+    let best_energy_wrapped = Arc::clone(&best_energy);
+    let best_positions_wrapped = Arc::clone(&best_positions);
+    let history_wrapped = Arc::clone(&evaluation_history);
 
     let n_initial = initial_x.nrows();
 
@@ -175,36 +217,34 @@ pub fn optimize_station_positions_ego(
             *counter += 1;
             let eval_id = *counter;
             drop(counter);
-            
+
             let energy = y[[i, 0]];
 
-            let (phase, iter) = if eval_id <= n_initial {
+            let (phase, phase_iter) = if eval_id <= n_initial {
                 if eval_id == 1 {
-                    println!(
-                    "\n====== Phase 1 : INITIAL SAMPLING ===================================="
-                    );
-                    println!(
-                        "Evaluating {} initial samples...\n",
-                        n_initial
-                    );
+                    println!("\n====== Phase 1 : INITIAL SAMPLING ====================================");
+                    println!("Evaluating {} initial samples...\n", n_initial);
                 }
                 (EvalPhase::Init, eval_id)
             } else {
-                if eval_id -n_initial == 1{
+                if eval_id - n_initial == 1 {
                     println!("\n====== Phase 2 : BAYESIAN OPTIMIZATION ================================");
-                    println!("Starting optimization...\n");                   
+                    println!("Starting optimization...\n");
                 }
-                
                 (EvalPhase::BO, eval_id - n_initial)
             };
 
-            log_evaluation(
+            let record = log_evaluation(
                 phase,
-                iter,
+                eval_id,
+                phase_iter,
                 &row,
                 energy,
-                &best_so_far_wrapped,
+                &best_energy_wrapped,
+                &best_positions_wrapped,
             );
+
+            history_wrapped.write().unwrap().push(record);
         }
 
         y
@@ -287,27 +327,26 @@ pub fn optimize_station_positions_ego(
                 println!("  S{} → ({:.2}, {:.2})", i + 1, p.x, p.y);
             }
 
-            let evaluated = evaluated_positions.read().unwrap();
+            // let evaluated = evaluated_positions.read().unwrap();
 
-            let mut best = f64::INFINITY;
-            let mut convergence = Vec::new();
+            // let mut best = f64::INFINITY;
+            // let mut convergence = Vec::new();
 
-            for (i, (_pos, energy)) in evaluated.iter().enumerate() {
-                if *energy < best {
-                    best = *energy;
-                }
+            // for (i, (_pos, energy)) in evaluated.iter().enumerate() {
+            //     if *energy < best {
+            //         best = *energy;
+            //     }
 
-                convergence.push((i + 1, best, _pos.clone()));
-            }
+            //     convergence.push((i + 1, best, _pos.clone()));
+            // }
+            let history = evaluation_history.read().unwrap();
 
-            let json_path = results::save_convergence_history(
-                &convergence,
+            let json_path = results::save_results(
+                &history,
                 max_iterations,
-                evaluated.len(),
+                history.len(),
                 elapsed,
                 output_dir,
-                &evaluated,
-                &obstacles,
             );
 
             (best_positions, json_path)

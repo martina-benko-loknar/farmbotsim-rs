@@ -3,7 +3,6 @@ use crate::cfg::{DEFAULT_SCENE_CONFIG_PATH};
 use crate::environment::{
     scene_config::SceneConfig,
 };
-use crate::environment::obstacle::Obstacle;
 
 use crate::utilities::utils::load_json_or_panic;
 use crate::optimization::station_positions::StationPositions;
@@ -32,6 +31,25 @@ pub struct EvaluatedSample {
 pub struct SerializableObstacle {
     pub points: Vec<(f32, f32)>,
 }
+
+// ============================================================
+// Per-evaluation record 
+// ============================================================
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct EvaluationRecord {
+    pub evaluation: usize,
+    pub phase: String,           // "init" | "ego"
+    pub phase_iteration: usize,
+    pub energy: f64,
+    pub best_energy: f64,
+    pub is_new_best: bool,
+    pub positions: Vec<(f32, f32)>,
+    pub best_positions: Vec<(f32, f32)>,
+}
+
+// ============================================================
+// JSON structure
+// ============================================================
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct OptimizationResults {
     pub timestamp: String,
@@ -39,12 +57,11 @@ pub struct OptimizationResults {
     pub total_evaluations: usize,
     pub optimization_time_seconds: f64,
     pub final_best_energy: f64,
-    pub convergence_history: Vec<ConvergenceRecord>,
+    pub evaluations: Vec<EvaluationRecord>,
+
     pub field_boundaries: (f32, f32, f32, f32), // (min_x, max_x, min_y, max_y)
     pub station_margin: f32,
     pub obstacle_margin: f32,
-    // pub evaluated_positions: Vec<EvaluatedSample>, // all sampled station configs
-    // pub obstacles: Vec<SerializableObstacle>,           // obstacle polygons
 }
 
 pub fn save_optimal_station_config(positions: &StationPositions, filename: &str) -> String {
@@ -70,84 +87,51 @@ pub fn save_optimal_station_config(positions: &StationPositions, filename: &str)
     path
 }
 
-/// Save convergence history to JSON file
-pub fn save_convergence_history(
-    convergence_history: &[(usize, f64, Vec<(f32, f32)>)],
+// ============================================================
+// Save function
+// ============================================================
+pub fn save_results(
+    evaluations: &Vec<EvaluationRecord>,
     max_iterations: usize,
     total_evaluations: usize,
     optimization_time: std::time::Duration,
     output_dir: &str,
-    evaluated_positions: &Vec<(Vec<(f32, f32)>, f64)>,
-    obstacles: &Vec<Obstacle>
 ) -> String {
     let timestamp = chrono::Utc::now().format("%H%M%S");
-    
-    let convergence_records: Vec<ConvergenceRecord> = convergence_history
-        .iter()
-        .map(|(iteration, energy, positions)| ConvergenceRecord {
-            iteration: *iteration,
-            best_energy: *energy,
-            best_positions: positions.clone(),
-        })
-        .collect();
-    
-    let final_best_energy = convergence_history
+
+    let final_best_energy = evaluations
         .last()
-        .map(|(_, energy, _)| *energy)
+        .map(|e| e.best_energy)
         .unwrap_or(f64::INFINITY);
-    
-    // let serializable_obstacles: Vec<SerializableObstacle> = obstacles
-    //     .iter()
-    //     .map(|obs| SerializableObstacle {
-    //         points: obs.points.iter().map(|p| (p.x, p.y)).collect(),
-    //     })
-    //     .collect();
 
-    // let evaluated_samples: Vec<EvaluatedSample> = evaluated_positions
-    //     .iter()
-    //     .map(|(pos, energy)| EvaluatedSample {
-    //         positions: pos.clone(),
-    //         energy: *energy,
-    //     })
-    //     .collect();
-
-    let optimization_results = OptimizationResults {
+    let results = OptimizationResults {
         timestamp: timestamp.to_string(),
         max_iterations,
         total_evaluations,
         optimization_time_seconds: optimization_time.as_secs_f64(),
         final_best_energy,
-        convergence_history: convergence_records,
+        evaluations: evaluations.clone(),
         field_boundaries: (FIELD_MIN_X, FIELD_MAX_X, FIELD_MIN_Y, FIELD_MAX_Y),
         station_margin: STATION_MARGIN,
         obstacle_margin: OBSTACLE_MARGIN,
-        // evaluated_positions: evaluated_samples,
-        // obstacles: serializable_obstacles,
     };
-    
-    
+
     fs::create_dir_all(output_dir).unwrap();
 
     let filename = format!(
-        "{}/optimization_results_{}.json", 
-        output_dir, 
-        timestamp);
+        "{}/optimization_results_{}.json",
+        output_dir, timestamp
+    );
 
-    match serde_json::to_string_pretty(&optimization_results) {
-        Ok(json_string) => {
-            match std::fs::write(&filename, json_string) {
-                Ok(_) => {
-                    println!("Results saved to : {}", filename);
-                    // println!("Results summary:");
-                    // println!("  Total iterations: {}", convergence_history.len());
-                    // println!("  Total evaluations: {}", total_evaluations);
-                    // println!("  Optimization time: {:.2} seconds", optimization_time.as_secs_f64());
-                    // println!("  Final best energy: {:.2} Wh", final_best_energy);
-                },
-                Err(e) => eprintln!("Failed to write optimization results to file: {}", e),
+    match serde_json::to_string_pretty(&results) {
+        Ok(json) => {
+            if let Err(e) = fs::write(&filename, json) {
+                eprintln!("Failed to write results: {}", e);
+            } else {
+                println!("Results saved to : {}", filename);
             }
-        },
-        Err(e) => eprintln!("Failed to serialize optimization results: {}", e),
+        }
+        Err(e) => eprintln!("Serialization failed: {}", e),
     }
 
     filename
