@@ -137,12 +137,12 @@ pub fn save_convergence_history(
         Ok(json_string) => {
             match std::fs::write(&filename, json_string) {
                 Ok(_) => {
-                    println!("Optimization results saved to: {}", filename);
-                    println!("Results summary:");
-                    println!("  Total iterations: {}", convergence_history.len());
-                    println!("  Total evaluations: {}", total_evaluations);
-                    println!("  Optimization time: {:.2} seconds", optimization_time.as_secs_f64());
-                    println!("  Final best energy: {:.2} Wh", final_best_energy);
+                    println!("Results saved to : {}", filename);
+                    // println!("Results summary:");
+                    // println!("  Total iterations: {}", convergence_history.len());
+                    // println!("  Total evaluations: {}", total_evaluations);
+                    // println!("  Optimization time: {:.2} seconds", optimization_time.as_secs_f64());
+                    // println!("  Final best energy: {:.2} Wh", final_best_energy);
                 },
                 Err(e) => eprintln!("Failed to write optimization results to file: {}", e),
             }
