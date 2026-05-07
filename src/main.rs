@@ -28,9 +28,11 @@ pub mod experiment;
 pub mod optimization;
 
 use crate::app_module::app::App;
-use crate::experiment::single_evaluation::run_single_evaluation;
-use crate::experiment::grid_search::run_grid_search_experiment;
-use crate::experiment::visualization::multi_station_plot_function;
+use crate::experiment::{
+    single_evaluation::run_single_evaluation,
+    grid_search::run_grid_search_experiment,
+    visualization::multi_station_plot_function
+};
 use crate::optimization::ego::optimize_station_positions_ego;
 
 use egui::Pos2;
@@ -43,9 +45,16 @@ pub fn init_logging() {
     .is_test(false)
     .try_init();
 }
+const PRINTOUT_WIDTH: usize = 70;
 
-fn separator() {
-    println!("{}", "=".repeat(70));
+fn print_section(title: &str) {
+    println!("{}", "=".repeat(PRINTOUT_WIDTH));
+    println!("{title}");
+    println!("{}", "=".repeat(PRINTOUT_WIDTH));
+}
+
+fn print_phase(title: &str) {
+    println!("{} {} {}", "=".repeat(6), title, "=".repeat(PRINTOUT_WIDTH.saturating_sub(8 + title.chars().count())));
 }
 
 fn get_arg_value(args: &[String], flag: &str) -> Option<String> {
@@ -90,123 +99,111 @@ fn run_python_script(script: &str, json_path: &str, output_dir: &str) {
     }
 }
 
-fn main() -> Result<(), eframe::Error> {
-    init_logging();
-    let args: Vec<String> = std::env::args().collect();
+fn create_output_directory() -> Result<String, eframe::Error> {
     let now = chrono::Local::now();
 
-    let base_output = format!("results/{}", now.format("%Y-%m-%d"));
+    let base_output =
+        format!("results/{}", now.format("%Y-%m-%d"));
+
     std::fs::create_dir_all(&base_output)
         .map_err(|e| {
             eprintln!("Failed to create output directory: {e}");
+
             eframe::Error::AppCreation(Box::new(e))
         })?;
-    // -----------------------------
-    // Global CLI flags
-    // -----------------------------
-    let run_viz = args.contains(&"--viz".to_string());
-    //let output_name = get_arg_value(&args, "--out")
-        //.unwrap_or_else(|| "default_run".to_string());
 
-    //let base_output = format!("results/{}", output_name);
+    Ok(base_output)
+}
 
-    // -----------------------------
-    // Single evaluation
-    // -----------------------------
-    if args.contains(&"--single-evaluation".to_string()) {
-        run_single_evaluation();
-        return Ok(());
+fn get_grid_resolution(args: &[String]) -> usize {
+    get_arg_value(args, "--grid-search")
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(10)
+}
+
+fn parse_optimization_minimum(
+    args: &[String],
+) -> Option<(Pos2, f64)> {
+    let pos =
+        args.iter().position(|x| x == "--min")?;
+
+    if pos + 3 >= args.len() {
+        return None;
     }
 
-    // -----------------------------
-    // Optimization (EGO)
-    // -----------------------------
-    if args.contains(&"--optimize".to_string()) {
-        separator();
-        println!("OPTIMIZATION (EGO)");
-        separator();
-        let (_, json_path) = optimize_station_positions_ego(
-            20, 
-            &base_output);
-        separator();
+    let x = args[pos + 1].parse::<f32>().ok()?;
+    let y = args[pos + 2].parse::<f32>().ok()?;
+    let value =args[pos + 3].parse::<f64>().ok()?;
 
-        if run_viz {
-            println!("\n====== Phase 3 : VISUALIZATION =======================================");
-            run_python_script("viz/optimization_viz.py", &json_path, &base_output);
-        }
-        return Ok(());
+    Some((Pos2::new(x, y), value))
+}
+
+fn run_grid_search_mode(
+    args: &[String],
+    run_viz: bool,
+    base_output: &str,
+) {
+    let resolution = get_grid_resolution(args);
+
+    let optimization_minimum =
+        parse_optimization_minimum(args);
+
+    print_section("GRID SEARCH EXPERIMENT");
+
+    println!(
+        "Resolution      : {}x{}",
+        resolution,
+        resolution
+    );
+    println!("Output directory: {base_output}");
+
+    print_phase("Phase 1 : DATA GENERATION");
+
+    run_grid_search_experiment(
+        resolution,
+        optimization_minimum,
+        base_output,
+    );
+
+    let json_path = format!(
+        "{}/grid_search_{}x{}_results.json",
+        base_output,
+        resolution,
+        resolution
+    );
+
+    if run_viz {
+        print_phase("Phase 2 : VISUALIZATION");
+        run_python_viz(&json_path, base_output);
     }
+}
 
-    // -----------------------------
-    // Grid search experiment
-    // -----------------------------
-    if args.contains(&"--grid-search".to_string()) {
-        let grid_resolution = get_arg_value(&args, "--grid-search")
-            .and_then(|v| v.parse::<usize>().ok())
-            .unwrap_or(10);
+fn run_optimize_mode(run_viz: bool, base_output: &str) {
+    print_section("OPTIMIZATION (EGO)");
 
-        // optional minimum argument: --min x y value
-        let optimization_minimum = if let Some(pos) = args.iter().position(|x| x == "--min") {
-            if pos + 3 < args.len() {
-                let x = args[pos + 1].parse::<f32>().unwrap_or(0.0);
-                let y = args[pos + 2].parse::<f32>().unwrap_or(0.0);
-                let value = args[pos + 3].parse::<f64>().unwrap_or(0.0);
-                Some((Pos2::new(x, y), value))
-            } else {
-                None
-            }
-        } else {
-            None
-        };
+    let (_, json_path) =
+        optimize_station_positions_ego(20, base_output);
 
-        separator();
-        println!("GRID SEARCH EXPERIMENT");
-        separator();
-        println!("Resolution      : {}x{}", grid_resolution, grid_resolution);
-        println!("Output directory: {}", base_output);
+    if run_viz {
+        print_phase("Phase 3 : VISUALIZATION");
 
-        println!("\n====== Phase 1 : DATA GENERATION =====================================");
-        
-        // separator_bottom();
-        // println!("Phase 1 -- DATA GENERATION");
-        // separator_top();
-        run_grid_search_experiment(
-            grid_resolution, 
-            optimization_minimum, 
-            &base_output);
-
-        let json_path = format!(
-            "{}/grid_search_{}x{}_results.json",
+        run_python_script(
+            "viz/optimization_viz.py",
+            &json_path,
             base_output,
-            grid_resolution,
-            grid_resolution
         );
-
-        if run_viz {
-            println!("\n====== Phase 2 : VISUALIZATION =======================================");
-            run_python_viz(&json_path, &base_output);
-        }
-
-        return Ok(());
     }
+}
 
-    // -----------------------------
-    // Multi-station plot mode
-    // -----------------------------
-    if args.contains(&"--plot-multiple".to_string()) {
-        multi_station_plot_function();
-        return Ok(());
-    }
-
-    // -----------------------------
-    // GUI mode (default)
-    // -----------------------------
+fn run_gui() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
         vsync: true,
+
         viewport: egui::ViewportBuilder::default()
             .with_decorations(true)
             .with_maximized(true)
             .with_resizable(true),
+
         ..Default::default()
     };
 
@@ -215,4 +212,40 @@ fn main() -> Result<(), eframe::Error> {
         options,
         Box::new(|_cc| Ok(Box::new(App::default()))),
     )
+}
+
+fn main() -> Result<(), eframe::Error> {
+    init_logging();
+
+    let args: Vec<String> = std::env::args().collect();
+
+    let base_output = create_output_directory()?;
+
+    let run_viz = args.contains(&"--viz".to_string());
+
+    // ---------- Single evaluation ----------------
+    if args.contains(&"--single-evaluation".to_string()) {
+        run_single_evaluation();
+        return Ok(());
+    }
+
+    // ---------- Optimization (EGO) ---------------
+    if args.contains(&"--optimize".to_string()) {
+        run_optimize_mode(run_viz, &base_output);
+        return Ok(());
+    }
+
+    // ---------- Grid search experiment -----------
+    if args.contains(&"--grid-search".to_string()) {
+        run_grid_search_mode(&args, run_viz, &base_output);
+        return Ok(());
+    }
+
+    // ---------- Multi-station plot mode ----------
+    if args.contains(&"--plot-multiple".to_string()) {
+        multi_station_plot_function();
+        return Ok(());
+    }
+
+    run_gui()
 }
