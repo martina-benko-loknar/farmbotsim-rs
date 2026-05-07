@@ -7,7 +7,7 @@ from scipy.interpolate import griddata
 from dataclasses import dataclass
 from typing import List, Tuple, Optional
 import os
-from viz_utils import setup_latex_fonts
+from viz_utils import setup_latex_fonts, add_obstacles_to_3d_plot
 
 @dataclass
 class Pos2:
@@ -76,17 +76,3 @@ def generate_3d_plot(
     # print(f"Plot saved to: {filename}.png and {filename}.pdf")
     print(f"- {fname}.pdf")
     plt.close()
-
-
-def add_obstacles_to_3d_plot(ax, obstacles: List[Obstacle], z_level: float):
-    """Add obstacle boundaries to 3D plot"""
-    for obstacle in obstacles:
-        if len(obstacle.points) < 2:
-            continue
-        
-        # Create closed polygon
-        x_coords = [p.x for p in obstacle.points] + [obstacle.points[0].x]
-        y_coords = [p.y for p in obstacle.points] + [obstacle.points[0].y]
-        z_coords = [z_level] * len(x_coords)
-        
-        ax.plot(x_coords, y_coords, z_coords, 'k-', linewidth=2, label='Obstacle' if obstacles.index(obstacle) == 0 else '_nolegend_')

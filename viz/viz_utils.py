@@ -38,7 +38,7 @@ def setup_latex_fonts(font_size=30):
 
 
 # ================================================================
-# Helper Functions for 2D Plots
+# Helper Functions for 2D and 3D Plots
 # =================================================================
 
 def add_obstacles_to_2d_plot(ax, obstacles: List[Obstacle]):
@@ -77,3 +77,16 @@ def add_field_boundaries_to_plot(ax, field_bounds: Tuple[float, float, float, fl
     boundary_x = [min_x, max_x, max_x, min_x, min_x]
     boundary_y = [min_y, min_y, max_y, max_y, min_y]
     ax.plot(boundary_x, boundary_y, 'k-', linewidth=2, label='Field Boundary')
+
+def add_obstacles_to_3d_plot(ax, obstacles: List[Obstacle], z_level: float):
+    """Add obstacle boundaries to 3D plot"""
+    for obstacle in obstacles:
+        if len(obstacle.points) < 2:
+            continue
+        
+        # Create closed polygon
+        x_coords = [p.x for p in obstacle.points] + [obstacle.points[0].x]
+        y_coords = [p.y for p in obstacle.points] + [obstacle.points[0].y]
+        z_coords = [z_level] * len(x_coords)
+        
+        ax.plot(x_coords, y_coords, z_coords, 'k-', linewidth=2, label='Obstacle' if obstacles.index(obstacle) == 0 else '_nolegend_')
