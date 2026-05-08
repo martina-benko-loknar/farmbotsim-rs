@@ -1,21 +1,9 @@
 import os
 import matplotlib.pyplot as plt
-from typing import List, Tuple
 from datetime import datetime
 from viz_utils import setup_latex_fonts, add_obstacles_to_3d_plot
 setup_latex_fonts(30)
-from dataclasses import dataclass
 import numpy as np
-@dataclass
-class Pos2:
-    """2D position"""
-    x: float
-    y: float
-
-@dataclass
-class Obstacle:
-    """Obstacle defined by polygon points"""
-    points: List[Pos2]
 
 def clip_energy(values, percentile=99):
     values = np.array(values, dtype=float)

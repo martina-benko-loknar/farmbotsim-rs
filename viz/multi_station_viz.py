@@ -1,14 +1,7 @@
-"""
-Script to visualize multi-agent station configurations.
-Currently uses hardcoded table data (to be replaced later by file input).
-"""
-
 import json
 import sys
-from viz_core import (
-    Pos2, Obstacle, MultiStationResults,
-    generate_all_multi_station_plots
-)
+from viz_models import Pos2, Obstacle, MultiStationResults
+from viz_pipeline import generate_all_multi_station_plots
 
 # ---------------------------------------------------------------------
 # DATA (temporary - to be replaced later with file loading)

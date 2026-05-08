@@ -1,24 +1,7 @@
-import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import cm
 from matplotlib.patches import Polygon as MplPolygon
-from mpl_toolkits.mplot3d import Axes3D
-from scipy.interpolate import griddata
-from dataclasses import dataclass
 from typing import List, Tuple, Optional
-import os
-
-@dataclass
-class Pos2:
-    """2D position"""
-    x: float
-    y: float
-
-
-@dataclass
-class Obstacle:
-    """Obstacle defined by polygon points"""
-    points: List[Pos2]
+from viz_models import Pos2, Obstacle
 
 # ================================================================
 # LaTeX-style Font Configuration
