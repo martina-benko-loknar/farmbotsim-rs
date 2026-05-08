@@ -64,28 +64,11 @@ fn get_arg_value(args: &[String], flag: &str) -> Option<String> {
         .cloned()
 }
 
-fn run_python_viz(json_path: &str, output_dir: &str) {
-
-    let status = Command::new("python")
-        .arg("viz/single_station_viz.py")
-        .arg(&json_path)
-        .arg(output_dir)
-        .status();
-
-    match status {
-        Ok(s) if s.success() => {
-            //println!("Python visualization completed successfully.");
-        }
-        Ok(_) => {
-            eprintln!("Python visualization failed (non-zero exit code).");
-        }
-        Err(e) => {
-            eprintln!("Failed to run Python visualization: {e}");
-        }
-    }
-}
-
-fn run_python_script(script: &str, json_path: &str, output_dir: &str) {
+fn run_viz_script(
+    script: &str,
+    json_path: &str,
+    output_dir: &str,
+) {
     let status = Command::new("python")
         .arg(script)
         .arg(json_path)
@@ -94,8 +77,12 @@ fn run_python_script(script: &str, json_path: &str, output_dir: &str) {
 
     match status {
         Ok(s) if s.success() => {}
-        Ok(_) => eprintln!("Python script failed: {}", script),
-        Err(e) => eprintln!("Failed to run {}: {}", script, e),
+        Ok(_) => {
+            eprintln!("Python script failed (non-zero exit code): {}",script);
+        }
+        Err(e) => {
+            eprintln!("Failed to run Python script {}: {}", script, e);
+        }
     }
 }
 
@@ -149,14 +136,8 @@ fn run_grid_search_mode(
         parse_optimization_minimum(args);
 
     print_section("GRID SEARCH EXPERIMENT");
-
-    println!(
-        "Resolution      : {}x{}",
-        resolution,
-        resolution
-    );
+    println!("Resolution      : {}x{}", resolution, resolution);
     println!("Output directory: {base_output}");
-
     print_phase("Phase 1 : DATA GENERATION");
 
     run_grid_search_experiment(
@@ -174,7 +155,11 @@ fn run_grid_search_mode(
 
     if run_viz {
         print_phase("Phase 2 : VISUALIZATION");
-        run_python_viz(&json_path, base_output);
+        run_viz_script(
+            "viz/single_station_viz.py",
+            &json_path,
+            base_output,
+        );
     }
 }
 
@@ -186,8 +171,7 @@ fn run_optimize_mode(run_viz: bool, base_output: &str) {
 
     if run_viz {
         print_phase("Phase 3 : VISUALIZATION");
-
-        run_python_script(
+        run_viz_script(
             "viz/optimization_viz.py",
             &json_path,
             base_output,
