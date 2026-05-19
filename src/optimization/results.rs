@@ -119,7 +119,7 @@ pub fn save_results(
     fs::create_dir_all(output_dir).unwrap();
 
     let filename = format!(
-        "{}/optimization_results_{}.json",
+        "{}/single_station_{}_ego_trace.json",
         output_dir, timestamp
     );
 

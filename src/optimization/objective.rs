@@ -1,7 +1,9 @@
 
 use crate::environment::{
-    obstacle::Obstacle
-};
+    obstacle::Obstacle, 
+    scene_config::SceneConfig,
+    };
+use crate::experiment::evaluation::evaluate_station_layout;
 use ndarray::{Array2, ArrayView2};
 
 use crate::optimization::station_positions::StationPositions;
@@ -12,6 +14,7 @@ pub struct OptimizationContext {
     pub obstacles: Vec<Obstacle>,
     pub n_stations: usize,
     pub max_iterations: usize,   
+    pub scene_config: SceneConfig,
 }
 
 // Objective function for EGO optimization 
@@ -28,12 +31,18 @@ pub fn station_objective_function(
     let mut _current_best_positions = Vec::new();
 
     for (i, xi) in x.rows().into_iter().enumerate() {
+
         let positions = StationPositions::from_optimization_vector(
             &xi.insert_axis(ndarray::Axis(0)),
             &context.obstacles,
             context.n_stations,
         );
-        let energy = positions.evaluate();
+
+        let evaluation = evaluate_station_layout(
+            &positions.station_positions, 
+            &context.scene_config);
+
+        let energy = evaluation.energy;
 
         // Update current best for this batch
         if energy < current_best {
@@ -65,55 +74,6 @@ pub fn station_objective_function(
 
         y[[i, 0]] = energy;
     }
-
-    // println!(
-    //     "Batch done: {} candidates | best in batch = {:.2} Wh",
-    //     x.nrows(),
-    //     current_best
-    // );
-
-    // Update convergence history with the best value found in this evaluation batch
-    // let current_iteration = convergence_history.len() + 1;
-    
-    // // Get the global best so far (including previous iterations)
-    // let (global_best_energy, global_best_positions) = if let Some((_, prev_best_energy, prev_best_positions)) = convergence_history.last() {
-    //     if current_best < *prev_best_energy {
-    //         (current_best, current_best_positions)
-    //     } else {
-    //         (*prev_best_energy, prev_best_positions.clone())
-    //     }
-    // } else {
-    //     (current_best, current_best_positions)
-    // };
-    
-    // convergence_history.push((current_iteration, global_best_energy, global_best_positions));
-
-
-    // println!("Iteration {}: Best energy so far: {:.2} Wh", current_iteration, global_best_energy);
-
-    // let progress = (current_iteration as f32 / context.max_iterations as f32) * 100.0;
-
-    // println!(
-    //     "[{:>3}%] ({}/{}) | global best energy = {:.2} Wh",
-    //     progress.round() as i32,
-    //     current_iteration,
-    //     context.max_iterations,
-    //     global_best_energy
-    // );
-
-    // if current_iteration == 1 {
-    //     println!("====== Phase 2 : BAYESIAN OPTIMIZATION ================================");
-    // }
-    // //
-    // println!(
-    //     "[{:>3}% | iter {}/{}] best = {:.2} Wh | batch best = {:.2} Wh | candidates  = {}",
-    //     progress.round() as i32,
-    //     current_iteration,
-    //     context.max_iterations,
-    //     global_best_energy,
-    //     current_best,
-    //     y.nrows()
-    // );
 
     y
 }

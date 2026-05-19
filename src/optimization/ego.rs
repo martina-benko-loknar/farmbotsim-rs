@@ -8,6 +8,8 @@ use crate::optimization::geometry::{is_position_valid, round_to_centimeters};
 use crate::optimization::objective::{station_objective_function, OptimizationContext};
 use crate::optimization::station_positions::StationPositions;
 use crate::utilities::utils::load_json_or_panic;
+use crate::experiment::models::{EgoOptimizationResults, EgoSummary, EgoTrace};
+
 
 use egobox_ego::EgorBuilder;
 use egui::Pos2;
@@ -15,7 +17,7 @@ use ndarray::{Array2, ArrayView2};
 use std::sync::{Arc, RwLock};
 use std::time::Instant;
 
-use crate::optimization::results::{self, EvaluationRecord};
+use crate::optimization::results::{EvaluationRecord};
 
 // ============================================================
 // Phase enum
@@ -108,9 +110,11 @@ fn log_evaluation(
 // Main optimizer
 // ============================================================
 pub fn optimize_station_positions_ego(
+    n_stations: usize,
     max_iterations: usize,
     output_dir: &str,
-) -> (StationPositions, String) {
+) -> EgoOptimizationResults 
+    {
     let start_time = Instant::now();
 
     // ------------------------------
@@ -119,10 +123,12 @@ pub fn optimize_station_positions_ego(
     let scene_config: SceneConfig =
         load_json_or_panic(DEFAULT_SCENE_CONFIG_PATH.to_string());
 
-    let n_stations = scene_config.station_configs.len();
+    //let n_stations = scene_config.station_configs.len();
 
     let field_config: FieldConfig =
-        load_json_or_panic(scene_config.field_config_path);
+        load_json_or_panic(
+            scene_config.field_config_path.clone()
+        );
 
     let obstacles = field_config.get_obstacles();
 
@@ -191,6 +197,7 @@ pub fn optimize_station_positions_ego(
         obstacles: obstacles.clone(),
         n_stations,
         max_iterations,
+        scene_config: scene_config.clone(),
     };
 
     // let evaluated_positions_obj = Arc::clone(&evaluated_positions);
@@ -339,17 +346,44 @@ pub fn optimize_station_positions_ego(
 
             //     convergence.push((i + 1, best, _pos.clone()));
             // }
+            //let history = evaluation_history.read().unwrap();
+
+            // let json_path = results::save_results(
+            //     &history,
+            //     max_iterations,
+            //     history.len(),
+            //     elapsed,
+            //     output_dir,
+            // );
+
+            let best_station =
+                best_positions.station_positions.first().unwrap();
+            
             let history = evaluation_history.read().unwrap();
 
-            let json_path = results::save_results(
-                &history,
-                max_iterations,
-                history.len(),
-                elapsed,
-                output_dir,
-            );
+            // EgoOptimizationResults {
+            //     optimal_position: *best_station,
+            //     optimal_energy: opt.y_opt[0],
 
-            (best_positions, json_path)
+            //     optimization_time_sec:
+            //         elapsed.as_secs_f64(),
+
+            //     total_evaluations: history.len(),
+            //     evaluation_history: history.clone(),
+            // }
+            let summary = EgoSummary {
+                optimal_position: *best_station,
+                optimal_energy: opt.y_opt[0],
+                optimization_time_sec: elapsed.as_secs_f64(),
+                total_evaluations: history.len(),
+            };
+
+            let trace = EgoTrace {
+                evaluation_history: history.clone(),
+                max_iterations,
+            };
+
+            EgoOptimizationResults { summary, trace }
         }
 
         Err(e) => {
@@ -366,7 +400,21 @@ pub fn optimize_station_positions_ego(
             .next()
             .unwrap();
 
-            (fallback, String::from(""))
+            let fallback_position =
+            fallback.station_positions.first().unwrap();
+
+            
+            EgoOptimizationResults {
+                summary: EgoSummary { 
+                    optimal_position: *fallback_position, 
+                    optimal_energy: f64::INFINITY, 
+                    optimization_time_sec: elapsed.as_secs_f64(), 
+                    total_evaluations: 0 },
+                trace: EgoTrace {
+                    evaluation_history: vec![],
+                    max_iterations
+                },
+            }
         }
     }
 }
