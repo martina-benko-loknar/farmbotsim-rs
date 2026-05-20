@@ -30,7 +30,7 @@ pub struct EgoTrace {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EgoSummary {
-    pub optimal_position: Pos2,
+    pub optimal_position: Vec<Pos2>,
     pub optimal_energy: f64,
     pub optimization_time_sec: f64,
     pub total_evaluations: usize,
@@ -89,4 +89,11 @@ pub struct MultiStationCandidate {
 pub struct MultiStationExperimentResults {
     pub ego: EgoOptimizationResults,
     pub specialist: SpecialistLayoutResults,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExperimentRun {
+    pub timestamp: String,
+    pub output_dir: String,
+    pub results_path: String,
 }

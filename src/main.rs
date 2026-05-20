@@ -51,17 +51,6 @@ pub fn init_logging() {
     .is_test(false)
     .try_init();
 }
-// const PRINTOUT_WIDTH: usize = 70;
-
-// fn print_section(title: &str) {
-//     println!("{}", "=".repeat(PRINTOUT_WIDTH));
-//     println!("{title}");
-//     println!("{}", "=".repeat(PRINTOUT_WIDTH));
-// }
-
-// fn print_phase(title: &str) {
-//     println!("{} {} {}", "=".repeat(6), title, "=".repeat(PRINTOUT_WIDTH.saturating_sub(8 + title.chars().count())));
-// }
 
 fn get_arg_value(args: &[String], flag: &str) -> Option<String> {
     args.iter()
@@ -69,28 +58,6 @@ fn get_arg_value(args: &[String], flag: &str) -> Option<String> {
         .and_then(|pos| args.get(pos + 1))
         .cloned()
 }
-
-// fn run_viz_script(
-//     script: &str,
-//     json_path: &str,
-//     output_dir: &str,
-// ) {
-//     let status = Command::new("python")
-//         .arg(script)
-//         .arg(json_path)
-//         .arg(output_dir)
-//         .status();
-
-//     match status {
-//         Ok(s) if s.success() => {}
-//         Ok(_) => {
-//             eprintln!("Python script failed (non-zero exit code): {}",script);
-//         }
-//         Err(e) => {
-//             eprintln!("Failed to run Python script {}: {}", script, e);
-//         }
-//     }
-// }
 
 fn create_output_directory() -> Result<String, eframe::Error> {
     let now = chrono::Local::now();
@@ -120,76 +87,6 @@ fn get_station_number(args: &[String]) -> usize {
         .unwrap_or(1)
 }
 
-// fn parse_optimization_minimum(
-//     args: &[String],
-// ) -> Option<(Pos2, f64)> {
-//     let pos =
-//         args.iter().position(|x| x == "--min")?;
-
-//     if pos + 3 >= args.len() {
-//         return None;
-//     }
-
-//     let x = args[pos + 1].parse::<f32>().ok()?;
-//     let y = args[pos + 2].parse::<f32>().ok()?;
-//     let value =args[pos + 3].parse::<f64>().ok()?;
-
-//     Some((Pos2::new(x, y), value))
-// }
-
-// fn run_grid_search_mode(
-//     args: &[String],
-//     run_viz: bool,
-//     base_output: &str,
-// ) {
-//     let resolution = get_grid_resolution(args);
-
-//     let optimization_minimum =
-//         parse_optimization_minimum(args);
-
-//     print_section("GRID SEARCH EXPERIMENT");
-//     println!("Resolution      : {}x{}", resolution, resolution);
-//     println!("Output directory: {base_output}");
-//     print_phase("Phase 1 : DATA GENERATION");
-
-//     run_grid_search_experiment(
-//         resolution,
-//         optimization_minimum,
-//         base_output,
-//     );
-
-//     let json_path = format!(
-//         "{}/grid_search_{}x{}_results.json",
-//         base_output,
-//         resolution,
-//         resolution
-//     );
-
-//     if run_viz {
-//         print_phase("Phase 2 : VISUALIZATION");
-//         run_viz_script(
-//             "viz/single_station_viz.py",
-//             &json_path,
-//             base_output,
-//         );
-//     }
-// }
-
-// fn run_optimize_mode(run_viz: bool, base_output: &str) {
-//     print_section("OPTIMIZATION (EGO)");
-
-//     let (_, json_path) =
-//         optimize_station_positions_ego(20, base_output);
-
-//     if run_viz {
-//         print_phase("Phase 3 : VISUALIZATION");
-//         run_viz_script(
-//             "viz/optimization_viz.py",
-//             &json_path,
-//             base_output,
-//         );
-//     }
-// }
 
 fn run_gui() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
@@ -230,10 +127,19 @@ fn main() -> Result<(), eframe::Error> {
 
         let n_stations = get_station_number(&args);
 
-        run_ego_experiment(
+        let run = run_ego_experiment(
             n_stations, 
             10, 
             &base_output);
+
+        if run_viz {
+            run_viz_script(
+                "viz/optimization_viz.py",
+                &run.results_path,
+                &base_output,
+            );
+        }
+
         return Ok(());
     }
 
@@ -242,9 +148,18 @@ fn main() -> Result<(), eframe::Error> {
 
         let resolution = get_grid_resolution(&args);
 
-        run_grid_search_experiment(
+        let run = run_grid_search_experiment(
             resolution, 
             &base_output);
+
+        if run_viz {
+            run_viz_script(
+                "viz/single_station_viz.py",
+                &run.results_path,
+                &base_output,
+            );
+        }
+
         return Ok(());
     }
 
@@ -253,7 +168,7 @@ fn main() -> Result<(), eframe::Error> {
 
         let resolution = get_grid_resolution(&args);
 
-        run_single_station_experiment(
+        let run = run_single_station_experiment(
             resolution,
             &base_output,
         );
@@ -261,10 +176,7 @@ fn main() -> Result<(), eframe::Error> {
         if run_viz {
             run_viz_script(
                 "viz/single_station_viz.py",
-                &format!(
-                    "{}/single_station_results.json",
-                    base_output
-                ),
+                &run.results_path,
                 &base_output,
             );
         }
@@ -275,9 +187,18 @@ fn main() -> Result<(), eframe::Error> {
     // --- Multi(2)-station study (EGO + specialist layouts) -----
     if args.contains(&"--multi-station-study".to_string()) {
 
-        run_multi_station_experiment(
+        let run = run_multi_station_experiment(
             10, 
             &base_output);
+
+        if run_viz {
+            run_viz_script(
+                "viz/multi_station_viz.py",
+                &run.results_path,
+                &base_output,
+            );
+        }
+
         return Ok(());
     }
 

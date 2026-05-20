@@ -5,26 +5,20 @@ use crate::environment::{
     field_config::FieldConfig,
     scene_config::SceneConfig,
 };
-
 use crate::experiment::models::{
-    EgoOptimizationResults, GridSearchPoint, GridSearchResults, MultiStationExperimentResults, SingleStationExperimentResults
+    EgoOptimizationResults, 
+    GridSearchPoint, 
+    GridSearchResults, 
+    MultiStationExperimentResults, 
+    SingleStationExperimentResults
 };
-
 use serde_json::{json, Value};
 
 pub fn save_grid_search_results(
     results: &GridSearchResults,
     output_dir: &str,
     timestamp: &str,
-) {
-    // ---------------------------------------------------------
-    // Create output directory
-    // ---------------------------------------------------------
-
-    if let Err(e) = std::fs::create_dir_all(output_dir) {
-        eprintln!("Failed to create output directory: {}", e);
-        return;
-    }
+) -> String {
 
     // ---------------------------------------------------------
     // Output file
@@ -170,21 +164,23 @@ pub fn save_grid_search_results(
             eprintln!("Failed to save results: {}", e);
         }
     }
+
+    filename
 }
 
 pub fn save_single_station_results(
     results: &SingleStationExperimentResults,
     timestamp: &str,
     output_dir: &str,
-) {
-    // ---------------------------------------------------------
-    // Create output directory
-    // ---------------------------------------------------------
+) -> String {
+    // // ---------------------------------------------------------
+    // // Create output directory
+    // // ---------------------------------------------------------
 
-    if let Err(e) = std::fs::create_dir_all(output_dir) {
-        eprintln!("Failed to create output directory: {}", e);
-        return;
-    }
+    // if let Err(e) = std::fs::create_dir_all(output_dir) {
+    //     eprintln!("Failed to create output directory: {}", e);
+    //     return;
+    // }
 
     // ---------------------------------------------------------
     // Output file
@@ -272,14 +268,20 @@ pub fn save_single_station_results(
             "type": "single_station"
         },
 
-        "ego_optimization": {
-            "optimal_position": {
-                "x": results.ego.summary.optimal_position.x,
-                "y": results.ego.summary.optimal_position.y
-            },
+        "ego_summary": {
+            "optimal_positions": results.ego.summary.optimal_position
+            .iter()
+            .map(|p| json!({
+                "x": p.x,
+                "y": p.y
+            }))
+            .collect::<Vec<_>>(),
+
 
             "optimal_energy_consumption":
-                results.ego.summary.optimal_energy
+                results.ego.summary.optimal_energy,
+            "optimization_time_sec": results.ego.summary.optimization_time_sec,
+            "total_evaluations": results.ego.summary.total_evaluations
         },
 
         "grid_search": {
@@ -346,6 +348,8 @@ pub fn save_single_station_results(
             eprintln!("Failed to save results: {}", e);
         }
     }
+
+    filename
 }
 
 pub fn save_ego_results(
@@ -361,13 +365,16 @@ pub fn save_ego_results(
         "experiment": "ego_optimization",
         "timestamp": timestamp,
 
-        "ego_optimization": {
+        "ego_summary": {
             "optimal_energy_consumption": results.summary.optimal_energy,
-            "optimal_position": {
-                "x": results.summary.optimal_position.x,
-                "y": results.summary.optimal_position.y
-            }
-        },
+            "optimal_positions": results.summary.optimal_position
+                    .iter()
+                    .map(|p| json!({
+                        "x": p.x,
+                        "y": p.y
+                    }))
+                    .collect::<Vec<_>>(),
+                    },
 
         "optimization_time_sec": results.summary.optimization_time_sec,
         "total_evaluations": results.summary.total_evaluations,
@@ -406,10 +413,13 @@ pub fn save_ego_trace_results(
         "timestamp": timestamp,
         
         "ego_summary": {
-            "optimal_position": {
-                "x": summary.optimal_position.x,
-                "y": summary.optimal_position.y
-            },
+            "optimal_positions": summary.optimal_position
+                .iter()
+                .map(|p| json!({
+                    "x": p.x,
+                    "y": p.y
+                }))
+                .collect::<Vec<_>>(),
             "optimal_energy": summary.optimal_energy,
             "optimization_time_sec": summary.optimization_time_sec,
             "total_evaluations": summary.total_evaluations
@@ -458,16 +468,19 @@ pub fn save_multi_station_results(
         "timestamp": timestamp,
         
         "ego_summary": {
-            "optimal_position": {
-                "x": summary.optimal_position.x,
-                "y": summary.optimal_position.y
-            },
+            "optimal_positions": summary.optimal_position
+                .iter()
+                .map(|p| json!({
+                    "x": p.x,
+                    "y": p.y
+                }))
+                .collect::<Vec<_>>(),
             "optimal_energy": summary.optimal_energy,
             "optimization_time_sec": summary.optimization_time_sec,
             "total_evaluations": summary.total_evaluations
         },
 
-        "specialist layout evaluations": {
+        "specialist_layout_evaluations": {
             "evaluations": specialist_results,
         },
 

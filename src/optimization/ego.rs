@@ -333,46 +333,11 @@ pub fn optimize_station_positions_ego(
             for (i, p) in best_positions.station_positions.iter().enumerate() {
                 println!("  S{} → ({:.2}, {:.2})", i + 1, p.x, p.y);
             }
-
-            // let evaluated = evaluated_positions.read().unwrap();
-
-            // let mut best = f64::INFINITY;
-            // let mut convergence = Vec::new();
-
-            // for (i, (_pos, energy)) in evaluated.iter().enumerate() {
-            //     if *energy < best {
-            //         best = *energy;
-            //     }
-
-            //     convergence.push((i + 1, best, _pos.clone()));
-            // }
-            //let history = evaluation_history.read().unwrap();
-
-            // let json_path = results::save_results(
-            //     &history,
-            //     max_iterations,
-            //     history.len(),
-            //     elapsed,
-            //     output_dir,
-            // );
-
-            let best_station =
-                best_positions.station_positions.first().unwrap();
             
             let history = evaluation_history.read().unwrap();
 
-            // EgoOptimizationResults {
-            //     optimal_position: *best_station,
-            //     optimal_energy: opt.y_opt[0],
-
-            //     optimization_time_sec:
-            //         elapsed.as_secs_f64(),
-
-            //     total_evaluations: history.len(),
-            //     evaluation_history: history.clone(),
-            // }
             let summary = EgoSummary {
-                optimal_position: *best_station,
+                optimal_position: best_positions.station_positions.clone(),
                 optimal_energy: opt.y_opt[0],
                 optimization_time_sec: elapsed.as_secs_f64(),
                 total_evaluations: history.len(),
@@ -390,6 +355,7 @@ pub fn optimize_station_positions_ego(
             eprintln!("EGO optimization failed: {:?}", e);
 
             let mut rng = rand::rng();
+
             let fallback = StationPositions::generate_initial_population(
                 &obstacles,
                 n_stations,
@@ -399,17 +365,15 @@ pub fn optimize_station_positions_ego(
             .into_iter()
             .next()
             .unwrap();
-
-            let fallback_position =
-            fallback.station_positions.first().unwrap();
-
-            
+          
             EgoOptimizationResults {
                 summary: EgoSummary { 
-                    optimal_position: *fallback_position, 
+                    optimal_position: fallback.station_positions.clone(),
                     optimal_energy: f64::INFINITY, 
                     optimization_time_sec: elapsed.as_secs_f64(), 
-                    total_evaluations: 0 },
+                    total_evaluations: 0 
+                },
+
                 trace: EgoTrace {
                     evaluation_history: vec![],
                     max_iterations
