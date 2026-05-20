@@ -3,133 +3,131 @@ import sys
 from viz_models import Pos2, Obstacle, MultiStationResults
 from viz_pipeline import generate_all_multi_station_plots
 
-# ---------------------------------------------------------------------
-# DATA (temporary - to be replaced later with file loading)
-# ---------------------------------------------------------------------
+def load_json_data(json_path):
+    """Load grid search results from JSON file"""
+    with open(json_path, 'r') as f:
+        data = json.load(f)
+    return data
 
-def get_configs_data():
-    """Return hardcoded configuration data (temporary)."""
-    return [
-        ((17.11, 1.29), (12.47, 14.34), 15049.52, 56.90, 46105.30, 735.90),
-        ((1.5, 1.5), (23.0, 23.5), 15497.50, 59.28, 47773.37, 1071.48),
-        ((1.5, 12.5), (23.0, 12.5), 15726.52, 61.09, 48678.67, 1992.16),
-        ((6.25, 1.5), (6.25, 23.5), 15494.18, 58.80, 47766.84, 1079.20),
-        ((12.5, 7.5), (12.5, 17.5), 15110.14, 58.04, 46306.12, 892.41),
-        ((17.5, 1.5), (20.0, 1.5), 15231.02, 58.49, 46797.55, 800.37),
-        ((12.5, 11.5), (12.5, 13.5), 15341.80, 58.53, 47181.80, 945.21),
-    ]
-
-
-def get_field_config_json():
-    """Return field configuration JSON (temporary)."""
-    return """
-    {
-      "configs": [
-        {
-          "Line": {
-            "left_top_pos": { "x": 2.5, "y": 2.5 },
-            "angle": "0.000 deg",
-            "n_lines": 15,
-            "length": "20.000 m",
-            "line_spacing": "0.500 m",
-            "farm_entity_plan_path": "configs/farm_entity_plans/default_line.json"
-          }
-        },
-        {
-          "Line": {
-            "left_top_pos": { "x": 15.0, "y": 2.5 },
-            "angle": "0.000 deg",
-            "n_lines": 15,
-            "length": "20.000 m",
-            "line_spacing": "0.500 m",
-            "farm_entity_plan_path": "configs/farm_entity_plans/default_line.json"
-          }
-        }
-      ]
-    }
+def add_obstacles_from_lines(data):
     """
-
-
-# ---------------------------------------------------------------------
-# PARSING / TRANSFORMATION
-# ---------------------------------------------------------------------
-
-def parse_field_config(config_json: str):
-    """Parse field configuration and generate obstacles."""
-    config = json.loads(config_json)
+    Create obstacle polygons from field line configurations.
+    """
     obstacles = []
+    
+    field_config = data.get('field', {})
+    config_raw_str = field_config.get('raw_field_config', '')
+    
+    if not config_raw_str:
+        return obstacles
 
-    for line_config in config["configs"]:
-        if "Line" not in line_config:
-            continue
+    config_raw = json.loads(config_raw_str)
+    configs = config_raw.get('configs', [])
 
-        line_data = line_config["Line"]
+    VISUAL_OBSTACLE_WIDTH = 0.08 
+    VISUAL_HEIGHT_PADDING = 0.2   
 
-        left_top = line_data["left_top_pos"]
-        n_lines = line_data["n_lines"]
-        line_spacing = float(line_data["line_spacing"].replace(" m", ""))
-        length = float(line_data["length"].replace(" m", ""))
-        angle = float(line_data["angle"].replace(" deg", ""))
-
-        obstacle_width = 0.08
-        height_offset = 0.2
-
+    total_obstacles = 0
+    n_configs = 0
+    
+    for config in configs:
+        if 'Line' not in config:
+                continue
+        
+        n_configs += 1                
+        line_config = config['Line']
+        
+        # Extract line parameters (matching Rust)
+        left_top = line_config['left_top_pos']
+        n_lines = line_config['n_lines']
+        line_spacing = float(line_config['line_spacing'].split()[0])
+        length = float(line_config['length'].split()[0])
+        
+        # Starting position 
         pos1_x = left_top['x'] - line_spacing / 2.0
-        pos1_y = left_top['y'] - height_offset
-
-        half_width = obstacle_width / 2.0
-
+        pos1_y = left_top['y'] - VISUAL_HEIGHT_PADDING
+        
+        obstacle_width_half = VISUAL_OBSTACLE_WIDTH / 2.0
+        
+        # Create n_lines + 1 obstacles
         for _ in range(n_lines + 1):
             pos2_x = pos1_x
-            pos2_y = pos1_y + length + 2 * height_offset
-
-            p1 = Pos2(pos1_x - half_width, pos1_y)
-            p2 = Pos2(pos1_x + half_width, pos1_y)
-            p3 = Pos2(pos2_x + half_width, pos2_y)
-            p4 = Pos2(pos2_x - half_width, pos2_y)
-
+            pos2_y = pos1_y + length + 2 * VISUAL_HEIGHT_PADDING
+            
+            # Four corners of obstacle
+            p1 = Pos2(pos1_x - obstacle_width_half, pos1_y)
+            p2 = Pos2(pos1_x + obstacle_width_half, pos1_y)
+            p3 = Pos2(pos2_x + obstacle_width_half, pos2_y)
+            p4 = Pos2(pos2_x - obstacle_width_half, pos2_y)
+            
             obstacles.append(Obstacle([p1, p2, p3, p4]))
-
+            
+            # Move to next obstacle position
             pos1_x += line_spacing
+        
+        n_obstacles = n_lines + 1
+        total_obstacles += n_obstacles
+        
+        print(
+            f"Config {n_configs} | "
+            f"obstacles: {n_obstacles} | "
+            #f"width: {obstacle_width:.2f} m | "
+            #f"extension: {height_offset:.2f} m"
+        )
 
     return obstacles
 
+def parse_multi_station_results(data, obstacles):
 
-def build_multi_station_results(configs_data, obstacles):
-    """Convert raw data into MultiStationResults."""
-    configs = []
+    evals = data["specialist_layout_evaluations"]["evaluations"]
 
-    for s1, s2, energy, time, distance, dist_charging in configs_data:
-        stations = [Pos2(*s1), Pos2(*s2)]
-        configs.append({
-            'stations': stations,
-            'energy': energy,
-            'time': time,
-            'distance': distance,
-            'distance_charging': dist_charging
-        })
+    layouts = evals["layouts"]
 
-    optimal_idx = min(range(len(configs)), key=lambda i: configs[i]['energy'])
-    optimal = configs[optimal_idx]
+    ego = data["ego_summary"]
 
-    #print(f"\nOptimal configuration: #{optimal_idx + 1} with energy: {optimal['energy']:.2f} Wh.")
+    # -------------------------------------------------
+    # EGO optimum
+    # -------------------------------------------------
 
-    sub_energy = [(c['stations'], c['energy']) for i, c in enumerate(configs) if i != optimal_idx]
-    sub_energy.sort(key=lambda x: x[1])
+    optimal_stations = [
+        Pos2(s["x"], s["y"])
+        for s in ego["optimal_positions"]
+    ]
 
-    sub_distance = [(c['stations'], c['distance']) for i, c in enumerate(configs) if i != optimal_idx]
-    sub_distance.sort(key=lambda x: x[1])
+    optimal_energy = ego["optimal_energy"]
+
+    # Temporary placeholder
+    optimal_distance = 0.0
+
+    # -------------------------------------------------
+    # Specialist layouts
+    # -------------------------------------------------
+
+    suboptimal_energy = []
+    suboptimal_distance = []
+
+    for layout in layouts:
+
+        stations = [
+            Pos2(s["x"], s["y"])
+            for s in layout["layout"]["stations"]
+        ]
+
+        energy = layout["energy_wh"]
+        distance = layout["total_distance_m"]
+
+        suboptimal_energy.append((stations, energy))
+        suboptimal_distance.append((stations, distance))
 
     return MultiStationResults(
-        optimal_stations=optimal['stations'],
-        optimal_energy=optimal['energy'],
-        optimal_distance=optimal['distance'],
-        suboptimal_configs_energy=sub_energy,
-        suboptimal_configs_distance=sub_distance,
+        optimal_stations=optimal_stations,
+        optimal_energy=optimal_energy,
+        optimal_distance=optimal_distance,
+        suboptimal_configs_energy=suboptimal_energy,
+        suboptimal_configs_distance=suboptimal_distance,
         obstacles=obstacles,
         field_bounds=(0.0, 25.0, 0.0, 25.0)
     )
-
 
 # ---------------------------------------------------------------------
 # MAIN
@@ -141,23 +139,27 @@ def main():
     print("=" * 70)
 
     if len(sys.argv) > 1:
-        input_directory = sys.argv[1]
-        output_directory = sys.argv[2] if len(sys.argv) > 2 else input_directory
+        json_file = sys.argv[1]
+        output_directory = sys.argv[2] if len(sys.argv) > 2 else json_file
     else:
-        input_directory = None
+        json_file = None
         output_directory = "sample_results"
 
-    print(f"Input: using hardcoded data from table.txt.")
+    print(f"Input json path: {json_file}.")
     print(f"Output directory: {output_directory}")
     print("-" * 70)
 
-    configs_data = get_configs_data()
-    field_config = get_field_config_json()
+    # configs_data = get_configs_data()
+    # field_config = get_field_config_json()
 
-    obstacles = parse_field_config(field_config)
+    # obstacles = parse_field_config(field_config)
+    
+    data = load_json_data(json_file)
+
+    obstacles = add_obstacles_from_lines(data)
     print(f"Obstacles: {len(obstacles)}")
 
-    results = build_multi_station_results(configs_data, obstacles)
+    results = parse_multi_station_results(data, obstacles)
     optimal_energy = results.optimal_energy
     optimal_station = results.optimal_stations
 

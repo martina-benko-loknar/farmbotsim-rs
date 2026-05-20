@@ -24,8 +24,10 @@ def parse_field_config(data):
 
 def parse_grid_search_results(data):
     """Parse grid search results from JSON data"""
-    results_data = data.get('grid_search_results', [])
-    grid_resolution = data.get('grid_resolution', 50)
+    grid_search = data.get('grid_search', {})
+    results_data = grid_search.get('points', [])
+
+    grid_resolution = grid_search.get('grid_resolution', 50)
     
     results = []
     for point in results_data:
@@ -40,6 +42,7 @@ def parse_grid_search_results(data):
 
 
 def find_optimization_minimum(data, results):
+
     """Find the point with minimum energy consumption"""
     # First, check if optimization_minimum is provided in JSON
     if 'optimization_minimum' in data:
@@ -72,8 +75,8 @@ def add_obstacles_from_lines(data):
     """
     obstacles = []
     
-    field_config = data.get('field_config', {})
-    config_raw_str = field_config.get('field_config_raw', '')
+    field_config = data.get('field', {})
+    config_raw_str = field_config.get('raw_field_config', '')
     
     if not config_raw_str:
         return obstacles

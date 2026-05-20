@@ -41,16 +41,17 @@ def generate_multi_station_plot(
         y_coords = [s.y for s in stations]
         # For each suboptimal config
         #color_value = i / 7  # Normalize to 0-1 range
-        color_value = (i+1) / 7
+        color_value = (i+1) / (n_configs + 1)
         color = cm.RdYlBu_r(color_value)
         #color = cm.hsv(color_value)  # Get RGB color from colormap
         alpha = 0.9 
         markers = ['o', '^', '<', 'p', 's', 'D']
+        marker = markers[i % len(markers)]
         ax.scatter(
             x_coords,
             y_coords,
             color=color,
-            marker=markers[i],
+            marker=marker,
             s=150,
             alpha=alpha,
             edgecolors='black',

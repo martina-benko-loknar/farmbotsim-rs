@@ -4,12 +4,7 @@ Translated from Rust to Python using matplotlib.
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import cm
-from matplotlib.patches import Polygon as MplPolygon
-from mpl_toolkits.mplot3d import Axes3D
 from scipy.interpolate import griddata
-
 from typing import List, Tuple, Optional
 import os
 from spatial.plot_heatmaps import generate_energy_heatmap_plot, generate_charging_distance_heatmap_plot, generate_distance_heatmap_plot

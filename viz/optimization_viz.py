@@ -419,7 +419,7 @@ if __name__ == "__main__":
 
     # Extract data
     timestamp = data["timestamp"]
-    evaluations = data["evaluations"]
+    evaluations = data["trace"]["evaluations"]
     obstacles = []
     # obstacles_data = data["obstacles"]
 
