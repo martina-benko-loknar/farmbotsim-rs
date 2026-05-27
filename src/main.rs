@@ -26,6 +26,7 @@ pub mod cfg;
 pub mod logger;
 pub mod experiment;
 pub mod optimization;
+pub mod terrain;
 
 use crate::app_module::app::App;
 use crate::experiment::{
@@ -107,6 +108,37 @@ fn run_gui() -> Result<(), eframe::Error> {
     )
 }
 
+fn run_debug_tests() {
+    // Terrain
+    let terrain = crate::terrain::loader::TerrainLoader::from_gps_csv(
+        "configs/scene_configs/vineyard_scene/baggy-altitude-empirical-lut.csv"
+    );
+
+    terrain.print_points();
+
+    // Slip model
+    let slip_model = crate::terrain::slip::SlipModel::from_json_file(
+        "configs/scene_configs/vineyard_scene/baggy-slip-linear.json"
+    );
+
+    let slope = 0.15;
+    let wheel_speed = 0.5;
+
+    let slip = slip_model.compute_slip(slope, wheel_speed);
+    let robot_speed = slip_model.compute_robot_speed(wheel_speed, slope);
+
+    println!("slip = {slip}, robot_speed = {robot_speed}");
+
+    // LUT (consumption)
+    let lut = crate::battery_module::discharging::VoltageDropLUT::from_csv(
+        "configs/movement_configs/consumption/fitted_lut.csv"
+    );
+
+    let voltage_drop_per_m = lut.get(slope, robot_speed);
+
+    println!("voltage_drop_per_m = {voltage_drop_per_m}");
+}
+
 fn main() -> Result<(), eframe::Error> {
     init_logging();
 
@@ -115,6 +147,12 @@ fn main() -> Result<(), eframe::Error> {
     let base_output = create_output_directory()?;
 
     let run_viz = args.contains(&"--viz".to_string());
+
+    // ---------- Debug tests ----------------
+    if args.contains(&"--debug-test".to_string()) {
+        run_debug_tests();
+        return Ok(());
+    }   
 
     // ---------- Single evaluation ----------------
     if args.contains(&"--single-evaluation".to_string()) {

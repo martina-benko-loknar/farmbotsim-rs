@@ -6,6 +6,12 @@ use crate::{
     battery_module::{battery::Battery, battery_config::BatteryConfig, is_battery::IsBattery}, cfg::BATTERIES_PATH, tool_module::{has_help::HasHelp, tool::Tool}, utilities::utils::get_folders_in_folder
 };
 
+use crate::battery_module::discharging::physics_model::PhysicsDischargeModel;
+use crate::battery_module::charging::seasonal_solar::SeasonalBatteryModel;
+use crate::terrain::TerrainLoader;
+use crate::terrain::slip::SlipModel;
+use crate::battery_module::discharging::VoltageDropLUT;
+
 /// A tool for inspecting and interacting with battery configuration data.
 #[derive(Debug)]
 pub struct BatteryTool {
@@ -39,21 +45,21 @@ impl Tool for BatteryTool {
             Some(selected) => {
                 if let Some(battery) = self.battery_map.get(selected) {
 
-                    let jan_max: PlotPoints = battery.jan_max_data
+                    let jan_max: PlotPoints = battery.charging_model.jan_max_data
                         .iter()
                         .map(|(x, y)| [f64::from(*x), f64::from(*y)])
                         .collect::<Vec<_>>()
                         .into();
                     let line_jan_max = Line::new("January Max", jan_max);
             
-                    let jan_min: PlotPoints = battery.jan_min_data
+                    let jan_min: PlotPoints = battery.charging_model.jan_min_data
                         .iter()
                         .map(|(x, y)| [f64::from(*x), f64::from(*y)])
                         .collect::<Vec<_>>()
                         .into();
                     let line_jan_min = Line::new("January Min", jan_min);
             
-                    let jun_max: PlotPoints = battery.jun_max_data
+                    let jun_max: PlotPoints = battery.charging_model.jun_max_data
                         .iter()
                         .map(|(x, y)| [f64::from(*x), f64::from(*y)])
                         .collect::<Vec<_>>()
@@ -98,12 +104,54 @@ impl Tool for BatteryTool {
         ui.separator();
 
         ui.label("Batteries");
+
         for folder in &self.folder_names {
             let whole_path = format!("{}{}", BATTERIES_PATH, folder.clone());
+
             if ui.button(whole_path.clone()).clicked() {
+
                 self.selected = Some(whole_path.clone());
-                self.battery_map.entry(whole_path.clone()).or_insert_with(|| {
-                    Battery::from_config(BatteryConfig::from_json_file(whole_path), 70.0)
+
+                self.battery_map
+                .entry(whole_path.clone())
+                .or_insert_with(|| {
+
+                    // Battery config
+                    let battery_config =
+                        BatteryConfig::from_json_file(
+                            whole_path.clone(),
+                        );
+                    // Charging model
+                    let charging_model =
+                        SeasonalBatteryModel::from_config(&battery_config);
+                    // Terrain
+                    let terrain =
+                        TerrainLoader::from_gps_csv(
+                            "configs/scene_configs/vineyard_scene/baggy-altitude-empirical-lut.csv",
+                        );
+                    // Slip model
+                    let slip_model =
+                        SlipModel::from_json_file(
+                            "configs/scene_configs/vineyard_scene/baggy-slip-linear.json",
+                        );
+                    // Voltage-drop LUT
+                    let voltage_drop_lut =
+                        VoltageDropLUT::from_csv(
+                            "configs/movement_configs/consumption/fitted_lut.csv",
+                        );
+                    // Physics discharge model
+                    let discharging_model =
+                        PhysicsDischargeModel::new(
+                            slip_model,
+                            voltage_drop_lut,
+                            terrain,
+                        );
+                    // Battery
+                    Battery::from_config(
+                        battery_config, 
+                        70.0,
+                        charging_model,
+                        discharging_model)
                 });
             }
         }
@@ -140,10 +188,10 @@ impl Tool for BatteryTool {
                 if response.changed() || response.enabled() {
                     let mut data = vec![];
                     let mut i = 26.0;
-                    battery.start_index.insert("jan".to_string(), 1);
-                    battery.start_index.insert("jun".to_string(), 1);
+                    battery.charging_model.start_index.insert("jan".to_string(), 1);
+                    battery.charging_model.start_index.insert("jun".to_string(), 1);
                     while i <= battery.capacity.value {
-                        match battery.get_morph_x_y(i, self.month, 1) {
+                        match battery.charging_model.get_morph_x_y(i, self.month, 1) {
                             Ok((time, energy)) => {
                                 data.push((time, energy));
                             }

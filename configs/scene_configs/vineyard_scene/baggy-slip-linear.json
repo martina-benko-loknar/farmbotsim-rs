@@ -1,0 +1,80 @@
+{
+  "exportedAt": "2026-05-22T07:17:28.262Z",
+  "definition": {
+    "target": {
+      "topicName": "/gnss/vel",
+      "fieldPath": "slip"
+    },
+    "predictors": [
+      {
+        "topicName": "/gnss/fix",
+        "fieldPath": "grade"
+      },
+      {
+        "topicName": "/firmware/wheel_odom",
+        "fieldPath": "velocity_lin"
+      }
+    ],
+    "filter": "velocity_lin>0",
+    "fit": {
+      "kind": "linear"
+    },
+    "originBagId": "L2hvbWUvcm9rL3Jvcy9sZW9fYmF0dGVyeS9sZW9fd3MvYW5zaWJsZS8yNjA0MDlfdmluZXlhcmQvbmFvbWkvYmFnXzIwMjYtMDQtMDlfMTEtMzYtNDQvYmFnXzIwMjYtMDQtMDlfMTEtMzYtNDRfMC5kYjM",
+    "includedBagIds": [
+      "L2hvbWUvcm9rL3Jvcy9sZW9fYmF0dGVyeS9sZW9fd3MvYW5zaWJsZS8yNjA0MDlfdmluZXlhcmQvbmFvbWkvYmFnXzIwMjYtMDQtMDlfMTEtMzYtNDQvYmFnXzIwMjYtMDQtMDlfMTEtMzYtNDRfMC5kYjM",
+      "L2hvbWUvcm9rL3Jvcy9sZW9fYmF0dGVyeS9sZW9fd3MvYW5zaWJsZS8yNjA0MDlfdmluZXlhcmQvYW1vcy9iYWdfMjAyNi0wNC0wOV8xMS0zNi00Ni9iYWdfMjAyNi0wNC0wOV8xMS0zNi00Nl8wLmRiMw",
+      "L2hvbWUvcm9rL3Jvcy9sZW9fYmF0dGVyeS9sZW9fd3MvYW5zaWJsZS8yNjA0MDlfdmluZXlhcmQvY2FtaW5hL2JhZ18xOTcwLTAxLTAxXzAxLTU5LTQxL2JhZ18xOTcwLTAxLTAxXzAxLTU5LTQxXzAuZGIz",
+      "L2hvbWUvcm9rL3Jvcy9sZW9fYmF0dGVyeS9sZW9fd3MvYW5zaWJsZS8yNjA0MDlfdmluZXlhcmQvamFtZXMvYmFnXzIwMjYtMDQtMDlfMTItNTAtNDkvYmFnXzIwMjYtMDQtMDlfMTItNTAtNDlfMC5kYjM"
+    ]
+  },
+  "fit": {
+    "kind": "linear",
+    "dim": 2,
+    "n": 5959,
+    "xRange": [
+      -0.5485762615794556,
+      0.6283128352364107
+    ],
+    "yRange": [
+      0.001117654494009912,
+      0.39341437816619873
+    ],
+    "rSquared": 0.07191864116318758,
+    "coefficients": [
+      0.0474546450406831,
+      0.056972195811453144,
+      0.07959820733151654
+    ],
+    "normalization": {
+      "x": {
+        "mean": 0.08802080066216447,
+        "std": 0.21930313489915737
+      },
+      "y": {
+        "mean": 0.2520026728688791,
+        "std": 0.08483972323431721
+      }
+    },
+    "bins1D": null,
+    "cells2D": null,
+    "leaves1D": null,
+    "leaves2D": null,
+    "tree": null,
+    "targetRange": [
+      -0.9986833051317366,
+      1
+    ],
+    "custom": null
+  },
+  "alignment": {
+    "totalConsidered": 7312,
+    "droppedMissing": 1,
+    "droppedByFilter": 1352,
+    "bagIdsUsed": [
+      "L2hvbWUvcm9rL3Jvcy9sZW9fYmF0dGVyeS9sZW9fd3MvYW5zaWJsZS8yNjA0MDlfdmluZXlhcmQvbmFvbWkvYmFnXzIwMjYtMDQtMDlfMTEtMzYtNDQvYmFnXzIwMjYtMDQtMDlfMTEtMzYtNDRfMC5kYjM",
+      "L2hvbWUvcm9rL3Jvcy9sZW9fYmF0dGVyeS9sZW9fd3MvYW5zaWJsZS8yNjA0MDlfdmluZXlhcmQvYW1vcy9iYWdfMjAyNi0wNC0wOV8xMS0zNi00Ni9iYWdfMjAyNi0wNC0wOV8xMS0zNi00Nl8wLmRiMw",
+      "L2hvbWUvcm9rL3Jvcy9sZW9fYmF0dGVyeS9sZW9fd3MvYW5zaWJsZS8yNjA0MDlfdmluZXlhcmQvY2FtaW5hL2JhZ18xOTcwLTAxLTAxXzAxLTU5LTQxL2JhZ18xOTcwLTAxLTAxXzAxLTU5LTQxXzAuZGIz",
+      "L2hvbWUvcm9rL3Jvcy9sZW9fYmF0dGVyeS9sZW9fd3MvYW5zaWJsZS8yNjA0MDlfdmluZXlhcmQvamFtZXMvYmFnXzIwMjYtMDQtMDlfMTItNTAtNDkvYmFnXzIwMjYtMDQtMDlfMTItNTAtNDlfMC5kYjM"
+    ]
+  }
+}

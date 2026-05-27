@@ -10,6 +10,11 @@ use crate::{
     }, utilities::pos2::ExtendedPos2
 };
 
+use crate::battery_module::discharging::physics_model::PhysicsDischargeModel;
+use crate::battery_module::charging::seasonal_solar::SeasonalBatteryModel;
+use crate::terrain::TerrainLoader;
+use crate::terrain::slip::SlipModel;
+use crate::battery_module::discharging::VoltageDropLUT;
 /// Represents agent ID
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AgentId(u32);
@@ -46,6 +51,35 @@ pub struct Agent {
 impl Agent {
     /// Constructs an [`Agent`] from an [`AgentConfig`], setting its initial state, pose, and battery.
     pub fn from_config(config: AgentConfig, id: u32, position: Pos2, direction: Vec2, color: Color32) -> Self {
+
+        // Charging model
+        let battery_config =
+            BatteryConfig::from_json_file(
+                config.battery,
+            );
+        let charging_model =
+            SeasonalBatteryModel::from_config(&battery_config);
+
+        // Discharging model
+        let terrain =
+            TerrainLoader::from_gps_csv(
+                "configs/scene_configs/vineyard_scene/baggy-altitude-empirical-lut.csv",
+            );
+        let slip_model =
+            SlipModel::from_json_file(
+                "configs/scene_configs/vineyard_scene/baggy-slip-linear.json",
+            );
+        let voltage_drop_lut =
+            VoltageDropLUT::from_csv(
+                "configs/movement_configs/consumption/fitted_lut.csv",
+            );
+        let discharging_model =
+            PhysicsDischargeModel::new(
+                slip_model,
+                voltage_drop_lut,
+                terrain,
+            );
+
         Self {
             id: AgentId(id),
             pose: Pose::new(position, Angle::radians(direction.angle())),
@@ -60,7 +94,11 @@ impl Agent {
             completed_task_ids: vec![],
 
             state: AgentState::Wait,
-            battery: Battery::from_config(BatteryConfig::from_json_file(config.battery), config.battery_soc),
+            battery: Battery::from_config(
+                battery_config, 
+                config.battery_soc,
+            charging_model, 
+            discharging_model),
         }
     }
 
