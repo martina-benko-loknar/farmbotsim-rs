@@ -9,7 +9,7 @@ use crate::terrain::height_map::HeightMap;
 struct RawPoint {
     lat: f64,
     lon: f64,
-    alt: f32,
+    alt: f64,
 }
 
 pub struct TerrainLoader;
@@ -62,8 +62,8 @@ impl TerrainLoader {
         let cell_width_x = first_nonzero_diff(&xs_sorted);
         let cell_width_y = first_nonzero_diff(&ys_sorted);
 
-        // println!("cell width x: {}", cell_width_x);
-        // println!("cell width y: {}", cell_width_y);
+        //println!("cell width x: {}", cell_width_x);
+        //println!("cell width y: {}", cell_width_y);
 
         assert!(cell_width_x > 0.0, "Invalid X spacing detected");
         assert!(cell_width_y > 0.0, "Invalid Y spacing detected");
@@ -83,7 +83,7 @@ impl TerrainLoader {
         // --------------------------------------------------
         // 6. Build grid
         // --------------------------------------------------
-        let mut grid = vec![vec![0.0_f32; width]; height];
+        let mut grid = vec![vec![0.0_f64; width]; height];
 
         for (i, p) in points.iter().enumerate() {
             let x = xs[i] - min_x;
@@ -142,7 +142,7 @@ fn read_csv(path: &str) -> Vec<RawPoint> {
 
         let lat = parts[0].trim().parse::<f64>().ok();
         let lon = parts[1].trim().parse::<f64>().ok();
-        let alt = parts[2].trim().parse::<f32>().ok();
+        let alt = parts[2].trim().parse::<f64>().ok();
 
         if let (Some(lat), Some(lon), Some(alt)) = (lat, lon, alt) {
             points.push(RawPoint { lat, lon, alt });
