@@ -18,6 +18,7 @@ use std::sync::{Arc, RwLock};
 use std::time::Instant;
 
 use crate::optimization::results::{EvaluationRecord};
+use crate::environment::geometry::FieldBounds;
 
 // ============================================================
 // Phase enum
@@ -137,11 +138,28 @@ pub fn optimize_station_positions_ego(
     // ------------------------------
     let mut bounds_vec = Vec::with_capacity(n_stations * 4);
 
+    let field_config: FieldConfig =
+        load_json_or_panic(scene_config.field_config_path.clone());
+
+    let field_bounds = FieldBounds::from_field_config(&field_config);
+
     for _ in 0..n_stations {
-        bounds_vec.push(FIELD_MIN_X as f64 + STATION_MARGIN as f64);
-        bounds_vec.push(FIELD_MAX_X as f64 - STATION_MARGIN as f64);
-        bounds_vec.push(FIELD_MIN_Y as f64 + STATION_MARGIN as f64);
-        bounds_vec.push(FIELD_MAX_Y as f64 - STATION_MARGIN as f64);
+
+        bounds_vec.push(
+            field_bounds.min_x as f64 + STATION_MARGIN as f64
+        );
+
+        bounds_vec.push(
+            field_bounds.max_x as f64 - STATION_MARGIN as f64
+        );
+
+        bounds_vec.push(
+            field_bounds.min_y as f64 + STATION_MARGIN as f64
+        );
+
+        bounds_vec.push(
+            field_bounds.max_y as f64 - STATION_MARGIN as f64
+        );
     }
 
     let bounds_array =
@@ -263,9 +281,11 @@ pub fn optimize_station_positions_ego(
     // println!("\n====== Phase 2 : BAYESIAN OPTIMIZATION ================================");
     // println!("Starting optimization...\n");
 
+    
     let result = EgorBuilder::optimize(objective_wrapped)
         .configure(|config| config.max_iters(max_iterations).doe(&initial_x))
         .subject_to(vec![|x: &[f64], g: Option<&mut [f64]>, _u| {
+
             if let Some(g) = g {
                 g[0] = 0.0;
             }
@@ -280,6 +300,12 @@ pub fn optimize_station_positions_ego(
 
             let obstacles = field_config.get_obstacles();
 
+            // -------------------------------------------------
+            // Compute field bounds from obstacles
+            // -------------------------------------------------
+
+            let field_bounds = FieldBounds::from_field_config(&field_config);
+
             let mut violation = 0.0;
 
             if x.len() != n_stations * 2 {
@@ -287,16 +313,28 @@ pub fn optimize_station_positions_ego(
             }
 
             for i in 0..n_stations {
+
                 let x_coord = x[i * 2] as f32;
                 let y_coord = x[i * 2 + 1] as f32;
 
-                let x_clamped =
-                    x_coord.clamp(FIELD_MIN_X + STATION_MARGIN, FIELD_MAX_X - STATION_MARGIN);
-                let y_clamped =
-                    y_coord.clamp(FIELD_MIN_Y + STATION_MARGIN, FIELD_MAX_Y - STATION_MARGIN);
+                // ---------------------------------------------
+                // Clamp using computed bounds
+                // ---------------------------------------------
+                let x_clamped = x_coord.clamp(
+                    field_bounds.min_x + STATION_MARGIN,
+                    field_bounds.max_x - STATION_MARGIN,
+                );
+
+                let y_clamped = y_coord.clamp(
+                    field_bounds.min_y + STATION_MARGIN,
+                    field_bounds.max_y - STATION_MARGIN,
+                );
 
                 let position =
-                    round_to_centimeters(Pos2::new(x_clamped, y_clamped));
+                    round_to_centimeters(Pos2::new(
+                        x_clamped,
+                        y_clamped,
+                    ));
 
                 if !is_position_valid(position, &obstacles) {
                     violation += 1.0;

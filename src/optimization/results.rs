@@ -8,6 +8,8 @@ use crate::utilities::utils::load_json_or_panic;
 use crate::optimization::station_positions::StationPositions;
 use crate::optimization::geometry::is_position_valid;
 use crate::optimization::constants::*;
+use crate::environment::field_config::FieldConfig;
+use crate::environment::geometry::FieldBounds;
 
 //use egui::output;
 use serde::{Deserialize, Serialize};
@@ -104,6 +106,26 @@ pub fn save_results(
         .map(|e| e.best_energy)
         .unwrap_or(f64::INFINITY);
 
+    // ---------------------------------------------------------
+    // Load scene + field config
+    // ---------------------------------------------------------
+    let scene_config: SceneConfig =
+        load_json_or_panic(DEFAULT_SCENE_CONFIG_PATH.to_string());
+
+    let field_config: FieldConfig =
+        load_json_or_panic(scene_config.field_config_path);
+
+    let obstacles = field_config.get_obstacles();
+
+    // ---------------------------------------------------------
+    // Compute REAL field bounds
+    // ---------------------------------------------------------
+    
+    let field_bounds = FieldBounds::from_field_config(&field_config);
+
+    // ---------------------------------------------------------
+    // Build results
+    // ---------------------------------------------------------
     let results = OptimizationResults {
         timestamp: timestamp.to_string(),
         max_iterations,
@@ -111,7 +133,14 @@ pub fn save_results(
         optimization_time_seconds: optimization_time.as_secs_f64(),
         final_best_energy,
         evaluations: evaluations.clone(),
-        field_boundaries: (FIELD_MIN_X, FIELD_MAX_X, FIELD_MIN_Y, FIELD_MAX_Y),
+
+        field_boundaries: (
+            field_bounds.min_x,
+            field_bounds.max_x,
+            field_bounds.min_y,
+            field_bounds.max_y,
+        ),
+
         station_margin: STATION_MARGIN,
         obstacle_margin: OBSTACLE_MARGIN,
     };

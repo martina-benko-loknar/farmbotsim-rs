@@ -14,6 +14,7 @@ use crate::task_module::strategies::{ChargingStrategy, ChooseStationStrategy};
 use crate::optimization::geometry::round_to_centimeters;
 use crate::optimization::geometry::is_position_valid;
 use crate::optimization::constants::*;
+use crate::environment::geometry::FieldBounds;
 
 use ndarray::{ArrayView2};
 use rand::Rng;
@@ -55,20 +56,48 @@ impl StationPositions {
     }
 
     // Create StationPositions from optimization vector
-    pub fn from_optimization_vector(x: &ArrayView2<f64>, obstacles: &[Obstacle], n_stations: usize) -> Self {
+    pub fn from_optimization_vector(
+        x: &ArrayView2<f64>, 
+        obstacles: &[Obstacle], 
+        n_stations: usize
+    ) -> Self {
         let mut station_positions = Vec::with_capacity(n_stations);
+
+        // -------------------------------------------------
+        // Compute real field bounds
+        // -------------------------------------------------
+        let scene_config: SceneConfig =
+                load_json_or_panic(DEFAULT_SCENE_CONFIG_PATH.to_string());
+
+        let field_config: FieldConfig =
+            load_json_or_panic(scene_config.field_config_path.clone());
+
+        let field_bounds = FieldBounds::from_field_config(&field_config);
         
-        // Extract positions from optimization vector [x1, y1, x2, y2, ...]
+        // -------------------------------------------------
+        // Extract positions
+        // -------------------------------------------------
         for i in 0..n_stations {
+
             let x_coord = x[[0, i * 2]] as f32;
             let y_coord = x[[0, i * 2 + 1]] as f32;
-            
-            // Clamp to field boundaries
-            let x_clamped = x_coord.clamp(FIELD_MIN_X + STATION_MARGIN, FIELD_MAX_X - STATION_MARGIN);
-            let y_clamped = y_coord.clamp(FIELD_MIN_Y + STATION_MARGIN, FIELD_MAX_Y - STATION_MARGIN);
-            
-            // Round to centimeters to prevent floating-point precision issues
-            station_positions.push(round_to_centimeters(Pos2::new(x_clamped, y_clamped)));
+
+            // Clamp to REAL field boundaries
+            let x_clamped = x_coord.clamp(
+                field_bounds.min_x + STATION_MARGIN,
+                field_bounds.max_x - STATION_MARGIN,
+            );
+
+            let y_clamped = y_coord.clamp(
+                field_bounds.min_y + STATION_MARGIN,
+                field_bounds.max_y - STATION_MARGIN,
+            );
+
+            station_positions.push(
+                round_to_centimeters(
+                    Pos2::new(x_clamped, y_clamped)
+                )
+            );
         }
         
         Self {
@@ -80,23 +109,55 @@ impl StationPositions {
     // Generate a valid position that doesn't intersect with obstacles
     fn generate_valid_position(obstacles: &[Obstacle], rng: &mut impl Rng) -> Pos2 {
         let max_attempts = 100; // Prevent infinite loops
+
+        // -------------------------------------------------
+        // Compute real field bounds
+        // -------------------------------------------------
+        let scene_config: SceneConfig =
+                load_json_or_panic(DEFAULT_SCENE_CONFIG_PATH.to_string());
+
+        let field_config: FieldConfig =
+            load_json_or_panic(scene_config.field_config_path.clone());
+
+        let field_bounds = FieldBounds::from_field_config(&field_config);
         
+        // -------------------------------------------------
+        // Try random valid positions
+        // -------------------------------------------------
         for _ in 0..max_attempts {
-            let x = rng.random_range((FIELD_MIN_X + STATION_MARGIN)..(FIELD_MAX_X - STATION_MARGIN));
-            let y = rng.random_range((FIELD_MIN_Y + STATION_MARGIN)..(FIELD_MAX_Y - STATION_MARGIN));
-            let candidate = round_to_centimeters(Pos2::new(x, y));
-            
-            // Check if this position is valid (doesn't intersect with obstacles)
+
+            let x = rng.random_range(
+                (field_bounds.min_x + STATION_MARGIN)
+                ..
+                (field_bounds.max_x - STATION_MARGIN)
+            );
+
+            let y = rng.random_range(
+                (field_bounds.min_y + STATION_MARGIN)
+                ..
+                (field_bounds.max_y - STATION_MARGIN)
+            );
+
+            let candidate =
+                round_to_centimeters(Pos2::new(x, y));
+
             if is_position_valid(candidate, obstacles) {
                 return candidate;
             }
         }
         
-        // Fallback: return a position at field center if no valid position found
-        println!("Warning: Could not find valid position after {} attempts, using field center", max_attempts);
+
+        // -------------------------------------------------
+        // Fallback
+        // -------------------------------------------------
+        println!(
+            "Warning: Could not find valid position after {} attempts, using field center",
+            max_attempts
+        );
+
         round_to_centimeters(Pos2::new(
-            (FIELD_MIN_X + FIELD_MAX_X) / 2.0,
-            (FIELD_MIN_Y + FIELD_MAX_Y) / 2.0
+            (field_bounds.min_x + field_bounds.max_x) / 2.0,
+            (field_bounds.min_y + field_bounds.max_y) / 2.0,
         ))
     }
        
