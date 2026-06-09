@@ -10,6 +10,12 @@ use crate::experiment::models::{
     GridSearchResults,
 };
 use crate::utilities::utils::load_json_or_panic;
+use crate::environment::geometry::FieldBounds;
+use crate::experiment::search_domain::SearchDomain;
+use crate::terrain::TerrainLoader;
+use crate::experiment::geometry::vineyard_polygons;
+use crate::experiment::geometry::generate_row_gap_obstacles;
+
 // use egui::Pos2;
 // use rand;
 
@@ -28,25 +34,46 @@ pub fn grid_search_experiment(
     let scene_config: SceneConfig = load_json_or_panic(DEFAULT_SCENE_CONFIG_PATH.to_string());
     
     let field_config: FieldConfig = crate::utilities::utils::load_json_or_panic(scene_config.field_config_path.clone());
-    let obstacles = field_config.get_obstacles();
-    
-    // Define field boundaries (should match those in optimization.rs)
-    const FIELD_MIN_X: f32 = 0.0;
-    const FIELD_MAX_X: f32 = 25.0;
-    const FIELD_MIN_Y: f32 = 0.0;
-    const FIELD_MAX_Y: f32 = 25.0;
-    const STATION_MARGIN: f32 = 0.4;
-    const OBSTACLE_MARGIN: f32 = 0.4;
-    
+    //let obstacles = field_config.get_obstacles();
+    let mut obstacles = field_config.get_obstacles();
+
+    obstacles.extend(
+        generate_row_gap_obstacles(
+            &field_config,
+            0.4,
+        )
+    );
+
+    // FIELD BOUNDS
+    let vineyard_bounds = FieldBounds::from_field_config(&field_config);
+
+    let terrain_map =
+        TerrainLoader::from_gps_csv("configs/scene_configs/vineyard_scene/baggy-altitude-empirical-lut.csv");
+
+    let terrain_bounds = terrain_map.bounds();
+
+    const VINEYARD_PADDING: f32 = 5.0;
+    const STATION_MARGIN: f32 = 0.4; // Domain constraint
+    const OBSTACLE_MARGIN: f32 = 0.4; // Feasibility constraint
+
+    let domain = SearchDomain::from_bounds(
+        vineyard_bounds,
+        terrain_bounds,
+        VINEYARD_PADDING,
+        STATION_MARGIN,
+    );
+
+    //let cultivation_bounds = individual_field_bounds(&field_config);
+
     // Generate grid points
+    let vineyards = vineyard_polygons(&field_config);
+
     let grid_points = generate_valid_grid_points(
-        FIELD_MIN_X + STATION_MARGIN,
-        FIELD_MAX_X - STATION_MARGIN,
-        FIELD_MIN_Y + STATION_MARGIN,
-        FIELD_MAX_Y - STATION_MARGIN,
+        &domain,
         grid_resolution,
         &obstacles,
         OBSTACLE_MARGIN,
+        &vineyards,
     );
 
     //separator();
