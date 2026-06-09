@@ -94,6 +94,27 @@ pub fn save_grid_search_results(
     let raw_field_json =
         std::fs::read_to_string(&field_config_path).ok();
 
+    // Export obstacle polygons 
+    let obstacles_json: Vec<Value> = field_config
+        .get_obstacles()
+        .iter()
+        .map(|obs| {
+
+            let points: Vec<Value> = obs
+                .points
+                .iter()
+                .map(|p| {
+                    json!({
+                        "x": p.x,
+                        "y": p.y
+                    })
+                })
+                .collect();
+
+            Value::Array(points)
+        })
+        .collect();
+
     // ---------------------------------------------------------
     // Final JSON
     // ---------------------------------------------------------
@@ -136,11 +157,17 @@ pub fn save_grid_search_results(
 
         "field": {
             "field_config_path": field_config_path,
+
             "raw_field_config": raw_field_json,
+
             "num_obstacles":
                 field_config.get_obstacles().len(),
+
             "num_field_configs":
-                field_config.configs.len()
+                field_config.configs.len(),
+
+            // Obstacle polygons exported from Rust
+            "obstacles": obstacles_json
         },
 
         "generated_at":
@@ -258,6 +285,27 @@ pub fn save_single_station_results(
     let raw_field_json =
         std::fs::read_to_string(&field_config_path).ok();
 
+    // Export obstacle polygons (Rust ground-truth geometry)
+    let obstacles_json: Vec<Value> = field_config
+        .get_obstacles()
+        .iter()
+        .map(|obs| {
+
+            let points: Vec<Value> = obs
+                .points
+                .iter()
+                .map(|p| {
+                    json!({
+                        "x": p.x,
+                        "y": p.y
+                    })
+                })
+                .collect();
+
+            Value::Array(points)
+        })
+        .collect();
+
     // ---------------------------------------------------------
     // Final JSON
     // ---------------------------------------------------------
@@ -320,11 +368,16 @@ pub fn save_single_station_results(
 
         "field": {
             "field_config_path": field_config_path,
+
             "raw_field_config": raw_field_json,
+
             "num_obstacles":
                 field_config.get_obstacles().len(),
+
             "num_field_configs":
-                field_config.configs.len()
+                field_config.configs.len(),
+
+            "obstacles": obstacles_json
         },
 
         "generated_at":

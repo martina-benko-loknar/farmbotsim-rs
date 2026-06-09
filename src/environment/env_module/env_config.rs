@@ -2,7 +2,10 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    cfg::{DEFAULT_AGENT_CONFIG_PATH, DEFAULT_SCENE_CONFIG_PATH}, environment::datetime::DateTimeConfig, task_module::task_manager_config::TaskManagerConfig, utilities::utils::load_json_or_panic
+    cfg::{
+        DEFAULT_AGENT_CONFIG_PATH, 
+        DEFAULT_SCENE_CONFIG_PATH,
+        DEFAULT_FIELD_CONFIG_PATH}, environment::datetime::DateTimeConfig, task_module::task_manager_config::TaskManagerConfig, utilities::utils::load_json_or_panic
 };
 
 
@@ -18,6 +21,8 @@ pub struct EnvConfig {
     pub datetime_config: DateTimeConfig,
     /// Path to the scene configuration file.
     pub scene_config_path: String,
+    /// Path to the field configuration file.
+    pub field_config_path: String,
     /// Configuration for the task manager.
     #[serde(rename = "task_manager")]
     pub task_manager_config: TaskManagerConfig,
@@ -31,6 +36,7 @@ impl Default for EnvConfig {
             agent_config_path: DEFAULT_AGENT_CONFIG_PATH.to_string(),
             datetime_config: DateTimeConfig::from_string("01.01.2025 00:00:00".to_string()),
             scene_config_path: DEFAULT_SCENE_CONFIG_PATH.to_string(),
+            field_config_path: DEFAULT_FIELD_CONFIG_PATH.to_string(),
             task_manager_config: TaskManagerConfig::default(),
         }
     }
@@ -38,12 +44,20 @@ impl Default for EnvConfig {
 
 impl EnvConfig {
     /// Creates a new `EnvConfig` with specified parameters.
-    pub fn new(n_agents: u32, agent_config_path: String, datetime_config: DateTimeConfig, scene_config_path: String, task_manager_config: TaskManagerConfig) -> Self {
+    pub fn new(
+        n_agents: u32, 
+        agent_config_path: String, 
+        datetime_config: DateTimeConfig, 
+        scene_config_path: String, 
+        field_config_path: String, 
+        task_manager_config: TaskManagerConfig
+    ) -> Self {
         Self {
             n_agents,
             agent_config_path,
             datetime_config,
             scene_config_path,
+            field_config_path,
             task_manager_config,
         }
     }
