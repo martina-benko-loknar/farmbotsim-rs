@@ -62,24 +62,28 @@ impl AgentState {
             },
             AgentState::Travel => {
                 // discharge battery
-                    // let power = Self::calculate_power_travel(agent);
-                    // agent.battery.discharge(power, simulation_step);      
+                //let slope_rad = 0.0; // TEMP until movement system provides slope
 
-                // TODO: TEMP: flat terrain
-                let slope_rad = 0.0;
+                let x1 = agent.previous_pose.position.x;
+                let y1 = agent.previous_pose.position.y;
 
-                // wheel speed from movement system
-                let wheel_speed =
-                    agent.velocity_lin.to_base_unit();
+                let x2 = agent.pose.position.x;
+                let y2 = agent.pose.position.y;
 
-                // physics-based discharge
-                let energy_loss = agent.battery
+                let slope_rad = agent.battery
                     .discharging_model
-                    .compute_energy_loss(
-                        wheel_speed,
-                        slope_rad,
-                        simulation_step,
-                    );  
+                    .terrain
+                    .slope_between(
+                        x1 as f64, 
+                        y1 as f64, 
+                        x2 as f64, 
+                        y2 as f64)
+                    .unwrap_or(0.0);
+
+                let energy_loss = agent.compute_energy_loss(
+                    slope_rad as f32,
+                    simulation_step,
+                );  
 
                 agent.battery.energy = agent.battery.energy - energy_loss;
 
@@ -95,38 +99,43 @@ impl AgentState {
                 if let Some(discharge) = Self::check_battery(agent) { return Some(discharge); }
                 // transitions
                 if let Some(task) = &agent.current_task {
-                    if task.is_work() { Some(AgentState::Work) }
-                    else if task.is_wait() && task.is_charge_intent() { Some(AgentState::Charging) }
-                    else if task.is_wait() { Some(AgentState::Wait) }
-                    else { None }
+                    if task.is_work() {
+                        Some(AgentState::Work) 
+                    } else if task.is_wait() && task.is_charge_intent() {
+                        Some(AgentState::Charging) 
+                    } else if task.is_wait() {
+                        Some(AgentState::Wait) 
+                    } else {
+                        None
+                    }
+                } else {
+                    Some(AgentState::Wait) 
                 }
-                else { Some(AgentState::Wait) }
             },
             AgentState::Work => {
                 // discharge battery
-                    // let power = match &agent.current_task {
-                    //     Some(task) => {
-                    //         Self::calculate_power_work(agent, task)
-                    //     },
-                    //     None => {
-                    //         Power::ZERO // when task is complete and removed but state is still Work instead of other
-                    //     }
-                    // };
-                    // agent.battery.discharge(power, simulation_step);
+                //let slope_rad = 0.0; // TEMP until movement system provides slope
 
-                // TODO: TEMP: flat terrain
-                let slope_rad = 0.0;
+                let x1 = agent.previous_pose.position.x;
+                let y1 = agent.previous_pose.position.y;
 
-                let wheel_speed =
-                    agent.velocity_lin.to_base_unit();
+                let x2 = agent.pose.position.x;
+                let y2 = agent.pose.position.y;
 
-                let energy_loss = agent.battery
+                let slope_rad = agent.battery
                     .discharging_model
-                    .compute_energy_loss(
-                        wheel_speed,
-                        slope_rad,
-                        simulation_step,
-                    );
+                    .terrain
+                    .slope_between(
+                        x1 as f64, 
+                        y1 as f64, 
+                        x2 as f64, 
+                        y2 as f64)
+                    .unwrap_or(0.0);
+                
+                let energy_loss = agent.compute_energy_loss(
+                    slope_rad as f32,
+                    simulation_step,
+                );  
 
                 agent.battery.energy = agent.battery.energy - energy_loss;
 
@@ -142,10 +151,14 @@ impl AgentState {
                 if let Some(discharge) = Self::check_battery(agent) { return Some(discharge); }
                 // transitions
                 if let Some(task) = &agent.current_task {
-                    if !task.is_work() { Some(AgentState::Travel) }
-                    else { None }
+                    if !task.is_work() {
+                        Some(AgentState::Travel)
+                    } else {
+                        None
+                    }
+                } else {
+                    Some(AgentState::Wait)
                 }
-                else { Some(AgentState::Wait) }
             },
             AgentState::Charging => {
                 // charge battery

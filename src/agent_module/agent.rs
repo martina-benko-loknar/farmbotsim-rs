@@ -15,6 +15,8 @@ use crate::battery_module::charging::seasonal_solar::SeasonalBatteryModel;
 use crate::terrain::TerrainLoader;
 use crate::terrain::slip::SlipModel;
 use crate::battery_module::discharging::VoltageDropLUT;
+use crate::units::energy::Energy;
+use crate::battery_module::discharging::traits::DischargeModel;
 /// Represents agent ID
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AgentId(u32);
@@ -34,6 +36,7 @@ impl std::fmt::Display for AgentId {
 pub struct Agent {
     pub id: AgentId,
     pub pose: Pose,
+    pub previous_pose: Pose,
     pub movement: Movement,
     pub velocity_lin: LinearVelocity,
     pub velocity_ang: AngularVelocity,
@@ -79,10 +82,12 @@ impl Agent {
                 voltage_drop_lut,
                 terrain,
             );
+        let pose= Pose::new(position, Angle::radians(direction.angle()));
 
         Self {
             id: AgentId(id),
-            pose: Pose::new(position, Angle::radians(direction.angle())),
+            pose: pose.clone(),
+            previous_pose:pose,
             movement: Movement::from_json_file(config.movement),
             velocity_lin: LinearVelocity::ZERO,
             velocity_ang: AngularVelocity::ZERO,
@@ -102,14 +107,30 @@ impl Agent {
         }
     }
 
+    pub fn compute_energy_loss(
+        &self,
+        slope_rad: f32,
+        dt: Duration,
+    ) -> Energy {
+        let wheel_speed = self.velocity_lin.to_base_unit();
+
+        self.battery
+            .discharging_model
+            .compute_energy_loss(wheel_speed, slope_rad, dt)
+    }
+
     /// Updates the agent's state, task, movement, and battery based on simulation time.
     pub fn update(&mut self, simulation_step: Duration, date_time_manager: &DateTimeManager) {
         if self.state == AgentState::Discharged { return }
-        self.update_state(simulation_step,date_time_manager);
 
+        //Old model: state -> fixed power draw -> battery loss
+        //New model: movement -> terrain slope -> slip -> real speed -> energy loss
         self.update_task_and_path(simulation_step);
+        
         let inputs = self.get_inputs();
         self._move(simulation_step, inputs);
+
+        self.update_state(simulation_step,date_time_manager);
     }
 
     /// Handles finite state machine logic and transitions.
@@ -129,13 +150,28 @@ impl Agent {
     
     /// Moves the agent by calculating new pose and velocities based on inputs.
     fn _move(&mut self, simulation_step: Duration, inputs: MovementInputs) {
-        let current_task_velocity = self.current_task.as_ref().map(|task| task.get_velocity()).unwrap_or(LinearVelocity::ZERO);
-        let (new_pose, new_velocity_l, new_velocity_a) = self.movement.calculate_new_pose_from_inputs(
-            simulation_step, inputs, self.pose.clone(), current_task_velocity
+
+        self.previous_pose = self.pose.clone();
+
+        let current_task_velocity = 
+            self.current_task
+            .as_ref()
+            .map(|task| task.get_velocity())
+            .unwrap_or(LinearVelocity::ZERO);
+
+        let (new_pose, new_velocity_l, new_velocity_a) =
+            self.movement.calculate_new_pose_from_inputs(
+            simulation_step, 
+            inputs, 
+            self.pose.clone(), 
+            current_task_velocity
         );
+  
+        // Store new state
         self.pose = new_pose;
         self.velocity_lin = new_velocity_l;
         self.velocity_ang = new_velocity_a;
+
     }
     
     /// Computes movement inputs required to reach the next target in the current task.
