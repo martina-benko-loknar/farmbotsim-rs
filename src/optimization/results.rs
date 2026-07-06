@@ -115,8 +115,6 @@ pub fn save_results(
     let field_config: FieldConfig =
         load_json_or_panic(scene_config.field_config_path);
 
-    let obstacles = field_config.get_obstacles();
-
     // ---------------------------------------------------------
     // Compute REAL field bounds
     // ---------------------------------------------------------

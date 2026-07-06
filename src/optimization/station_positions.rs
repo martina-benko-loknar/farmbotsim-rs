@@ -1,16 +1,12 @@
-use crate::cfg::{DEFAULT_SCENE_CONFIG_PATH, DEFAULT_AGENT_CONFIG_PATH};
+use crate::cfg::{DEFAULT_SCENE_CONFIG_PATH};
 use crate::environment::{
-    datetime::DateTimeConfig, 
-    env_module::env_config::EnvConfig,
     scene_config::SceneConfig,
     station_module::station_config::StationConfig,
     field_config::FieldConfig,
     obstacle::Obstacle
 };
-use crate::tool_module::experiment_tool::{SingleEvaluation, TerminationCondition};
-use crate::units::{energy::Energy, duration::Duration};
+
 use crate::utilities::utils::load_json_or_panic;
-use crate::task_module::strategies::{ChargingStrategy, ChooseStationStrategy};
 use crate::optimization::geometry::round_to_centimeters;
 use crate::optimization::geometry::is_position_valid;
 use crate::optimization::constants::*;
@@ -159,78 +155,6 @@ impl StationPositions {
             (field_bounds.min_x + field_bounds.max_x) / 2.0,
             (field_bounds.min_y + field_bounds.max_y) / 2.0,
         ))
-    }
-       
-    
-    // Evaluate the fitness (energy consumption) of a station configuration
-    pub fn evaluate(&self) -> f64 {
-        // Load default scene config
-        let scene_config: SceneConfig = load_json_or_panic(DEFAULT_SCENE_CONFIG_PATH.to_string());
-        
-        // Create new scene config with updated station positions
-        let mut new_scene_config = scene_config.clone();
-        new_scene_config.station_configs = self.create_station_configs(&scene_config);
-        
-        // Save the modified scene config to a temporary file
-        let random_id: u32 = rand::random();
-        let temp_scene_path = format!("configs/scene_configs/temp_opt_{}.json", random_id);
-        let serialized = serde_json::to_string(&new_scene_config).unwrap();
-        std::fs::write(&temp_scene_path, &serialized).unwrap();
-        
-        // Create environment config using defaults
-        let mut env_config = EnvConfig::default();
-        env_config.scene_config_path = temp_scene_path.clone();
-        env_config.agent_config_path = DEFAULT_AGENT_CONFIG_PATH.to_string();
-        env_config.datetime_config = DateTimeConfig::from_string("01.01.2025 08:00:00".to_string());
-        env_config.n_agents = 4;
-
-        env_config.task_manager_config.charging_strategy = ChargingStrategy::CriticalOnly;
-        env_config.task_manager_config.choose_station_strategy = ChooseStationStrategy::ClosestMinQueueManhattan;
-
-        // Create experiment runner
-        let runner_random_id: u32 = rand::random();
-        let mut runner = SingleEvaluation {
-            running: false,
-            scene_config_path: temp_scene_path.clone(),
-            agent_config_path: env_config.agent_config_path.clone(),
-            datetime_config: env_config.datetime_config.clone(),
-            env_config,
-            termination_condition: TerminationCondition::NumberCompletedTasks(1000),
-            env: None,
-            save_to_file: false,
-            save_file_name: format!("station_opt_{}", runner_random_id),
-            start_datetime: None,
-            start_time: None,
-            total_energy_consumed: Energy::watt_hours(0.0),
-            total_distance_driven: 0.0,
-            total_charging_distance: 0.0,
-            total_charging_approach_distance: 0.0,
-            total_charging_departure_distance: 0.0,
-            agents_departing_from_charging: Vec::new(),
-            completed_stationary_tasks: 0,
-            completed_moving_tasks: 0,
-            agent_actions: Vec::new(),
-            previous_agent_states: Vec::new(),
-            previous_agent_positions: Vec::new(),
-            step_start_time: Duration::ZERO,
-        };
-        
-        // Run the experiment
-        runner.run_simulation();
-        
-        // Clean up the temporary file
-        let _ = std::fs::remove_file(temp_scene_path);
-        
-        // Add penalty for stations too close to obstacles (extra safety check)
-        let mut penalty = 0.0;
-        for position in &self.station_positions {
-            if !is_position_valid(*position, &self.obstacles) {
-                penalty += 1000000000.0; // Heavy penalty for invalid positions
-            }
-        }
-        
-        // Return the energy consumption plus penalty
-        runner.total_energy_consumed.value as f64 + penalty
     }
     
     // Helper method to create station configs from optimized positions
