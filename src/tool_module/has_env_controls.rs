@@ -56,7 +56,7 @@ macro_rules! impl_has_env_controls {
             fn reset(&mut self) {
                 self.tick = 0;
                 self.running = false;
-                self.env.reset();
+                self.env.reset_default();
             }
             fn env_step_count(&self) -> u32 {
                 self.env.step_count
