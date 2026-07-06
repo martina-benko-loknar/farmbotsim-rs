@@ -9,6 +9,7 @@ use crate::optimization::objective::{station_objective_function, OptimizationCon
 use crate::optimization::station_positions::StationPositions;
 use crate::utilities::utils::load_json_or_panic;
 use crate::experiment::models::{EgoOptimizationResults, EgoSummary, EgoTrace};
+use crate::experiment::config::ExperimentConfig;
 
 
 use egobox_ego::EgorBuilder;
@@ -114,6 +115,7 @@ pub fn optimize_station_positions_ego(
     n_stations: usize,
     max_iterations: usize,
     output_dir: &str,
+    exp: &ExperimentConfig,
 ) -> EgoOptimizationResults 
     {
     let start_time = Instant::now();
@@ -173,7 +175,7 @@ pub fn optimize_station_positions_ego(
     let initial_positions = StationPositions::generate_initial_population(
         &obstacles,
         n_stations,
-        100,
+        20,
         &mut rng,
     );
 
@@ -216,6 +218,7 @@ pub fn optimize_station_positions_ego(
         n_stations,
         max_iterations,
         scene_config: scene_config.clone(),
+        experiment_config: exp.clone(),
     };
 
     // let evaluated_positions_obj = Arc::clone(&evaluated_positions);

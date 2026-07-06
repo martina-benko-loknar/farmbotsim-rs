@@ -7,6 +7,7 @@ use crate::experiment::evaluation::evaluate_station_layout;
 use ndarray::{Array2, ArrayView2};
 
 use crate::optimization::station_positions::StationPositions;
+use crate::experiment::config::ExperimentConfig;
 
 // Context struct to hold optimization parameters
 #[derive(Clone)]
@@ -15,6 +16,7 @@ pub struct OptimizationContext {
     pub n_stations: usize,
     pub max_iterations: usize,   
     pub scene_config: SceneConfig,
+    pub experiment_config: ExperimentConfig,
 }
 
 // Objective function for EGO optimization 
@@ -40,7 +42,9 @@ pub fn station_objective_function(
 
         let evaluation = evaluate_station_layout(
             &positions.station_positions, 
-            &context.scene_config);
+            &context.scene_config,
+            &context.experiment_config,
+        );
 
         let energy = evaluation.energy;
 
