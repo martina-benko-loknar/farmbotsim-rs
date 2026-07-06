@@ -35,11 +35,18 @@ pub struct TaskManager {
 
     pub charging_strategy: ChargingStrategy,
     pub choose_station_strategy: ChooseStationStrategy,
+    pub critical_soc_percent: f32,
+    pub low_battery_threshold: f32,
 }
 
 impl TaskManager {
     /// Creates a new `TaskManager` instance from given configurations and initializes state.
-    pub fn from_config(task_manager_config: TaskManagerConfig, field_config: FieldConfig) -> Self {
+    pub fn from_config(
+        task_manager_config: TaskManagerConfig, 
+        field_config: FieldConfig,
+        critical_soc_percent: f32,
+        low_battery_threshold: f32,
+    ) -> Self {
         let farm_entities = field_config.get_farm_entities();
         let (id_counter, work_list) = Self::get_initial_work_list(&farm_entities);
         let obstacles = field_config.get_obstacles();
@@ -55,6 +62,8 @@ impl TaskManager {
             visibility_graph,
             charging_strategy: task_manager_config.charging_strategy,
             choose_station_strategy: task_manager_config.choose_station_strategy,
+            critical_soc_percent,
+            low_battery_threshold,
         }
     }
 
@@ -491,8 +500,8 @@ impl TaskManager {
     
     /// Applies the charging strategy to assign charging-related tasks to agents based on battery levels and station availability.
     fn charging_strategy(&mut self, agent_ids_updated: &mut HashSet<AgentId>, agents: &mut[Agent], stations: &mut [Station]) {
-        let critical_battery_level = 45.0;
-        let low_battery_threshold = 60.0;
+        let critical_battery_level = self.critical_soc_percent;
+        let low_battery_threshold = self.low_battery_threshold;
         match self.charging_strategy {
             ChargingStrategy::CriticalOnly => {
                 for agent in agents {
