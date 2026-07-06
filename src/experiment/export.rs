@@ -16,6 +16,7 @@ use serde_json::{json, Value};
 
 pub fn save_grid_search_results(
     results: &GridSearchResults,
+    filename: &str,
     output_dir: &str,
     timestamp: &str,
 ) -> String {
@@ -24,11 +25,11 @@ pub fn save_grid_search_results(
     // Output file
     // ---------------------------------------------------------
 
-    let filename = format!(
-        "{}/grid_search_{}_results_gr{}.json",
+    let absolute_path = format!(
+        "{}/grid_search_{}_{}.json",
         output_dir,
         timestamp,
-        results.grid_resolution,
+        filename,
     );
 
     // ---------------------------------------------------------
@@ -144,6 +145,14 @@ pub fn save_grid_search_results(
                 "runtime_sec":
                     results.best_point.runtime_sec
             },
+            
+            "experiment": {
+                "field_size": results.experiment_configs.field_config_path,
+                "fleet_size": results.experiment_configs.n_agents,
+                "battery_capacity_wh": results.experiment_configs.battery_capacity_wh,
+                "soc_threshold_percent": results.experiment_configs.soc_threshold_percent,
+                "critical_soc_percent": results.experiment_configs.critical_soc_percent,
+            },
 
             "points": points_json
         },
@@ -179,12 +188,11 @@ pub fn save_grid_search_results(
     // ---------------------------------------------------------
 
     match std::fs::write(
-        &filename,
+        &absolute_path,
         serde_json::to_string_pretty(&output).unwrap(),
     ) {
         Ok(_) => {
-            println!("Saved experiment results:");
-            println!("{}", filename);
+            println!("Results saved to    : {absolute_path}");
         }
 
         Err(e) => {
@@ -192,7 +200,7 @@ pub fn save_grid_search_results(
         }
     }
 
-    filename
+    absolute_path
 }
 
 pub fn save_single_station_results(
@@ -285,7 +293,7 @@ pub fn save_single_station_results(
     let raw_field_json =
         std::fs::read_to_string(&field_config_path).ok();
 
-    // Export obstacle polygons (Rust ground-truth geometry)
+    // Export obstacle polygons 
     let obstacles_json: Vec<Value> = field_config
         .get_obstacles()
         .iter()
