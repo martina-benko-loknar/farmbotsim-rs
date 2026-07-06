@@ -4,17 +4,12 @@ use crate::{
     agent_module::{
         agent_config::AgentConfig, agent_state::AgentState, work_schedule::WorkSchedule
     },
-    battery_module::{battery::Battery, battery_config::BatteryConfig}, 
+    battery_module::{battery::Battery}, 
     cfg::{TOLERANCE_ANGLE, TOLERANCE_DISTANCE}, environment::datetime::DateTimeManager, movement_module::{is_movement::IsMovement, movement::{Movement, MovementInputs}, pose::Pose}, task_module::task::Task, units::{
         angle::Angle, angular_velocity::AngularVelocity, duration::Duration, linear_velocity::LinearVelocity
     }, utilities::pos2::ExtendedPos2
 };
 
-use crate::battery_module::discharging::physics_model::PhysicsDischargeModel;
-use crate::battery_module::charging::seasonal_solar::SeasonalBatteryModel;
-use crate::terrain::TerrainLoader;
-use crate::terrain::slip::SlipModel;
-use crate::battery_module::discharging::VoltageDropLUT;
 use crate::units::energy::Energy;
 use crate::battery_module::discharging::traits::DischargeModel;
 /// Represents agent ID
@@ -53,35 +48,15 @@ pub struct Agent {
 
 impl Agent {
     /// Constructs an [`Agent`] from an [`AgentConfig`], setting its initial state, pose, and battery.
-    pub fn from_config(config: AgentConfig, id: u32, position: Pos2, direction: Vec2, color: Color32) -> Self {
+    pub fn from_config(
+        config: AgentConfig, 
+        id: u32, 
+        position: Pos2, 
+        direction: Vec2, 
+        color: Color32, 
+        battery: Battery,
+    ) -> Self {
 
-        // Charging model
-        let battery_config =
-            BatteryConfig::from_json_file(
-                config.battery,
-            );
-        let charging_model =
-            SeasonalBatteryModel::from_config(&battery_config);
-
-        // Discharging model
-        let terrain =
-            TerrainLoader::from_gps_csv(
-                "configs/scene_configs/vineyard_scene/baggy-altitude-empirical-lut.csv",
-            );
-        let slip_model =
-            SlipModel::from_json_file(
-                "configs/scene_configs/vineyard_scene/baggy-slip-linear.json",
-            );
-        let voltage_drop_lut =
-            VoltageDropLUT::from_csv(
-                "configs/movement_configs/consumption/fitted_lut.csv",
-            );
-        let discharging_model =
-            PhysicsDischargeModel::new(
-                slip_model,
-                voltage_drop_lut,
-                terrain,
-            );
         let pose= Pose::new(position, Angle::radians(direction.angle()));
 
         Self {
@@ -99,11 +74,7 @@ impl Agent {
             completed_task_ids: vec![],
 
             state: AgentState::Wait,
-            battery: Battery::from_config(
-                battery_config, 
-                config.battery_soc,
-            charging_model, 
-            discharging_model),
+            battery,
         }
     }
 
@@ -121,16 +92,23 @@ impl Agent {
 
     /// Updates the agent's state, task, movement, and battery based on simulation time.
     pub fn update(&mut self, simulation_step: Duration, date_time_manager: &DateTimeManager) {
-        if self.state == AgentState::Discharged { return }
+        if self.state == AgentState::Discharged {
+            return;
+        }
 
-        //Old model: state -> fixed power draw -> battery loss
-        //New model: movement -> terrain slope -> slip -> real speed -> energy loss
+        // 1. update task first (defines intent)
         self.update_task_and_path(simulation_step);
-        
+
+        // 2. compute control inputs
         let inputs = self.get_inputs();
+
+        // 3. move agent (updates pose)
         self._move(simulation_step, inputs);
 
-        self.update_state(simulation_step,date_time_manager);
+        // 4. apply state machine (energy + transitions)
+        self.update_state(simulation_step, date_time_manager);
+
+        //println!("agent {} update called", self.id);
     }
 
     /// Handles finite state machine logic and transitions.
