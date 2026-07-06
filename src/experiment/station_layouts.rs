@@ -7,6 +7,7 @@ use crate::experiment::evaluation::evaluate_station_layout;
 use crate::environment::scene_config::SceneConfig;
 use crate::cfg::DEFAULT_SCENE_CONFIG_PATH;
 use crate::utilities::utils::load_json_or_panic;
+use crate::experiment::config::ExperimentConfig;
 
 /// Predefined human/specialist-inspired layouts
 pub fn specialist_layouts(
@@ -110,11 +111,13 @@ pub fn evaluate_station_layouts(
         // -------------------------------------------------
         // Simulation call
         // -------------------------------------------------
+        let exp = ExperimentConfig::default();
 
         let result = 
             evaluate_station_layout(
                 &layout.stations,
-                &scene_config
+                &scene_config,
+                &exp,
         );
 
         evaluated_layouts.push(

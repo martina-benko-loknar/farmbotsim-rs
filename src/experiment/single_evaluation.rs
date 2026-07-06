@@ -8,6 +8,7 @@ use crate::environment::{
 };
 use crate::task_module::strategies::{ChargingStrategy, ChooseStationStrategy};
 use crate::units::{energy::Energy, duration::Duration};
+use crate::environment::env_module::env::EnvOverrides;
 
 pub fn run_single_evaluation() {
     println!("Starting farmbot simulation experiment...");
@@ -27,6 +28,12 @@ pub fn run_single_evaluation() {
     // Set datetime config
     env_config.datetime_config = DateTimeConfig::from_string("01.01.2025 08:00:00".to_string());
     
+    let overrides = EnvOverrides {
+        battery_capacity_wh: None,
+        battery_voltage_v: None,
+        critical_soc_percent: None,
+        threshold_soc_percent: None,
+    };
     // Create experiment runner
     let mut runner = SingleEvaluation {
         running: false,
@@ -52,6 +59,8 @@ pub fn run_single_evaluation() {
         previous_agent_states: Vec::new(),
         previous_agent_positions: Vec::new(),
         step_start_time: Duration::ZERO,
+        overrides: Some(overrides), 
+        charging_events: 0,
     };
     
     println!("Configuration:");
