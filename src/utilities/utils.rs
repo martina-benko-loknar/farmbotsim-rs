@@ -4,7 +4,8 @@ use serde::Serialize;
 use serde_json::to_string_pretty;
 
 use crate::logger::log_error_and_panic;
-
+use crate::environment::scene_config::SceneConfig;
+use crate::cfg::DEFAULT_SCENE_CONFIG_PATH;
 
 /// Converts hsv to rgb
 fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
@@ -95,6 +96,18 @@ pub fn get_folders_in_folder(path: &str) -> Vec<String> {
     }
 
     folders
+}
+
+pub fn load_scene_config(
+    field_config_path: String,
+) -> SceneConfig {
+
+    let mut scene: SceneConfig =
+        load_json_or_panic(DEFAULT_SCENE_CONFIG_PATH.to_string());
+
+    scene.field_config_path = field_config_path;
+
+    scene
 }
 
 /// Loads json or panics on failure.
