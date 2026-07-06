@@ -1,5 +1,6 @@
 //use plotly::layout::LayoutScene;
 
+use crate::experiment::config::ExperimentConfig;
 use crate::experiment::grid_search::grid_search_experiment;
 use crate::experiment::export::{
     save_grid_search_results,
@@ -29,6 +30,7 @@ pub fn run_ego_experiment(
     n_stations: usize,
     max_iterations: usize,
     output_dir: &str,
+    exp: ExperimentConfig,
 ) -> ExperimentRun {
 
     println!("Running EGO optimization...");
@@ -44,7 +46,8 @@ pub fn run_ego_experiment(
         optimize_station_positions_ego(
             n_stations,
             max_iterations,
-            output_dir);
+            output_dir, 
+            &exp);
 
     // ---------------------------------------------------------
     // Save experiment results
@@ -68,10 +71,12 @@ pub fn run_ego_experiment(
 
 pub fn run_grid_search_experiment(
     resolution: usize,
+    filename: &str,
     output_dir: &str,
+    exp: ExperimentConfig,
 ) -> ExperimentRun {
 
-    println!("Running grid search experiment...");
+    println!("\nRunning grid search experiment...");
     let timestamp = chrono::Utc::now()
     .format("%H%M%S")
     .to_string(); 
@@ -79,9 +84,9 @@ pub fn run_grid_search_experiment(
     // ---------------------------------------------------------
     // Grid search
     // ---------------------------------------------------------
-
     let grid_results = grid_search_experiment(
-        resolution
+        resolution,
+        &exp
     );
     // ---------------------------------------------------------
     // Save experiment results
@@ -89,11 +94,10 @@ pub fn run_grid_search_experiment(
 
     let results_path = save_grid_search_results(
         &grid_results,
+        filename,
         output_dir,
         &timestamp,
     );
-
-    println!("Grid search experiment completed.");
 
     ExperimentRun{
         timestamp: timestamp,
@@ -104,6 +108,7 @@ pub fn run_grid_search_experiment(
 pub fn run_single_station_experiment(
     resolution: usize,
     output_dir: &str,
+    exp: ExperimentConfig,
 ) -> ExperimentRun {
 
     println!("Running single-station experiment...");
@@ -119,14 +124,16 @@ pub fn run_single_station_experiment(
         optimize_station_positions_ego(
             1,
             10,
-            output_dir);
+            output_dir, 
+            &exp);
 
     // ---------------------------------------------------------
     // Phase 2: Grid search
     // ---------------------------------------------------------
 
     let grid_results = grid_search_experiment(
-        resolution
+        resolution, 
+        &exp
     );
 
     // ---------------------------------------------------------
@@ -164,6 +171,7 @@ pub fn run_single_station_experiment(
 pub fn run_multi_station_experiment(
     max_iterations: usize,
     output_dir: &str,
+    exp: ExperimentConfig,
 )-> ExperimentRun {
 
     println!("Running multi-station experiment...");
@@ -189,7 +197,9 @@ pub fn run_multi_station_experiment(
         optimize_station_positions_ego(
             2,
             max_iterations,
-            output_dir);
+            output_dir,
+            &exp
+        );
 
     // ---------------------------------------------------------
     // Phase 2: Specialist layouts
