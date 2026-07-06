@@ -1,17 +1,16 @@
-use std::io::Write;
+
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Local};
+use crate::environment::env_module::env::EnvOverrides;
 
 use crate::{
-    cfg::{EXPERIMENTS_PATH},
     environment::{
         datetime::DateTimeConfig,
         env_module::{env::Env, env_config::EnvConfig},
         field_config::FieldConfig,
         scene_config::SceneConfig,
     },
-    logger::log_error_and_panic,
-    units::duration::{format_duration, Duration},
+    units::duration::{Duration},
     units::energy::Energy,
     utilities::utils::load_json_or_panic,
 };
@@ -58,6 +57,21 @@ struct EpisodeResult {
     agent_actions: Vec<AgentAction>,
 }
 
+pub struct EvaluationResult {
+    pub n_completed_tasks: u32,
+    pub env_duration: Duration,
+
+    pub total_energy_consumed: Energy,
+    pub total_distance_driven: f32,
+    pub total_charging_distance: f32,
+    pub total_charging_approach_distance: f32,
+    pub total_charging_departure_distance: f32,
+
+    pub completed_stationary_tasks: u32,
+    pub completed_moving_tasks: u32,
+    pub charging_events: u32,
+}
+
 pub struct SingleEvaluation {
     pub running: bool,
     pub scene_config_path: String,
@@ -82,12 +96,17 @@ pub struct SingleEvaluation {
     pub previous_agent_states: Vec<crate::agent_module::agent_state::AgentState>,
     pub previous_agent_positions: Vec<egui::Pos2>,
     pub step_start_time: Duration,
+    pub overrides: Option<EnvOverrides>,
+    pub charging_events: u32,
 }
 
 impl SingleEvaluation {
     /// Runs the simulation for a single episode and saves the result.
-    pub fn run_simulation(&mut self) {
+    pub fn run_simulation(&mut self) -> EvaluationResult {
         self.running = true;
+
+        let mut final_result: Option<EvaluationResult> = None;
+
         self.start_datetime = Some(Local::now());
         self.start_time = Some(std::time::Instant::now());
         self.total_energy_consumed = Energy::watt_hours(0.0);
@@ -95,8 +114,12 @@ impl SingleEvaluation {
         self.total_charging_distance = 0.0;
         self.total_charging_approach_distance = 0.0;
         self.total_charging_departure_distance = 0.0;
-        self.env = Some(Env::from_config(self.env_config.clone()));
-        
+        self.env = Some(Env::from_config_with_overrides(
+            self.env_config.clone(),
+            self.overrides.as_ref(),
+        ));
+        self.charging_events = 0;
+
         // Initialize tracking for agents departing from charging
         let n_agents = self.env_config.n_agents as usize;
         self.agents_departing_from_charging = vec![false; n_agents];
@@ -267,7 +290,9 @@ impl SingleEvaluation {
                     // Detect agents that just finished charging and mark them for departure tracking
                     if let (Some(state_before), Some(state_after)) = (agent_states_before.get(i), agent_states_after.get(i)) {
                         if *state_before == crate::agent_module::agent_state::AgentState::Charging && 
-                           *state_after != crate::agent_module::agent_state::AgentState::Charging {
+                           *state_after != crate::agent_module::agent_state::AgentState::Charging 
+                           {
+                            self.charging_events += 1;
                             // Agent just finished charging, start tracking departure distance
                             if i < self.agents_departing_from_charging.len() {
                                 self.agents_departing_from_charging[i] = true;
@@ -326,57 +351,70 @@ impl SingleEvaluation {
                 };
 
                 if finished {
-                    self.save_result(n_completed_tasks, env_duration);
                     self.running = false;
+                    final_result = Some(EvaluationResult{
+                        n_completed_tasks,
+                        env_duration,
+
+                        total_energy_consumed: self.total_energy_consumed.clone(),
+                        total_distance_driven: self.total_distance_driven,
+                        total_charging_distance: self.total_charging_distance,
+                        total_charging_approach_distance: self.total_charging_approach_distance,
+                        total_charging_departure_distance: self.total_charging_departure_distance,
+
+                        completed_stationary_tasks: self.completed_stationary_tasks,
+                        completed_moving_tasks: self.completed_moving_tasks,
+                        charging_events: self.charging_events,
+                    });
                 }
             } else {
                 self.running = false;
             }
         }
+
+        final_result.expect("Simulation ended without producing a result")
     }
 
-    /// Saves the result of the single episode to a file.
-    fn save_result(&self, n_completed_tasks: u32, env_duration: Duration) {
-        if !self.save_to_file {
-            return;
-        }
-        let evaluation_duration = self.start_time
-            .map(|start| start.elapsed())
-            .unwrap_or_default();
-        let start_datetime: DateTime<Local> = self.start_datetime.unwrap_or_else(Local::now);
-        let episode_result = EpisodeResult {
-            env_config: self.env_config.clone(),
-            n_completed_tasks,
-            env_duration: format_duration(&env_duration),
-            total_energy_consumed: format!("{:.2} {}", 
-                self.total_energy_consumed.value, 
-                self.total_energy_consumed.unit.as_str()),
-            total_distance_driven: format!("{:.2} m", self.total_distance_driven),
-            total_charging_distance: format!("{:.2} m", self.total_charging_distance),
-            total_charging_approach_distance: format!("{:.2} m", self.total_charging_approach_distance),
-            total_charging_departure_distance: format!("{:.2} m", self.total_charging_departure_distance),
-            completed_stationary_tasks: self.completed_stationary_tasks,
-            completed_moving_tasks: self.completed_moving_tasks,
-            agent_actions: self.agent_actions.clone(),
-        };
-        let summary = SimulationSummary {
-            start_datetime,
-            evaluation_duration,
-            scene_config_path: self.scene_config_path.clone(),
-            result: episode_result,
-        };
-        let json = serde_json::to_string_pretty(&summary).unwrap_or_else(|e| {
-            let msg = format!("Failed to serialize summary {:?}: {}", summary, e);
-            log_error_and_panic(&msg);
-        });
-        let path = format!("{}{}.json", EXPERIMENTS_PATH, self.save_file_name);
-        let mut file = std::fs::File::create(path.clone()).unwrap_or_else(|e| {
-            let msg = format!("Failed to open file {:?}: {}", path, e);
-            log_error_and_panic(&msg);
-        });
-        file.write_all(json.as_bytes()).unwrap_or_else(|e| {
-            let msg = format!("Failed to write {:?}: {}", json, e);
-            log_error_and_panic(&msg);
-        });
-    }
+    // // Saves the result of the single episode to a file.
+    // fn save_result(&self,  result: &EvaluationResult) {
+    //     if !self.save_to_file {
+    //         return;
+    //     }
+    //     let evaluation_duration = self.start_time
+    //         .map(|start| start.elapsed())
+    //         .unwrap_or_default();
+    //     let start_datetime: DateTime<Local> = self.start_datetime.unwrap_or_else(Local::now);
+    //     let episode_result = EpisodeResult {
+    //         env_config: self.env_config.clone(),
+    //         n_completed_tasks: result.n_completed_tasks,
+    //         env_duration: format_duration(&result.env_duration),
+    //         total_energy_consumed: format!("{:.2} {}", result.total_energy_consumed.value, result.total_energy_consumed.unit.as_str()),
+    //         total_distance_driven: format!("{:.2} m", result.total_distance_driven),
+    //         total_charging_distance: format!("{:.2} m", result.total_charging_distance),
+    //         total_charging_approach_distance: format!("{:.2} m", result.total_charging_approach_distance),
+    //         total_charging_departure_distance: format!("{:.2} m", result.total_charging_departure_distance),
+    //         completed_stationary_tasks: result.completed_stationary_tasks,
+    //         completed_moving_tasks: result.completed_moving_tasks,
+    //         agent_actions: self.agent_actions.clone(),
+    //     };
+    //     let summary = SimulationSummary {
+    //         start_datetime,
+    //         evaluation_duration,
+    //         scene_config_path: self.scene_config_path.clone(),
+    //         result: episode_result,
+    //     };
+    //     let json = serde_json::to_string_pretty(&summary).unwrap_or_else(|e| {
+    //         let msg = format!("Failed to serialize summary {:?}: {}", summary, e);
+    //         log_error_and_panic(&msg);
+    //     });
+    //     let path = format!("{}{}.json", EXPERIMENTS_PATH, self.save_file_name);
+    //     let mut file = std::fs::File::create(path.clone()).unwrap_or_else(|e| {
+    //         let msg = format!("Failed to open file {:?}: {}", path, e);
+    //         log_error_and_panic(&msg);
+    //     });
+    //     file.write_all(json.as_bytes()).unwrap_or_else(|e| {
+    //         let msg = format!("Failed to write {:?}: {}", json, e);
+    //         log_error_and_panic(&msg);
+    //     });
+    // }
 }
