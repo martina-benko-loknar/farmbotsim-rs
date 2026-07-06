@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 
 use crate::{
-    agent_module::agent::Agent, battery_module::{discharging::{traits::DischargeModel}, is_battery::IsBattery}, cfg::{
-        POWER_CONSUMPTION_TRAVEL, POWER_CONSUMPTION_WAIT
-    }, environment::datetime::DateTimeManager, task_module::task::Task, units::{
+    agent_module::agent::Agent, battery_module::{is_battery::IsBattery}, cfg::{
+        POWER_CONSUMPTION_WAIT
+    }, environment::datetime::DateTimeManager, units::{
         duration::Duration,
-        power::Power,
     }
 };
 
@@ -195,16 +194,5 @@ impl AgentState {
         }
         None
     }
-    // Power consumption when traveling, scaled by velocity ratio
-    fn calculate_power_travel(agent: &Agent) -> Power {
-        POWER_CONSUMPTION_TRAVEL * (agent.velocity_lin / agent.movement.max_velocity())
-    }
-    // Power consumption while working, depends on task type
-    fn calculate_power_work(agent: &Agent, task: &Task) -> Power {
-        match task {
-            Task::Stationary { power, .. } => *power,
-            Task::Moving { power, .. } => *power + Self::calculate_power_travel(agent),
-            _ => Power::ZERO
-        }
-    }
+
 }
