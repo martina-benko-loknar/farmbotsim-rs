@@ -40,6 +40,7 @@ use crate::experiment::runner::{
     run_single_station_experiment,
     run_multi_station_experiment
 };
+use crate::experiment::config::ExperimentConfig;
 // use rate::optimization::ego::optimize_station_positions_ego;
 
 //use egui::Pos2;
@@ -164,11 +165,13 @@ fn main() -> Result<(), eframe::Error> {
     if args.contains(&"--optimize-ego".to_string()) {
 
         let n_stations = get_station_number(&args);
+        let exp = ExperimentConfig::default();
 
         let run = run_ego_experiment(
             n_stations, 
             10, 
-            &base_output);
+            &base_output,
+            exp);
 
         if run_viz {
             run_viz_script(
@@ -185,10 +188,18 @@ fn main() -> Result<(), eframe::Error> {
     if args.contains(&"--grid-search".to_string()) {
 
         let resolution = get_grid_resolution(&args);
+        let exp = ExperimentConfig::default();
+        let filename=  format!(
+                "_res{}",
+                resolution,
+            );
 
         let run = run_grid_search_experiment(
             resolution, 
-            &base_output);
+            &filename,
+            &base_output,
+            exp
+            );
 
         if run_viz {
             run_viz_script(
@@ -205,10 +216,12 @@ fn main() -> Result<(), eframe::Error> {
     if args.contains(&"--single-station-study".to_string()) {
 
         let resolution = get_grid_resolution(&args);
+        let exp = ExperimentConfig::default();
 
         let run = run_single_station_experiment(
             resolution,
             &base_output,
+            exp
         );
 
         if run_viz {
@@ -225,9 +238,11 @@ fn main() -> Result<(), eframe::Error> {
     // --- Multi(2)-station study (EGO + specialist layouts) -----
     if args.contains(&"--multi-station-study".to_string()) {
 
+        let exp = ExperimentConfig::default();
         let run = run_multi_station_experiment(
             10, 
-            &base_output);
+            &base_output,
+            exp);
 
         if run_viz {
             run_viz_script(
@@ -238,6 +253,24 @@ fn main() -> Result<(), eframe::Error> {
         }
 
         return Ok(());
+    }
+
+    // --- Sweeps ------------------------------------------------
+
+    if args.contains(&"--battery-sweep".to_string()) {
+        experiment::sweeps::battery::run_battery_sweep(&base_output);
+    }
+
+    if args.contains(&"--fleet-sweep".to_string()) {
+        experiment::sweeps::fleet::run_fleet_sweep(&base_output);
+    }
+
+    if args.contains(&"--field-sweep".to_string()) {
+        experiment::sweeps::field::run_field_size_sweep(&base_output);
+    }
+
+    if args.contains(&"--soc-sweep".to_string()) {
+        experiment::sweeps::soc::run_soc_sweep(&base_output);
     }
 
     run_gui()
