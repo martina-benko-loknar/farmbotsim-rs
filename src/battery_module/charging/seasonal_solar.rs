@@ -58,7 +58,8 @@ impl SeasonalBatteryModel{
         points
         
     }
-    /// Finds interpolated energy output for a given input time in the month’s dataset.
+
+    // Finds interpolated energy output for a given input time in the month’s dataset.
     fn find_y_for_x_month(&mut self, month: &str, x: u32) -> Result<f32, BatteryError> {
         let data = match month {
             "jan" => &self.jan_min_data,
@@ -78,7 +79,7 @@ impl SeasonalBatteryModel{
         Err(BatteryError::NoYForX(x.to_string()))
     }
 
-    /// Finds interpolated time needed to reach a given energy in the month’s dataset.
+    // Finds interpolated time needed to reach a given energy in the month’s dataset.
     fn find_x_for_y_month(&mut self, month: &str, y: f32) -> Result<u32, BatteryError> {
         let data = match month {
             "jan" => &self.jan_min_data,
@@ -98,7 +99,7 @@ impl SeasonalBatteryModel{
         Err(BatteryError::NoXForY(y.to_string()))
     }
 
-    /// Calculates morphing time and energy for seasonal solar models.
+    // Calculates morphing time and energy for seasonal solar models.
     pub fn get_morph_x_y(&mut self, y: f32, month: u32, time: u32) -> Result<(u32, f32), BatteryError> {
         let jan_time = self.find_x_for_y_month("jan", y)?;
         let jun_time = self.find_x_for_y_month("jun", y)?;

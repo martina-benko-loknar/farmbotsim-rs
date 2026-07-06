@@ -35,10 +35,10 @@ impl std::fmt::Display for ChooseStationStrategy {
 /// Strategies with behavior when to charge.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum ChargingStrategy {
-    /// Go charging only if battery is bellow critical
+    /// Go charging only if battery is below critical
     CriticalOnly,
-    /// Go charging if battery is bellow threshold and station is available
-    /// Go charging if battery is bellow critical
+    /// Go charging if battery is below threshold and station is available
+    /// Go charging if battery is below critical
     ThresholdWithLimit,
 }
 impl ChargingStrategy {
