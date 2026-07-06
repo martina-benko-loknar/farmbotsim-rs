@@ -1,7 +1,7 @@
 use egui::Pos2;
 use serde::{Deserialize, Serialize};
 
-use crate::optimization::results::EvaluationRecord;
+use crate::{experiment::config::ExperimentConfig, optimization::results::EvaluationRecord};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GridSearchPoint {
@@ -10,6 +10,8 @@ pub struct GridSearchPoint {
     pub total_distance: f64,
     pub charging_distance: f64,
     pub runtime_sec: f64,
+    pub simulation_time_sec: f64,
+    pub number_of_charging_events: u32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -20,6 +22,7 @@ pub struct GridSearchResults {
     pub valid_points: usize,
     pub total_points: usize,
     pub best_point: GridSearchPoint,
+    pub experiment_configs: ExperimentConfig,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
