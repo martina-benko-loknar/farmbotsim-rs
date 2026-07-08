@@ -1,7 +1,7 @@
 use egui::Pos2;
 
 use crate::{environment::field_config::FieldConfig, experiment::models::{
-    EvaluatedLayout, SpecialistLayoutResults, StationLayout
+    EvaluatedLayout, ExperimentMetrics, SpecialistLayoutResults, StationLayout
 }};
 use crate::experiment::evaluation::evaluate_station_layout;
 use crate::environment::scene_config::SceneConfig;
@@ -120,14 +120,19 @@ pub fn evaluate_station_layouts(
                 &exp,
         );
 
-        evaluated_layouts.push(
-            EvaluatedLayout {
+        evaluated_layouts.push(EvaluatedLayout {
                 layout: layout.clone(),
-
-                energy_wh: result.energy,
-                time_sec: result.runtime_sec,
-                total_distance_m: result.total_distance,
-                charging_distance_m: result.charging_distance,
+                metrics: ExperimentMetrics {
+                    energy_wh: result.energy_wh,
+                    total_distance_m: result.total_distance_m,
+                    charging_distance_m: result.charging_distance_m,
+                    simulation_time_sec: 0.0, //TODO
+                    evaluation_time_sec: 0.0, //TODO
+                    charging_events: 0, //TODO
+                    charge_attempts: 0, //TODO
+                    failed_charge_attempts: 0, //TODO
+                    completed_tasks: 0, //TODO
+                }
             }
         );
     }
@@ -135,8 +140,9 @@ pub fn evaluate_station_layouts(
     let best_layout = evaluated_layouts
         .iter()
         .min_by(|a, b| {
-            a.energy_wh
-                .partial_cmp(&b.energy_wh)
+            a.metrics
+                .energy_wh
+                .partial_cmp(&b.metrics.energy_wh)
                 .unwrap()
         })
         .unwrap()
