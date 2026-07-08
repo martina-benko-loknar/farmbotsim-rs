@@ -10,6 +10,7 @@ use crate::optimization::geometry::is_position_valid;
 use crate::optimization::constants::*;
 use crate::environment::field_config::FieldConfig;
 use crate::environment::geometry::FieldBounds;
+use crate::experiment::models::EvaluationRecord;
 
 //use egui::output;
 use serde::{Deserialize, Serialize};
@@ -32,21 +33,6 @@ pub struct EvaluatedSample {
 #[derive(Serialize)]
 pub struct SerializableObstacle {
     pub points: Vec<(f32, f32)>,
-}
-
-// ============================================================
-// Per-evaluation record 
-// ============================================================
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct EvaluationRecord {
-    pub evaluation: usize,
-    pub phase: String,           // "init" | "ego"
-    pub phase_iteration: usize,
-    pub energy: f64,
-    pub best_energy: f64,
-    pub is_new_best: bool,
-    pub positions: Vec<(f32, f32)>,
-    pub best_positions: Vec<(f32, f32)>,
 }
 
 // ============================================================
