@@ -5,7 +5,7 @@ use crate::experiment::grid_search::grid_search_experiment;
 use crate::experiment::export::{
     save_grid_search_results,
     save_single_station_results, 
-    save_ego_trace_results,
+    save_ego_results,
     save_multi_station_results};
 use crate::experiment::station_layouts::{
     specialist_layouts,
@@ -29,11 +29,15 @@ use crate::utilities::utils::load_json_or_panic;
 pub fn run_ego_experiment(
     n_stations: usize,
     max_iterations: usize,
+    filename: &str,
     output_dir: &str,
     exp: ExperimentConfig,
 ) -> ExperimentRun {
 
-    println!("Running EGO optimization...");
+    println!("Experiment type: EGO ({} stations, {} iterations max)\n", 
+            n_stations, 
+            max_iterations);
+
     let timestamp = chrono::Utc::now()
     .format("%H%M%S")
     .to_string(); 
@@ -42,20 +46,19 @@ pub fn run_ego_experiment(
     // EGO optimization
     // ---------------------------------------------------------
 
-    let ego_results =
-        optimize_station_positions_ego(
+    let ego_results = optimize_station_positions_ego(
             n_stations,
             max_iterations,
-            output_dir, 
             &exp);
 
     // ---------------------------------------------------------
     // Save experiment results
     // ---------------------------------------------------------
 
-    let results_path = save_ego_trace_results(
+    let results_path = save_ego_results(
         &ego_results,
-        "ego_optimization",
+        &exp,
+        filename,
         output_dir,
         &timestamp,
     );
@@ -76,7 +79,10 @@ pub fn run_grid_search_experiment(
     exp: ExperimentConfig,
 ) -> ExperimentRun {
 
-    println!("\nRunning grid search experiment...");
+    println!("Experiment type: GRID SEARCH ({}×{} resolution)\n", 
+            resolution, 
+            resolution);
+
     let timestamp = chrono::Utc::now()
     .format("%H%M%S")
     .to_string(); 
@@ -94,6 +100,7 @@ pub fn run_grid_search_experiment(
 
     let results_path = save_grid_search_results(
         &grid_results,
+        &exp, 
         filename,
         output_dir,
         &timestamp,
@@ -107,11 +114,12 @@ pub fn run_grid_search_experiment(
 
 pub fn run_single_station_experiment(
     resolution: usize,
+    filename: &str,
     output_dir: &str,
     exp: ExperimentConfig,
 ) -> ExperimentRun {
 
-    println!("Running single-station experiment...");
+    println!("Experiment type: SINGLE-STATION experiment");
     let timestamp = chrono::Utc::now()
     .format("%H%M%S")
     .to_string();
@@ -124,7 +132,6 @@ pub fn run_single_station_experiment(
         optimize_station_positions_ego(
             1,
             10,
-            output_dir, 
             &exp);
 
     // ---------------------------------------------------------
@@ -140,13 +147,6 @@ pub fn run_single_station_experiment(
     // Save & aggregate experiment results
     // ---------------------------------------------------------
 
-    save_ego_trace_results(
-        &ego_results,
-        "single_station",
-        output_dir,
-        &timestamp,
-    );
-
     let experiment_results =
         SingleStationExperimentResults {
             ego: ego_results,
@@ -155,11 +155,12 @@ pub fn run_single_station_experiment(
 
     let results_path = save_single_station_results(
         &experiment_results,
-        &timestamp, 
+        &exp, 
+        filename,
         output_dir,
+        &timestamp, 
+        
     );
-
-    println!("Single-station experiment completed.");
 
     ExperimentRun{
         timestamp: timestamp,
@@ -170,11 +171,12 @@ pub fn run_single_station_experiment(
 
 pub fn run_multi_station_experiment(
     max_iterations: usize,
+    filename: &str,
     output_dir: &str,
     exp: ExperimentConfig,
 )-> ExperimentRun {
 
-    println!("Running multi-station experiment...");
+    println!("Experiment type: MULTI-STATION experiment");
     let timestamp = chrono::Utc::now()
     .format("%H%M%S")
     .to_string();
@@ -197,7 +199,6 @@ pub fn run_multi_station_experiment(
         optimize_station_positions_ego(
             2,
             max_iterations,
-            output_dir,
             &exp
         );
 
@@ -215,13 +216,6 @@ pub fn run_multi_station_experiment(
     // Save & aggregate experiment results
     // ---------------------------------------------------------
 
-    save_ego_trace_results(
-        &ego_results,
-        "multi_station",
-        output_dir,
-        &timestamp,
-    );
-
     let experiment_results =
         MultiStationExperimentResults {
             ego: ego_results,
@@ -230,11 +224,11 @@ pub fn run_multi_station_experiment(
 
     let results_path = save_multi_station_results(
         &experiment_results,
+        &exp,
+        filename,
         output_dir,
         &timestamp, 
     );
-
-    println!("Multi-station experiment completed.");
 
     ExperimentRun{
         timestamp: timestamp,
