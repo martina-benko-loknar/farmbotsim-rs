@@ -1,8 +1,7 @@
 use crate::experiment::geometry::generate_valid_grid_points;
 use crate::experiment::evaluation::evaluate_station_layout;
 use crate::experiment::models::{
-    GridSearchPoint,
-    GridSearchResults,
+    ExperimentMetrics, GridSearchPoint, GridSearchResults, GridSearchSummary, GridSearchTrace,
 };
 use crate::environment::geometry::FieldBounds;
 use crate::experiment::search_domain::SearchDomain;
@@ -99,21 +98,26 @@ pub fn grid_search_experiment(
             &exp
         );
 
-        let energy_consumption = evaluation.energy;
-        let total_distance = evaluation.total_distance;
-        let charging_distance = evaluation.charging_distance;
+        let energy_consumption = evaluation.energy_wh;
+        let total_distance = evaluation.total_distance_m;
+        let charging_distance = evaluation.charging_distance_m;
         let elapsed = start.elapsed().as_secs_f64();
         let sim_time = evaluation.simulation_time_sec;
         let charging_events = evaluation.charging_events;
 
         points.push(GridSearchPoint {
             position: *grid_point,
-            energy: energy_consumption,
-            total_distance,
-            charging_distance,
-            runtime_sec: elapsed,
-            simulation_time_sec: sim_time,
-            number_of_charging_events: charging_events, 
+            metrics: ExperimentMetrics {
+                energy_wh: energy_consumption,
+                total_distance_m: total_distance,
+                charging_distance_m: charging_distance,
+                simulation_time_sec: sim_time,
+                evaluation_time_sec: elapsed,
+                charging_events: charging_events,
+                charge_attempts: 0, //TODO
+                failed_charge_attempts: 0, // TODO
+                completed_tasks: 0, // TODO
+            }
         });
         
         let progress = ((i + 1) as f64 / total_points as f64) * 100.0;
@@ -145,12 +149,13 @@ pub fn grid_search_experiment(
 
     let runtime_sec = experiment_start.elapsed().as_secs_f64();
 
-    // Find and report best position (based on energy consumption)
+    // Find and report best position (based on energy consumption): compare points by their metrics.energy_wh
     let best_point = points
         .iter()
         .min_by(|a, b| {
-            a.energy
-                .partial_cmp(&b.energy)
+            a.metrics
+                .energy_wh
+                .partial_cmp(&b.metrics.energy_wh)
                 .unwrap()
         })
         .unwrap()
@@ -162,23 +167,25 @@ pub fn grid_search_experiment(
              grid_points.len(), grid_resolution * grid_resolution);
     println!("Best point: "); 
     println!("  - position        : ({:.2} m, {:.2} m)", best_point.position.x, best_point.position.y);
-    println!("  - energy          : {:.2} kWh", best_point.energy/1000.0);
-    println!("  - distance        : {:.2} km", best_point.total_distance/1000.0);
-    println!("  - charging dist   : {:.2} km", best_point.charging_distance/1000.0);
-    println!("  - mission time    : {:.2} h", best_point.simulation_time_sec/3600.0);
-    println!("  - charging events : {:.2}", best_point.number_of_charging_events);
+    println!("  - energy          : {:.2} kWh", best_point.metrics.energy_wh/1000.0);
+    println!("  - distance        : {:.2} km", best_point.metrics.total_distance_m/1000.0);
+    println!("  - charging dist   : {:.2} km", best_point.metrics.charging_distance_m/1000.0);
+    println!("  - mission time    : {:.2} h", best_point.metrics.simulation_time_sec/3600.0);
+    println!("  - charging events : {}", best_point.metrics.charging_events);
 
     println!("Experiment time     : {:.2} s",  runtime_sec);
     // println!("Results saved as    : {}", results_file);
 
     GridSearchResults {
-        points,
-        grid_resolution,
-        //optimization_minimum,
-        valid_points: grid_points.len(),
-        total_points: grid_resolution * grid_resolution,
-        best_point,
-        experiment_configs: exp.clone(),
+        summary: GridSearchSummary {
+            best_point: best_point,
+            valid_points: grid_points.len(),
+            total_points: grid_resolution * grid_resolution,
+            grid_resolution,
+        },
+        trace: GridSearchTrace {
+            points,
+        }
     }
     // println!("Output directory: {}", output_dir);
 }

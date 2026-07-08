@@ -10,6 +10,7 @@ use crate::environment::{
     },
     scene_config::SceneConfig,
 };
+use crate::experiment::models::ExperimentMetrics;
 use crate::task_module::strategies::{
     ChargingStrategy,
     ChooseStationStrategy,
@@ -63,7 +64,7 @@ pub fn evaluate_station_layout(
     stations: &[Pos2],
     original_scene: &SceneConfig,
     exp: &ExperimentConfig,
-) -> LayoutEvaluation {
+) -> ExperimentMetrics {
     let start = Instant::now();
 
     // ----------------------------------------
@@ -140,13 +141,15 @@ pub fn evaluate_station_layout(
     let _ = std::fs::remove_file(temp_scene_path);
     let runtime_sec = start.elapsed().as_secs_f64();
 
-    LayoutEvaluation {
-        energy: result.total_energy_consumed.value as f64,
-        total_distance: result.total_distance_driven as f64,
-        charging_distance: result.total_charging_distance as f64,
-        runtime_sec,
-        simulation_time_sec: result.env_duration.value as f64,
-        completed_tasks: result.n_completed_tasks,
-        charging_events: result.charging_events,
+    ExperimentMetrics {
+        energy_wh: result.total_energy_consumed.value as f64, 
+        total_distance_m: result.total_distance_driven as f64, 
+        charging_distance_m: result.total_charging_distance as f64, 
+        simulation_time_sec: result.env_duration.value as f64, 
+        evaluation_time_sec: runtime_sec, 
+        charging_events: result.charging_events, 
+        charge_attempts: 0, //TODO 
+        failed_charge_attempts: 0, //TODO 
+        completed_tasks: 0, //TODO 
     }
 }
