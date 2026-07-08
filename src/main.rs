@@ -166,10 +166,15 @@ fn main() -> Result<(), eframe::Error> {
 
         let n_stations = get_station_number(&args);
         let exp = ExperimentConfig::default();
+        let filename=  format!(
+                "_stations={}",
+                n_stations,
+            );
 
         let run = run_ego_experiment(
             n_stations, 
             10, 
+            &filename,
             &base_output,
             exp);
 
@@ -217,9 +222,11 @@ fn main() -> Result<(), eframe::Error> {
 
         let resolution = get_grid_resolution(&args);
         let exp = ExperimentConfig::default();
+        let filename= "single_station";
 
         let run = run_single_station_experiment(
             resolution,
+            &filename,
             &base_output,
             exp
         );
@@ -239,8 +246,11 @@ fn main() -> Result<(), eframe::Error> {
     if args.contains(&"--multi-station-study".to_string()) {
 
         let exp = ExperimentConfig::default();
+        let filename=  "multi_station";
+
         let run = run_multi_station_experiment(
             10, 
+            &filename,
             &base_output,
             exp);
 
