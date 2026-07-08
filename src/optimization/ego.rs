@@ -8,8 +8,10 @@ use crate::optimization::geometry::{is_position_valid, round_to_centimeters};
 use crate::optimization::objective::{station_objective_function, OptimizationContext};
 use crate::optimization::station_positions::StationPositions;
 use crate::utilities::utils::load_json_or_panic;
-use crate::experiment::models::{EgoOptimizationResults, EgoSummary, EgoTrace};
+use crate::experiment::models::{EgoOptimizationResults, EgoSummary, EgoTrace, ExperimentMetrics};
 use crate::experiment::config::ExperimentConfig;
+use crate::experiment::models::EvaluatedCandidate;
+use crate::experiment::models::EvaluationRecord;
 
 
 use egobox_ego::EgorBuilder;
@@ -18,8 +20,11 @@ use ndarray::{Array2, ArrayView2};
 use std::sync::{Arc, RwLock};
 use std::time::Instant;
 
-use crate::optimization::results::{EvaluationRecord};
 use crate::environment::geometry::FieldBounds;
+
+fn separator() {
+    println!("{}", "-".repeat(70));
+}
 
 // ============================================================
 // Phase enum
@@ -37,18 +42,13 @@ fn log_evaluation(
     phase: EvalPhase,
     eval_id: usize,
     phase_iter: usize,
-    x: &ndarray::ArrayView1<f64>,
-    energy: f64,
+    candidate: &EvaluatedCandidate,
     best_energy: &Arc<RwLock<f64>>,
     best_positions: &Arc<RwLock<Vec<(f32, f32)>>>,
 ) -> EvaluationRecord {
-    let stations: Vec<(f64, f64)> = x
-        .iter()
-        .cloned()
-        .collect::<Vec<_>>()
-        .chunks(2)
-        .map(|c| (c[0], c[1]))
-        .collect();
+
+    let stations = &candidate.positions;
+    let energy = candidate.metrics.energy_wh;
 
     let mut best_e = best_energy.write().unwrap();
     let mut best_pos = best_positions.write().unwrap();
@@ -97,7 +97,7 @@ fn log_evaluation(
             EvalPhase::BO => "ego".to_string(),
         },
         phase_iteration: phase_iter,
-        energy,
+        metrics: candidate.metrics.clone(),
         best_energy: best_energy_now,
         is_new_best,
         positions: stations
@@ -114,7 +114,6 @@ fn log_evaluation(
 pub fn optimize_station_positions_ego(
     n_stations: usize,
     max_iterations: usize,
-    output_dir: &str,
     exp: &ExperimentConfig,
 ) -> EgoOptimizationResults 
     {
@@ -179,16 +178,6 @@ pub fn optimize_station_positions_ego(
         &mut rng,
     );
 
-    println!("Stations         : {}", n_stations);
-    println!("Max iterations   : {}", max_iterations);
-    println!("Initial samples  : {}", initial_positions.len());
-
-    // println!("\n====== Phase 1 : INITIAL SAMPLING ====================================");
-
-    // for (i, pos) in initial_positions.iter().take(3).enumerate() {
-    //     println!("  Sample {}: {:?}", i + 1, pos.station_positions);
-    // }
-
     let initial_x: Array2<f64> = Array2::from_shape_vec(
         (initial_positions.len(), n_stations * 2),
         initial_positions
@@ -209,9 +198,10 @@ pub fn optimize_station_positions_ego(
     let best_energy = Arc::new(RwLock::new(f64::INFINITY));
     let best_positions = Arc::new(RwLock::new(Vec::<(f32, f32)>::new()));
     let evaluation_history = Arc::new(RwLock::new(Vec::<EvaluationRecord>::new()));
+    let evaluated_candidates = Arc::new(RwLock::new(Vec::<EvaluatedCandidate>::new()));
 
     // ------------------------------
-    // Objective (PURE)
+    // Objective + candidate storage
     // ------------------------------
     let context = OptimizationContext {
         obstacles: obstacles.clone(),
@@ -223,8 +213,18 @@ pub fn optimize_station_positions_ego(
 
     // let evaluated_positions_obj = Arc::clone(&evaluated_positions);
 
+    let evaluated_candidates_for_objective = Arc::clone(&evaluated_candidates);
+
     let objective_fn = move |x: &ArrayView2<f64>| {
-        station_objective_function(x, &context, &mut Vec::new())
+        let mut records = evaluated_candidates_for_objective
+            .write()
+            .unwrap();
+
+        station_objective_function(
+            x,
+            &context,
+            &mut records,
+        )
     };
 
     // ------------------------------
@@ -234,10 +234,18 @@ pub fn optimize_station_positions_ego(
     let best_energy_wrapped = Arc::clone(&best_energy);
     let best_positions_wrapped = Arc::clone(&best_positions);
     let history_wrapped = Arc::clone(&evaluation_history);
+    let evaluated_candidates_wrapped = Arc::clone(&evaluated_candidates);
 
     let n_initial = initial_x.nrows();
 
     let objective_wrapped = move |x: &ArrayView2<f64>| {
+               
+        let start_idx = {
+            evaluated_candidates_wrapped
+            .read()
+            .unwrap()
+            .len()
+        };
         let y = objective_fn(x);
 
         for (i, row) in x.rows().into_iter().enumerate() {
@@ -246,17 +254,26 @@ pub fn optimize_station_positions_ego(
             let eval_id = *counter;
             drop(counter);
 
-            let energy = y[[i, 0]];
+            let candidate = {
+                let candidates = evaluated_candidates_wrapped
+                    .read()
+                    .unwrap();
+
+                candidates
+                    .get(start_idx + i)
+                    .expect("Missing evaluated candidate")
+                    .clone()
+            };
 
             let (phase, phase_iter) = if eval_id <= n_initial {
                 if eval_id == 1 {
-                    println!("\n====== Phase 1 : INITIAL SAMPLING ====================================");
+                    println!("\n----- EGO Phase 1 : INITIAL SAMPLING -----");
                     println!("Evaluating {} initial samples...\n", n_initial);
                 }
                 (EvalPhase::Init, eval_id)
             } else {
                 if eval_id - n_initial == 1 {
-                    println!("\n====== Phase 2 : BAYESIAN OPTIMIZATION ================================");
+                    println!("\n----- EGO Phase 2 : BAYESIAN OPTIMIZATION -----");
                     println!("Starting optimization...\n");
                 }
                 (EvalPhase::BO, eval_id - n_initial)
@@ -266,8 +283,7 @@ pub fn optimize_station_positions_ego(
                 phase,
                 eval_id,
                 phase_iter,
-                &row,
-                energy,
+                &candidate,
                 &best_energy_wrapped,
                 &best_positions_wrapped,
             );
@@ -277,13 +293,6 @@ pub fn optimize_station_positions_ego(
 
         y
     };
-
-    // ------------------------------
-    // Run optimization
-    // ------------------------------
-    // println!("\n====== Phase 2 : BAYESIAN OPTIMIZATION ================================");
-    // println!("Starting optimization...\n");
-
     
     let result = EgorBuilder::optimize(objective_wrapped)
         .configure(|config| config.max_iters(max_iterations).doe(&initial_x))
@@ -355,31 +364,49 @@ pub fn optimize_station_positions_ego(
     // Results
     // ------------------------------
     match result {
-        Ok(opt) => {
-            println!("\n====== RESULTS ========================================================");
+        Ok(_opt) => {
+            //println!("\n====== RESULTS ========================================================");
 
-            let best_positions = StationPositions::from_optimization_vector(
-                &opt.x_opt.view().insert_axis(ndarray::Axis(0)),
-                &obstacles,
-                n_stations,
-            );
+            let candidates = evaluated_candidates.read().unwrap();
 
-            println!(
-                "Optimization time: {:.2?}",
-                elapsed
-            );
+            let best_candidate = candidates
+                .iter()
+                .min_by(|a, b| {
+                    a.metrics
+                        .energy_wh
+                        .partial_cmp(&b.metrics.energy_wh)
+                        .unwrap()
+                })
+                .expect("No evaluated candidates found");
 
-            println!("Best energy      : {:.3} kWh", opt.y_opt[0] / 1000.0);
+            let best_positions: Vec<Pos2> = best_candidate.positions
+                .iter()
+                .map(|(x, y)| Pos2::new(*x, *y))
+                .collect();
 
-            for (i, p) in best_positions.station_positions.iter().enumerate() {
-                println!("  S{} → ({:.2}, {:.2})", i + 1, p.x, p.y);
-            }
-            
             let history = evaluation_history.read().unwrap();
+            let m = &best_candidate.metrics;
+
+            separator();
+            println!("Summary: ");
+            println!("Initial samples : {}", n_initial);
+            println!("Best point: "); 
+            println!("  - stations         : {}", best_positions.len());
+            println!("  - station positions:");
+            for (i, p) in best_positions.iter().enumerate() {
+                println!("      S{}: ({:.2}, {:.2})", i + 1, p.x, p.y);
+            }
+            println!("  - energy           : {:.2} kWh", m.energy_wh / 1000.0);
+            println!("  - distance         : {:.2} km", m.total_distance_m); 
+            println!("  - charging dist    : {:.2} km", m.charging_distance_m); 
+            println!("  - mission time     : {:.2} h", m.simulation_time_sec); 
+            println!("  - charging events  : {}", m.charging_events); 
+
+            println!("Experiment time      : {:.2?} s",  elapsed);
 
             let summary = EgoSummary {
-                optimal_position: best_positions.station_positions.clone(),
-                optimal_energy: opt.y_opt[0],
+                best_metrics: best_candidate.metrics.clone(),
+                optimal_position: best_positions.clone(),
                 optimization_time_sec: elapsed.as_secs_f64(),
                 total_evaluations: history.len(),
             };
@@ -395,6 +422,45 @@ pub fn optimize_station_positions_ego(
         Err(e) => {
             eprintln!("EGO optimization failed: {:?}", e);
 
+            let history = evaluation_history.read().unwrap();
+            let candidates = evaluated_candidates.read().unwrap();
+
+            // ------------------------------------------------------------
+            // Case 1: Use best already evaluated candidate
+            // ------------------------------------------------------------
+            if let Some(best_candidate) = candidates
+                .iter()
+                .min_by(|a, b| {
+                    a.metrics
+                        .energy_wh
+                        .partial_cmp(&b.metrics.energy_wh)
+                        .unwrap()
+                })
+            {
+                println!("\nEGO failed. Returning best evaluated candidate.");
+
+                let summary = EgoSummary {
+                    best_metrics: best_candidate.metrics.clone(),
+                    optimal_position: best_candidate.positions
+                        .iter()
+                        .map(|(x, y)| Pos2::new(*x, *y))
+                        .collect(),
+                    optimization_time_sec: elapsed.as_secs_f64(),
+                    total_evaluations: history.len(),
+                };
+
+                return EgoOptimizationResults {
+                    summary,
+                    trace: EgoTrace {
+                        evaluation_history: history.clone(),
+                        max_iterations,
+                    },
+                };
+            }
+
+            // ------------------------------------------------------------
+            // Case 2: No evaluations happened - generate fallback
+            // ------------------------------------------------------------
             let mut rng = rand::rng();
 
             let fallback = StationPositions::generate_initial_population(
@@ -406,18 +472,30 @@ pub fn optimize_station_positions_ego(
             .into_iter()
             .next()
             .unwrap();
-          
+
+            eprintln!("No evaluated candidates available. Using random fallback.");
+
             EgoOptimizationResults {
-                summary: EgoSummary { 
+                summary: EgoSummary {
+                    best_metrics: ExperimentMetrics {
+                        energy_wh: f64::INFINITY,
+                        total_distance_m: 0.0,
+                        charging_distance_m: 0.0,
+                        simulation_time_sec: 0.0,
+                        evaluation_time_sec: 0.0,
+                        charging_events: 0,
+                        charge_attempts: 0,
+                        failed_charge_attempts: 0,
+                        completed_tasks: 0,
+                    },
                     optimal_position: fallback.station_positions.clone(),
-                    optimal_energy: f64::INFINITY, 
-                    optimization_time_sec: elapsed.as_secs_f64(), 
-                    total_evaluations: 0 
+                    optimization_time_sec: elapsed.as_secs_f64(),
+                    total_evaluations: 0,
                 },
 
                 trace: EgoTrace {
                     evaluation_history: vec![],
-                    max_iterations
+                    max_iterations,
                 },
             }
         }
