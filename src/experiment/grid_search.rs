@@ -163,8 +163,9 @@ pub fn grid_search_experiment(
     
     separator();
     println!("Summary: ");
-    println!("Valid pts/Total pts : {}/{}", 
-             grid_points.len(), grid_resolution * grid_resolution);
+    println!("Evaluations: "); 
+    println!("  - valid points    : {}", grid_points.len());
+    println!("  - total points    : {}", grid_resolution * grid_resolution);
     println!("Best point: "); 
     println!("  - position        : ({:.2} m, {:.2} m)", best_point.position.x, best_point.position.y);
     println!("  - energy          : {:.2} kWh", best_point.metrics.energy_wh/1000.0);

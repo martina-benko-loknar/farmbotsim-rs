@@ -119,7 +119,7 @@ pub fn run_single_station_experiment(
     exp: ExperimentConfig,
 ) -> ExperimentRun {
 
-    println!("Experiment type: SINGLE-STATION experiment");
+    println!("Experiment type: SINGLE-STATION (grid search + EGO)");
     let timestamp = chrono::Utc::now()
     .format("%H%M%S")
     .to_string();
@@ -128,16 +128,17 @@ pub fn run_single_station_experiment(
     // Phase 1: EGO optimization
     // ---------------------------------------------------------
 
+    println!("\n===========  EGO optimization ===========");
     let ego_results =
         optimize_station_positions_ego(
             1,
-            10,
+            30,
             &exp);
 
     // ---------------------------------------------------------
     // Phase 2: Grid search
     // ---------------------------------------------------------
-
+    println!("\n=========== Grid search ===========");
     let grid_results = grid_search_experiment(
         resolution, 
         &exp
@@ -176,7 +177,7 @@ pub fn run_multi_station_experiment(
     exp: ExperimentConfig,
 )-> ExperimentRun {
 
-    println!("Experiment type: MULTI-STATION experiment");
+    println!("Experiment type: MULTI-STATION (EGO + specialized layouts)");
     let timestamp = chrono::Utc::now()
     .format("%H%M%S")
     .to_string();
@@ -194,7 +195,7 @@ pub fn run_multi_station_experiment(
     // ---------------------------------------------------------
     // Phase 1: EGO optimization
     // ---------------------------------------------------------
-
+    println!("\n===========  EGO optimization ===========");
     let ego_results =
         optimize_station_positions_ego(
             2,
@@ -205,7 +206,7 @@ pub fn run_multi_station_experiment(
     // ---------------------------------------------------------
     // Phase 2: Specialist layouts
     // ---------------------------------------------------------
-    
+    println!("\n===========  Specialist layouts ===========");
     let layouts = 
         specialist_layouts(&field_config);
 

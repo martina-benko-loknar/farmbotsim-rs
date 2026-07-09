@@ -67,27 +67,30 @@ fn log_evaluation(
     let best_positions_now = best_pos.clone();
 
     // ---------------- PRINT ----------------
-    let phase_label = match phase {
-        EvalPhase::Init => "INIT | Eval",
-        EvalPhase::BO => "EGO  | Iter",
+
+    let position_string = if stations.len() == 1 {
+        format!("({:.2}, {:.2})", stations[0].0, stations[0].1)
+    } else {
+        stations
+            .iter()
+            .enumerate()
+            .map(|(i, (x, y))| {
+                format!("S{}({:.2},{:.2})", i + 1, x, y)
+            })
+            .collect::<Vec<_>>()
+            .join(" ")
     };
 
-    print!(
-        "[{} {:>3}]   E = {:>7.2} kWh | ",
-        phase_label,
+    println!(
+        "[{:>2}] | {} | {:.2} kWh | {:.2} km | {:.2} km | {:.2} s{}",
         phase_iter,
-        energy / 1000.0
+        position_string,
+        candidate.metrics.energy_wh / 1000.0,
+        candidate.metrics.total_distance_m / 1000.0,
+        candidate.metrics.charging_distance_m / 1000.0,
+        candidate.metrics.evaluation_time_sec,
+        if is_new_best { "  <-- New best" } else { "" },
     );
-
-    for (i, (sx, sy)) in stations.iter().enumerate() {
-        print!("S{}({:>5.2},{:>5.2}) ", i + 1, sx, sy);
-    }
-
-    if is_new_best {
-        print!(" <-- New best: {:.2} kWh", energy / 1000.0);
-    }
-
-    println!();
 
     // ---------------- RECORD ----------------
     EvaluationRecord {
@@ -122,15 +125,8 @@ pub fn optimize_station_positions_ego(
     // ------------------------------
     // Load config
     // ------------------------------
-    let scene_config: SceneConfig =
-        load_json_or_panic(DEFAULT_SCENE_CONFIG_PATH.to_string());
-
-    //let n_stations = scene_config.station_configs.len();
-
-    let field_config: FieldConfig =
-        load_json_or_panic(
-            scene_config.field_config_path.clone()
-        );
+    let scene_config = exp.load_scene_config();
+    let field_config = exp.load_field_config();
 
     let obstacles = field_config.get_obstacles();
 
@@ -248,7 +244,7 @@ pub fn optimize_station_positions_ego(
         };
         let y = objective_fn(x);
 
-        for (i, row) in x.rows().into_iter().enumerate() {
+        for (i, _row) in x.rows().into_iter().enumerate() {
             let mut counter = eval_counter_wrapped.write().unwrap();
             *counter += 1;
             let eval_id = *counter;
@@ -267,14 +263,16 @@ pub fn optimize_station_positions_ego(
 
             let (phase, phase_iter) = if eval_id <= n_initial {
                 if eval_id == 1 {
-                    println!("\n----- EGO Phase 1 : INITIAL SAMPLING -----");
-                    println!("Evaluating {} initial samples...\n", n_initial);
+                    println!("\nPhase 1 : initial sampling");
+                    // println!("Evaluating {} initial samples...\n", n_initial);
+                    println!("Eval | Position |  Energy | Total dist | Charging dist | Time");
                 }
                 (EvalPhase::Init, eval_id)
             } else {
                 if eval_id - n_initial == 1 {
-                    println!("\n----- EGO Phase 2 : BAYESIAN OPTIMIZATION -----");
-                    println!("Starting optimization...\n");
+                    println!("\nPhase 2 : bayesian optimization");
+                    // println!("Starting optimization...\n");
+                    println!("Iter | Position |  Energy | Total dist | Charging dist | Time");
                 }
                 (EvalPhase::BO, eval_id - n_initial)
             };
@@ -389,7 +387,9 @@ pub fn optimize_station_positions_ego(
 
             separator();
             println!("Summary: ");
-            println!("Initial samples : {}", n_initial);
+            println!("Evaluations: "); 
+            println!("  - initial samples  : {}", n_initial);
+            println!("  - BO iterations    : {}", max_iterations);
             println!("Best point: "); 
             println!("  - stations         : {}", best_positions.len());
             println!("  - station positions:");
@@ -397,9 +397,9 @@ pub fn optimize_station_positions_ego(
                 println!("      S{}: ({:.2}, {:.2})", i + 1, p.x, p.y);
             }
             println!("  - energy           : {:.2} kWh", m.energy_wh / 1000.0);
-            println!("  - distance         : {:.2} km", m.total_distance_m); 
-            println!("  - charging dist    : {:.2} km", m.charging_distance_m); 
-            println!("  - mission time     : {:.2} h", m.simulation_time_sec); 
+            println!("  - distance         : {:.2} km", m.total_distance_m/1000.0); 
+            println!("  - charging dist    : {:.2} km", m.charging_distance_m/1000.0); 
+            println!("  - mission time     : {:.2} h", m.simulation_time_sec/3600.0); 
             println!("  - charging events  : {}", m.charging_events); 
 
             println!("Experiment time      : {:.2?} s",  elapsed);
