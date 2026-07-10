@@ -41,7 +41,7 @@ use crate::experiment::runner::{
     run_multi_station_experiment
 };
 use crate::experiment::config::ExperimentConfig;
-// use rate::optimization::ego::optimize_station_positions_ego;
+use crate::experiment::models::{ExperimentInfo, ExperimentType};
 
 //use egui::Pos2;
 use env_logger::Env;
@@ -61,18 +61,12 @@ fn get_arg_value(args: &[String], flag: &str) -> Option<String> {
         .cloned()
 }
 
-fn create_output_directory() -> Result<String, eframe::Error> {
+fn create_output_directory() -> Result<String, Box<dyn std::error::Error>> {
     let now = chrono::Local::now();
 
-    let base_output =
-        format!("results/{}", now.format("%Y-%m-%d"));
+    let base_output = format!("results/{}", now.format("%Y-%m-%d"));
 
-    std::fs::create_dir_all(&base_output)
-        .map_err(|e| {
-            eprintln!("Failed to create output directory: {e}");
-
-            eframe::Error::AppCreation(Box::new(e))
-        })?;
+    std::fs::create_dir_all(&base_output)?;
 
     Ok(base_output)
 }
@@ -140,7 +134,7 @@ fn run_debug_tests() {
     println!("voltage_drop_per_m = {voltage_drop_per_m}");
 }
 
-fn main() -> Result<(), eframe::Error> {
+fn main() ->  Result<(), Box<dyn std::error::Error>> {
     init_logging();
 
     let args: Vec<String> = std::env::args().collect();
@@ -148,6 +142,10 @@ fn main() -> Result<(), eframe::Error> {
     let base_output = create_output_directory()?;
 
     let run_viz = args.contains(&"--viz".to_string());
+
+    let timestamp = chrono::Utc::now()
+                .format("%H%M%S")
+                .to_string();
 
     // ---------- Debug tests ----------------
     if args.contains(&"--debug-test".to_string()) {
@@ -167,16 +165,22 @@ fn main() -> Result<(), eframe::Error> {
         let n_stations = get_station_number(&args);
         let exp = ExperimentConfig::default();
         let filename=  format!(
-                "_stations={}",
+                "stations={}",
                 n_stations,
             );
+        let info = ExperimentInfo {
+                experiment_type: ExperimentType::EGO,
+                timestamp: timestamp.clone(),
+            };
 
         let run = run_ego_experiment(
             n_stations, 
             10, 
             &filename,
             &base_output,
-            exp);
+            exp, 
+            info
+        );
 
         if run_viz {
             run_viz_script(
@@ -195,15 +199,20 @@ fn main() -> Result<(), eframe::Error> {
         let resolution = get_grid_resolution(&args);
         let exp = ExperimentConfig::default();
         let filename=  format!(
-                "_res{}",
+                "res{}",
                 resolution,
             );
+        let info = ExperimentInfo {
+                experiment_type: ExperimentType::GridSearch,
+                timestamp: timestamp.clone(),
+            };
 
         let run = run_grid_search_experiment(
             resolution, 
             &filename,
             &base_output,
-            exp
+            exp,
+            info,
             );
 
         if run_viz {
@@ -223,12 +232,17 @@ fn main() -> Result<(), eframe::Error> {
         let resolution = get_grid_resolution(&args);
         let exp = ExperimentConfig::default();
         let filename= "single_station";
+        let info = ExperimentInfo {
+                experiment_type: ExperimentType::SingleStation,
+                timestamp: timestamp.clone(),
+            };
 
         let run = run_single_station_experiment(
             resolution,
             &filename,
             &base_output,
-            exp
+            exp,
+            info
         );
 
         if run_viz {
@@ -247,12 +261,17 @@ fn main() -> Result<(), eframe::Error> {
 
         let exp = ExperimentConfig::default();
         let filename=  "multi_station";
+        let info = ExperimentInfo {
+                experiment_type: ExperimentType::MultiStation,
+                timestamp: timestamp.clone(),
+            };
 
         let run = run_multi_station_experiment(
             10, 
             &filename,
             &base_output,
-            exp);
+            exp, 
+            info);
 
         if run_viz {
             run_viz_script(
@@ -268,20 +287,26 @@ fn main() -> Result<(), eframe::Error> {
     // --- Sweeps ------------------------------------------------
 
     if args.contains(&"--battery-sweep".to_string()) {
-        experiment::sweeps::battery::run_battery_sweep(&base_output);
+        experiment::sweeps::battery::run_battery_sweep(&base_output)?;
+        return Ok(())
     }
 
     if args.contains(&"--fleet-sweep".to_string()) {
-        experiment::sweeps::fleet::run_fleet_sweep(&base_output);
+        experiment::sweeps::fleet::run_fleet_sweep(&base_output)?;
+        return Ok(())
     }
 
     if args.contains(&"--field-sweep".to_string()) {
-        experiment::sweeps::field::run_field_size_sweep(&base_output);
+        experiment::sweeps::field::run_field_size_sweep(&base_output)?;
+        return Ok(())
     }
 
     if args.contains(&"--soc-sweep".to_string()) {
-        experiment::sweeps::soc::run_soc_sweep(&base_output);
+        experiment::sweeps::soc::run_soc_sweep(&base_output)?;
+        return Ok(())
     }
 
     run_gui()
+        .map_err(|e| format!("GUI failed: {e}").into())
+
 }

@@ -15,6 +15,7 @@ use crate::experiment::models::{
     SingleStationExperimentResults,
     MultiStationExperimentResults,
     ExperimentRun,
+    ExperimentInfo
 };
 
 use crate::environment::{
@@ -32,15 +33,12 @@ pub fn run_ego_experiment(
     filename: &str,
     output_dir: &str,
     exp: ExperimentConfig,
+    info: ExperimentInfo,
 ) -> ExperimentRun {
 
     println!("Experiment type: EGO ({} stations, {} iterations max)\n", 
             n_stations, 
             max_iterations);
-
-    let timestamp = chrono::Utc::now()
-    .format("%H%M%S")
-    .to_string(); 
 
     // ---------------------------------------------------------
     // EGO optimization
@@ -58,15 +56,15 @@ pub fn run_ego_experiment(
     let results_path = save_ego_results(
         &ego_results,
         &exp,
+        &info,
         filename,
         output_dir,
-        &timestamp,
     );
 
     println!("EGO optimization experiment completed.");
 
     ExperimentRun{
-        timestamp: timestamp,
+        timestamp: info.timestamp,
         output_dir: output_dir.to_string(),
         results_path}
 
@@ -77,15 +75,12 @@ pub fn run_grid_search_experiment(
     filename: &str,
     output_dir: &str,
     exp: ExperimentConfig,
+    info: ExperimentInfo,
 ) -> ExperimentRun {
 
     println!("Experiment type: GRID SEARCH ({}×{} resolution)\n", 
             resolution, 
             resolution);
-
-    let timestamp = chrono::Utc::now()
-    .format("%H%M%S")
-    .to_string(); 
 
     // ---------------------------------------------------------
     // Grid search
@@ -101,13 +96,13 @@ pub fn run_grid_search_experiment(
     let results_path = save_grid_search_results(
         &grid_results,
         &exp, 
+        &info,
         filename,
         output_dir,
-        &timestamp,
     );
 
     ExperimentRun{
-        timestamp: timestamp,
+        timestamp: info.timestamp,
         output_dir: output_dir.to_string(),
         results_path}
 }
@@ -117,12 +112,10 @@ pub fn run_single_station_experiment(
     filename: &str,
     output_dir: &str,
     exp: ExperimentConfig,
+    info: ExperimentInfo,
 ) -> ExperimentRun {
 
     println!("Experiment type: SINGLE-STATION (grid search + EGO)");
-    let timestamp = chrono::Utc::now()
-    .format("%H%M%S")
-    .to_string();
 
     // ---------------------------------------------------------
     // Phase 1: EGO optimization
@@ -157,14 +150,13 @@ pub fn run_single_station_experiment(
     let results_path = save_single_station_results(
         &experiment_results,
         &exp, 
+        &info,
         filename,
         output_dir,
-        &timestamp, 
-        
     );
 
     ExperimentRun{
-        timestamp: timestamp,
+        timestamp: info.timestamp,
         output_dir: output_dir.to_string(),
         results_path}
 
@@ -175,12 +167,10 @@ pub fn run_multi_station_experiment(
     filename: &str,
     output_dir: &str,
     exp: ExperimentConfig,
+    info: ExperimentInfo,
 )-> ExperimentRun {
 
     println!("Experiment type: MULTI-STATION (EGO + specialized layouts)");
-    let timestamp = chrono::Utc::now()
-    .format("%H%M%S")
-    .to_string();
 
     let scene_config: SceneConfig =
     load_json_or_panic(
@@ -226,13 +216,13 @@ pub fn run_multi_station_experiment(
     let results_path = save_multi_station_results(
         &experiment_results,
         &exp,
+        &info,
         filename,
         output_dir,
-        &timestamp, 
     );
 
     ExperimentRun{
-        timestamp: timestamp,
+        timestamp: info.timestamp,
         output_dir: output_dir.to_string(),
         results_path}
 }

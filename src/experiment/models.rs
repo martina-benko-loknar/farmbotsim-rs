@@ -19,6 +19,7 @@ pub struct ExperimentMetrics {
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ExperimentMetadata {
+    pub experiment_type: ExperimentType,
     pub config: ExperimentConfig,
     pub timestamp: String,
     pub seed: u64,
@@ -49,6 +50,28 @@ pub struct FieldExport {
     pub obstacles: Vec<Vec<Pos2>>,
 }
 
+// ============================================================
+// Experiment info
+// ============================================================
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum ExperimentType {
+    SingleRun,
+    GridSearch,
+    EGO,
+    SingleStation,
+    MultiStation,
+    FieldSweep,
+    FleetSweep,
+    BatterySweep,
+    SocSweep,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+
+pub struct ExperimentInfo {
+    pub experiment_type: ExperimentType,
+    pub timestamp: String,
+}
 // ============================================================
 // Per-evaluation record 
 // ============================================================

@@ -20,7 +20,8 @@ use crate::experiment::models::{
     EgoOptimizationResults, 
     GridSearchResults, 
     MultiStationExperimentResults, 
-    SingleStationExperimentResults
+    SingleStationExperimentResults,
+    ExperimentInfo
 };
 
 // Helper for field extraction
@@ -49,9 +50,9 @@ fn export_field() -> FieldExport {
 pub fn save_grid_search_results(
     results: &GridSearchResults,
     config: &ExperimentConfig,
+    info: &ExperimentInfo,
     filename: &str,
     output_dir: &str,
-    timestamp: &str,
 ) -> String {
 
     // ---------------------------------------------------------
@@ -61,7 +62,7 @@ pub fn save_grid_search_results(
     let absolute_path = format!(
         "{}/gs_{}_{}.json",
         output_dir,
-        timestamp,
+        info.timestamp,
         filename,
     );
 
@@ -105,9 +106,10 @@ pub fn save_grid_search_results(
     // ---------------------------------------------------------
 
     let metadata = ExperimentMetadata {
+        experiment_type: info.experiment_type.clone(),
         config: config.clone(),
-        timestamp: timestamp.to_string(),
-        seed: 0, // TODO: replace with actual seed
+        timestamp: info.timestamp.clone(),
+        seed: config.seed,
     };
 
     // ---------------------------------------------------------
@@ -145,9 +147,9 @@ pub fn save_grid_search_results(
 pub fn save_single_station_results(
     results: &SingleStationExperimentResults,
     config: &ExperimentConfig,
+    info: &ExperimentInfo,
     filename: &str,
     output_dir: &str,
-    timestamp: &str,
 ) -> String {
 
     // ---------------------------------------------------------
@@ -157,7 +159,7 @@ pub fn save_single_station_results(
     let absolute_path = format!(
         "{}/single_station_{}_{}.json",
         output_dir,
-        timestamp,
+        info.timestamp,
         filename,
     );
 
@@ -215,9 +217,10 @@ pub fn save_single_station_results(
     // ---------------------------------------------------------
 
     let metadata = ExperimentMetadata {
+        experiment_type: info.experiment_type.clone(),
         config: config.clone(),
-        timestamp: timestamp.to_string(),
-        seed: 0, // TODO: replace with actual seed
+        timestamp: info.timestamp.clone(),
+        seed: config.seed, 
     };
 
     // ---------------------------------------------------------
@@ -257,9 +260,9 @@ pub fn save_single_station_results(
 pub fn save_ego_results(
     results: &EgoOptimizationResults,
     config: &ExperimentConfig,
+    info: &ExperimentInfo,
     filename: &str,
     output_dir: &str,
-    timestamp: &str,
 ) -> String {
 
     // ---------------------------------------------------------
@@ -269,7 +272,7 @@ pub fn save_ego_results(
     let absolute_path = format!(
         "{}/ego_{}_{}.json",
         output_dir,
-        timestamp,
+        info.timestamp,
         filename,
     );
 
@@ -313,9 +316,10 @@ pub fn save_ego_results(
     // ---------------------------------------------------------
 
     let metadata = ExperimentMetadata {
+        experiment_type: info.experiment_type.clone(),
         config: config.clone(),
-        timestamp: timestamp.to_string(),
-        seed: 0, // TODO
+        timestamp: info.timestamp.clone(),
+        seed: config.seed, 
     };
 
     // ---------------------------------------------------------
@@ -354,9 +358,9 @@ pub fn save_ego_results(
 pub fn save_multi_station_results(
     results: &MultiStationExperimentResults,
     config: &ExperimentConfig,
+    info: &ExperimentInfo,
     filename: &str,
     output_dir: &str,
-    timestamp: &str,
 ) -> String {
 
     // ---------------------------------------------------------
@@ -366,7 +370,7 @@ pub fn save_multi_station_results(
     let absolute_path = format!(
         "{}/multi_station_{}_{}.json",
         output_dir,
-        timestamp,
+        info.timestamp,
         filename,
     );
 
@@ -415,9 +419,10 @@ pub fn save_multi_station_results(
     // ---------------------------------------------------------
 
     let metadata = ExperimentMetadata {
+        experiment_type: info.experiment_type.clone(),
         config: config.clone(),
-        timestamp: timestamp.to_string(),
-        seed: 0, // TODO: replace with actual seed
+        timestamp: info.timestamp.clone(),
+        seed: config.seed, 
     };
 
     // ---------------------------------------------------------
