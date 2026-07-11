@@ -71,10 +71,10 @@ fn create_output_directory() -> Result<String, Box<dyn std::error::Error>> {
     Ok(base_output)
 }
 
-fn get_grid_resolution(args: &[String]) -> usize {
+fn get_grid_resolution(args: &[String], default: usize) -> usize {
     get_arg_value(args, "--grid-search")
         .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or(5)
+        .unwrap_or(default)
 }
 
 fn get_station_number(args: &[String]) -> usize {
@@ -196,8 +196,8 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
     // ---------- Grid search experiment -----------
     if args.contains(&"--grid-search".to_string()) {
 
-        let resolution = get_grid_resolution(&args);
         let exp = ExperimentConfig::default();
+        let resolution = get_grid_resolution(&args, exp.field_resolution);
         let filename=  format!(
                 "res{}",
                 resolution,
@@ -229,8 +229,8 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
     // --- Single-station study (EGO + grid search) ---
     if args.contains(&"--single-station-study".to_string()) {
 
-        let resolution = get_grid_resolution(&args);
         let exp = ExperimentConfig::default();
+        let resolution = get_grid_resolution(&args, exp.field_resolution);
         let filename= "single_station";
         let info = ExperimentInfo {
                 experiment_type: ExperimentType::SingleStation,
@@ -247,7 +247,7 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
 
         if run_viz {
             run_viz_script(
-                "viz/single_station_viz.py",
+                "analysis/plotting/single_station_viz.py",
                 &run.results_path,
                 &base_output,
             );
