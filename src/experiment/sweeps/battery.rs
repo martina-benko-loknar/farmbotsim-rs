@@ -8,7 +8,7 @@ pub fn run_battery_sweep(
     output_dir: &str
 ) -> Result<(), Box<dyn std::error::Error>> {
 
-    let capacities = vec![350.0, 400.0, 450.0, 500.0];
+    let capacities = vec![65.0, 70.0, 75.0, 80.0];
     let seeds = 0..5;
     let resolution = 15;
     let label = "M";
