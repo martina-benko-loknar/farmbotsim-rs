@@ -1,7 +1,6 @@
 use crate::environment::{
     scene_config::SceneConfig,
     station_module::station_config::StationConfig,
-    obstacle::Obstacle
 };
 
 use crate::optimization::geometry::round_to_centimeters;
@@ -18,14 +17,12 @@ use egui::Pos2;
 #[derive(Clone)]
 pub struct StationPositions {
     pub station_positions: Vec<Pos2>,
-    pub obstacles: Vec<Obstacle>, // Keep obstacles for validation
 }
 
 impl StationPositions {
     // Create StationPositions from optimization vector
     pub fn from_optimization_vector(
         x: &ArrayView2<f64>,
-        obstacles: &[Obstacle],
         n_stations: usize,
         domain: &SearchDomain,
     ) -> Self {
@@ -52,16 +49,13 @@ impl StationPositions {
 
         Self {
             station_positions,
-            obstacles: obstacles.to_vec(),
         }
     }
 
-    // Generate a valid position: within the search domain, not inside any field,
-    // and not too close to obstacles
+    // Generate a valid position: within the search domain and not inside any field
     fn generate_valid_position(
         domain: &SearchDomain,
         field_bounds: &[FieldBounds],
-        obstacles: &[Obstacle],
         rng: &mut impl Rng,
     ) -> Pos2 {
         let max_attempts = 100; // Prevent infinite loops
@@ -77,7 +71,7 @@ impl StationPositions {
             let candidate =
                 round_to_centimeters(Pos2::new(x, y));
 
-            if is_position_valid(candidate, obstacles, field_bounds) {
+            if is_position_valid(candidate, field_bounds) {
                 return candidate;
             }
         }
@@ -100,7 +94,7 @@ impl StationPositions {
     // Helper method to create station configs from optimized positions
     pub fn create_station_configs(&self, original_scene: &SceneConfig) -> Vec<StationConfig> {
         let mut station_configs = Vec::new();
-        
+
         // Use original stations as template but with new positions
         for (i, position) in self.station_positions.iter().enumerate() {
             let original_station = if i < original_scene.station_configs.len() {
@@ -108,14 +102,14 @@ impl StationPositions {
             } else {
                 &original_scene.station_configs[0] // Fallback to first station
             };
-            
+
             // Create new station config with optimized position but keep other properties
             let mut station_config = original_station.clone();
             station_config.pose.position = *position;
-            
+
             station_configs.push(station_config);
         }
-        
+
         station_configs
     }
 
@@ -123,7 +117,6 @@ impl StationPositions {
     pub fn generate_initial_population(
         domain: &SearchDomain,
         field_bounds: &[FieldBounds],
-        obstacles: &[Obstacle],
         n_stations: usize,
         population_size: usize,
         rng: &mut impl Rng,
@@ -134,16 +127,15 @@ impl StationPositions {
             let mut station_positions = Vec::with_capacity(n_stations);
 
             for _ in 0..n_stations {
-                let position = Self::generate_valid_position(domain, field_bounds, obstacles, rng);
+                let position = Self::generate_valid_position(domain, field_bounds, rng);
                 station_positions.push(position);
             }
 
             population.push(StationPositions {
                 station_positions,
-                obstacles: obstacles.to_vec(),
             });
         }
-        
+
         population
     }
 }
@@ -152,12 +144,12 @@ impl StationPositions {
 impl fmt::Display for StationPositions {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Stations: {} - Positions: [", self.station_positions.len())?;
-        
+
         for (i, pos) in self.station_positions.iter().enumerate() {
             if i > 0 { write!(f, ", ")?; }
             write!(f, "({:.1},{:.1})", pos.x, pos.y)?;
         }
-        
+
         write!(f, "]")
     }
 }

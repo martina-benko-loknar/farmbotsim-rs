@@ -43,7 +43,7 @@ impl Default for ExperimentConfig {
             n_agents: 1,
             critical_soc_percent: 45.0,
             soc_threshold_percent: 60.0,
-            field_resolution: 20,
+            field_resolution: 35,
             field_config_path: "configs/field_configs/vineyard/xlarge.json".to_string(),
         }
     }

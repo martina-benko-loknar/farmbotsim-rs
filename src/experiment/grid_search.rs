@@ -6,7 +6,6 @@ use crate::experiment::models::{
 use crate::environment::geometry::FieldBounds;
 use crate::experiment::search_domain::SearchDomain;
 use crate::terrain::TerrainLoader;
-use crate::experiment::geometry::generate_row_gap_obstacles;
 use crate::experiment::config::ExperimentConfig;
 
 // use egui::Pos2;
@@ -18,29 +17,27 @@ fn separator() {
 
 /// Grid search experiment with optional optimization minimum point and value for visualization
 pub fn grid_search_experiment(
-    grid_resolution: usize, 
+    grid_resolution: usize,
     exp: &ExperimentConfig,
     // optimization_minimum: Option<(Pos2, f64)>,
-    ) -> GridSearchResults 
+    ) -> GridSearchResults
     {
-    
-    // Load scene configuration to get field boundaries and obstacles
+
+    // Load scene configuration to get field boundaries
     let scene_config = exp.load_scene_config();
     let field_config = exp.load_field_config();
 
-    //let obstacles = field_config.get_obstacles();
-    let mut obstacles = field_config.get_obstacles();
-
-    obstacles.extend(
-        generate_row_gap_obstacles(
-            &field_config,
-            0.4,
-        )
-    );
-
     // FIELD BOUNDS
     let vineyard_bounds = FieldBounds::from_field_config(&field_config);
-    let field_group_bounds = FieldBounds::per_group_from_field_config(&field_config);
+
+    // A single, lightly padded bounding rectangle per field group: no
+    // station may be placed inside it, regardless of the space between rows.
+    const FIELD_PADDING: f32 = 1.0;
+    let field_group_bounds: Vec<FieldBounds> =
+        FieldBounds::per_group_from_field_config(&field_config)
+            .into_iter()
+            .map(|b| b.padded(FIELD_PADDING))
+            .collect();
 
     let terrain_map =
         TerrainLoader::from_gps_csv("configs/scene_configs/vineyard_scene/baggy-altitude-empirical-lut.csv");
@@ -49,7 +46,6 @@ pub fn grid_search_experiment(
 
     const VINEYARD_PADDING: f32 = 5.0;
     const STATION_MARGIN: f32 = 0.4; // Domain constraint
-    const OBSTACLE_MARGIN: f32 = 0.4; // Feasibility constraint
 
     let domain = SearchDomain::from_bounds(
         vineyard_bounds,
@@ -62,8 +58,6 @@ pub fn grid_search_experiment(
     let grid_points = generate_valid_grid_points(
         &domain,
         grid_resolution,
-        &obstacles,
-        OBSTACLE_MARGIN,
         &field_group_bounds,
     );
 

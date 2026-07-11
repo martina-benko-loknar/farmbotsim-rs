@@ -1,8 +1,5 @@
 
-use crate::environment::{
-    obstacle::Obstacle, 
-    scene_config::SceneConfig,
-    };
+use crate::environment::scene_config::SceneConfig;
 use crate::experiment::evaluation::evaluate_station_layout;
 use ndarray::{Array2, ArrayView2};
 
@@ -14,7 +11,6 @@ use crate::experiment::search_domain::SearchDomain;
 // Context struct to hold optimization parameters
 #[derive(Clone)]
 pub struct OptimizationContext {
-    pub obstacles: Vec<Obstacle>,
     pub n_stations: usize,
     pub max_iterations: usize,
     pub scene_config: SceneConfig,
@@ -36,7 +32,6 @@ pub fn station_objective_function(
 
         let positions = StationPositions::from_optimization_vector(
             &xi.insert_axis(ndarray::Axis(0)),
-            &context.obstacles,
             context.n_stations,
             &context.domain,
         );

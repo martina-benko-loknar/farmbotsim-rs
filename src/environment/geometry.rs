@@ -44,9 +44,13 @@ impl FieldBounds {
                     let row_length = c.length.to_base_unit();
                     let row_spacing = c.line_spacing.to_base_unit();
 
-                    for i in 0..c.n_lines {
+                    // Matches get_obstacles(): n_lines + 1 rows, starting
+                    // half a spacing before left_top_pos, so the bounding
+                    // box covers the actual physical row extent rather than
+                    // undershooting it by spacing/2 on the near edge.
+                    for k in 0..=c.n_lines {
 
-                        let offset = i as f32 * row_spacing;
+                        let offset = (k as f32 - 0.5) * row_spacing;
 
                         // Start point of row
                         let start_x =
@@ -128,73 +132,14 @@ impl FieldBounds {
             max_y,
         }
     }
+
+    /// This rectangle expanded outward by `margin` on all sides.
+    pub fn padded(&self, margin: f32) -> Self {
+        Self {
+            min_x: self.min_x - margin,
+            max_x: self.max_x + margin,
+            min_y: self.min_y - margin,
+            max_y: self.max_y + margin,
+        }
+    }
 }
-
-
-// impl FieldBounds {
-//     pub fn from_field_config(cfg: &FieldConfig) -> Self {
-//         let mut min_x = f32::INFINITY;
-//         let mut min_y = f32::INFINITY;
-//         let mut max_x = f32::NEG_INFINITY;
-//         let mut max_y = f32::NEG_INFINITY;
-
-//         for config in &cfg.configs {
-//             match config {
-//                 VariantFieldConfig::Line(c) => {
-//                     min_x = min_x.min(c.left_top_pos.x);
-//                     min_y = min_y.min(c.left_top_pos.y);
-
-//                     // approximate extents
-//                     let dir = c.length.to_base_unit();
-//                     let spacing = c.line_spacing.to_base_unit();
-
-//                     max_x = max_x.max(c.left_top_pos.x + dir + spacing * c.n_lines as f32);
-//                     max_y = max_y.max(c.left_top_pos.y + dir + spacing * c.n_lines as f32);
-//                 }
-
-//                 VariantFieldConfig::Point(c) => {
-//                     min_x = min_x.min(c.left_top_pos.x);
-//                     min_y = min_y.min(c.left_top_pos.y);
-
-//                     let width = c.line_spacing.to_base_unit() * c.n_lines as f32;
-//                     let height = c.point_spacing.to_base_unit() * c.n_points_per_line as f32;
-
-//                     max_x = max_x.max(c.left_top_pos.x + width);
-//                     max_y = max_y.max(c.left_top_pos.y + height);
-//                 }
-//             }
-//         }
-
-//         Self { min_x, max_x, min_y, max_y }
-//     }
-// }
-
-// pub fn compute_field_bounds(
-//     obstacles: &[Obstacle]
-// ) -> (f32, f32, f32, f32) {
-
-//     let mut min_x = f32::INFINITY;
-//     let mut max_x = f32::NEG_INFINITY;
-
-//     let mut min_y = f32::INFINITY;
-//     let mut max_y = f32::NEG_INFINITY;
-
-//     for obs in obstacles {
-
-//         for p in &obs.points {
-
-//             min_x = min_x.min(p.x);
-//             max_x = max_x.max(p.x);
-
-//             min_y = min_y.min(p.y);
-//             max_y = max_y.max(p.y);
-//         }
-//     }
-
-//     (
-//         min_x,
-//         max_x,
-//         min_y,
-//         max_y,
-//     )
-// }
