@@ -1,8 +1,6 @@
-use crate::cfg::DEFAULT_SCENE_CONFIG_PATH;
 use crate::experiment::config::ExperimentConfig;
 use crate::experiment::models::EgoExport;
 use std::fs;
-use crate::utilities::utils::load_json_or_panic;
 use crate::experiment::models::TimingStatistics;
 use crate::experiment::models::FieldExport;
 use crate::experiment::models::GridSearchExport;
@@ -11,10 +9,7 @@ use egui::Pos2;
 use crate::experiment::models::SingleStationExport;
 use crate::experiment::models::MultiStationExport;
 
-use crate::environment::{
-    field_config::FieldConfig,
-    scene_config::SceneConfig,
-};
+use crate::environment::field_config::FieldConfig;
 
 use crate::experiment::models::{
     EgoOptimizationResults, 
@@ -26,13 +21,9 @@ use crate::experiment::models::{
 
 // Helper for field extraction
 
-fn export_field() -> FieldExport {
+fn export_field(config: &ExperimentConfig) -> FieldExport {
 
-    let scene_config: SceneConfig =
-        load_json_or_panic(DEFAULT_SCENE_CONFIG_PATH.to_string());
-
-    let field_config: FieldConfig =
-        load_json_or_panic(scene_config.field_config_path.clone());
+    let field_config: FieldConfig = config.load_field_config();
 
     let obstacles: Vec<Vec<Pos2>> = field_config
         .get_obstacles()
@@ -41,7 +32,7 @@ fn export_field() -> FieldExport {
         .collect();
 
     FieldExport {
-        config_path: scene_config.field_config_path.clone(),
+        config_path: config.field_config_path.clone(),
         obstacle_count: field_config.get_obstacles().len(),
         obstacles,
     }
@@ -99,7 +90,7 @@ pub fn save_grid_search_results(
     // Load field 
     // ---------------------------------------------------------
 
-    let field = export_field();
+    let field = export_field(config);
 
     // ---------------------------------------------------------
     // Metadata
@@ -210,7 +201,7 @@ pub fn save_single_station_results(
     // Load field 
     // ---------------------------------------------------------
 
-    let field = export_field();
+    let field = export_field(config);
 
     // ---------------------------------------------------------
     // Metadata
@@ -309,7 +300,7 @@ pub fn save_ego_results(
     // Load field
     // ---------------------------------------------------------
 
-    let field = export_field();
+    let field = export_field(config);
 
     // ---------------------------------------------------------
     // Metadata
@@ -412,7 +403,7 @@ pub fn save_multi_station_results(
     // Load field 
     // ---------------------------------------------------------
 
-    let field = export_field();
+    let field = export_field(config);
 
     // ---------------------------------------------------------
     // Metadata
