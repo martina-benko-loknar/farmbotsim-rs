@@ -12,28 +12,34 @@ pub struct FieldBounds {
 }
 
 impl FieldBounds {
-    pub fn from_field_config(cfg: &FieldConfig) -> Self {
+    /// Bounding rectangle per configured field group (one per `Line`/`Point`
+    /// config), matching the same row/spacing-axis convention as
+    /// `FieldConfig::get_obstacles()` (row direction runs along `angle + 90°`,
+    /// row-to-row spacing runs along `angle`) so this stays geometrically
+    /// consistent with the physical rows actually rendered/simulated.
+    pub fn per_group_from_field_config(cfg: &FieldConfig) -> Vec<Self> {
 
-        let mut min_x = f32::INFINITY;
-        let mut min_y = f32::INFINITY;
-        let mut max_x = f32::NEG_INFINITY;
-        let mut max_y = f32::NEG_INFINITY;
+        cfg.configs.iter().map(|config| {
 
-        for config in &cfg.configs {
+            let mut min_x = f32::INFINITY;
+            let mut min_y = f32::INFINITY;
+            let mut max_x = f32::NEG_INFINITY;
+            let mut max_y = f32::NEG_INFINITY;
 
             match config {
 
                 VariantFieldConfig::Line(c) => {
 
-                    // Row direction from angle
-                    let theta = c.angle.to_base_unit().to_radians();
+                    // to_base_unit() already returns radians
+                    let theta = c.angle.to_base_unit();
 
-                    let dir_x = theta.cos();
-                    let dir_y = theta.sin();
+                    // Row direction runs along angle + 90°; spacing between
+                    // rows runs along angle (matches get_obstacles()).
+                    let row_dir_x = -theta.sin();
+                    let row_dir_y = theta.cos();
 
-                    // Perpendicular direction for row spacing
-                    let perp_x = -dir_y;
-                    let perp_y = dir_x;
+                    let spacing_dir_x = theta.cos();
+                    let spacing_dir_y = theta.sin();
 
                     let row_length = c.length.to_base_unit();
                     let row_spacing = c.line_spacing.to_base_unit();
@@ -44,17 +50,17 @@ impl FieldBounds {
 
                         // Start point of row
                         let start_x =
-                            c.left_top_pos.x + perp_x * offset;
+                            c.left_top_pos.x + spacing_dir_x * offset;
 
                         let start_y =
-                            c.left_top_pos.y + perp_y * offset;
+                            c.left_top_pos.y + spacing_dir_y * offset;
 
                         // End point of row
                         let end_x =
-                            start_x + dir_x * row_length;
+                            start_x + row_dir_x * row_length;
 
                         let end_y =
-                            start_y + dir_y * row_length;
+                            start_y + row_dir_y * row_length;
 
                         // Update bounds with both endpoints
                         min_x = min_x.min(start_x).min(end_x);
@@ -88,6 +94,31 @@ impl FieldBounds {
                     max_y = max_y.max(y0).max(y1);
                 }
             }
+
+            Self { min_x, max_x, min_y, max_y }
+
+        }).collect()
+    }
+
+    /// Single bounding rectangle spanning all configured field groups
+    /// combined. Useful for sizing the overall search domain, but does not
+    /// distinguish which parts of that envelope are actually field vs open
+    /// space between separate groups -- use `per_group_from_field_config`
+    /// when checking whether a specific point falls inside a field.
+    pub fn from_field_config(cfg: &FieldConfig) -> Self {
+
+        let groups = Self::per_group_from_field_config(cfg);
+
+        let mut min_x = f32::INFINITY;
+        let mut min_y = f32::INFINITY;
+        let mut max_x = f32::NEG_INFINITY;
+        let mut max_y = f32::NEG_INFINITY;
+
+        for g in groups {
+            min_x = min_x.min(g.min_x);
+            min_y = min_y.min(g.min_y);
+            max_x = max_x.max(g.max_x);
+            max_y = max_y.max(g.max_y);
         }
 
         Self {

@@ -6,7 +6,6 @@ use crate::experiment::models::{
 use crate::environment::geometry::FieldBounds;
 use crate::experiment::search_domain::SearchDomain;
 use crate::terrain::TerrainLoader;
-use crate::experiment::geometry::vineyard_polygons;
 use crate::experiment::geometry::generate_row_gap_obstacles;
 use crate::experiment::config::ExperimentConfig;
 
@@ -41,6 +40,7 @@ pub fn grid_search_experiment(
 
     // FIELD BOUNDS
     let vineyard_bounds = FieldBounds::from_field_config(&field_config);
+    let field_group_bounds = FieldBounds::per_group_from_field_config(&field_config);
 
     let terrain_map =
         TerrainLoader::from_gps_csv("configs/scene_configs/vineyard_scene/baggy-altitude-empirical-lut.csv");
@@ -58,17 +58,13 @@ pub fn grid_search_experiment(
         STATION_MARGIN,
     );
 
-    //let cultivation_bounds = individual_field_bounds(&field_config);
-
     // Generate grid points
-    let vineyards = vineyard_polygons(&field_config);
-
     let grid_points = generate_valid_grid_points(
         &domain,
         grid_resolution,
         &obstacles,
         OBSTACLE_MARGIN,
-        &vineyards,
+        &field_group_bounds,
     );
 
     //separator();

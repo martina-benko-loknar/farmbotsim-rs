@@ -1,23 +1,20 @@
-use crate::cfg::{DEFAULT_SCENE_CONFIG_PATH};
 use crate::environment::{
     scene_config::SceneConfig,
     station_module::station_config::StationConfig,
-    field_config::FieldConfig,
     obstacle::Obstacle
 };
 
-use crate::utilities::utils::load_json_or_panic;
 use crate::optimization::geometry::round_to_centimeters;
 use crate::optimization::geometry::is_position_valid;
-use crate::optimization::constants::*;
 use crate::environment::geometry::FieldBounds;
+use crate::experiment::search_domain::SearchDomain;
 
 use ndarray::{ArrayView2};
 use rand::Rng;
 use std::fmt;
 use egui::Pos2;
 
-// Define the parameters for station position optimization 
+// Define the parameters for station position optimization
 #[derive(Clone)]
 pub struct StationPositions {
     pub station_positions: Vec<Pos2>,
@@ -25,51 +22,15 @@ pub struct StationPositions {
 }
 
 impl StationPositions {
-    // Create a new random set of station positions with FIXED count from scene config
-    pub fn random() -> Self {
-        let mut rng = rand::rng();
-        
-        // Load the default scene to get the number of existing stations
-        let scene_config: SceneConfig = load_json_or_panic(DEFAULT_SCENE_CONFIG_PATH.to_string());
-        let n_stations = scene_config.station_configs.len();
-        
-        // Load field config to get obstacles
-        let field_config: FieldConfig = load_json_or_panic(scene_config.field_config_path);
-        let obstacles = field_config.get_obstacles();
-        
-        let mut station_positions = Vec::with_capacity(n_stations);
-        
-        // Generate random positions within field boundaries, avoiding obstacles
-        for _ in 0..n_stations {
-            let position = Self::generate_valid_position(&obstacles, &mut rng);
-            station_positions.push(position);
-        }
-        
-        Self {
-            station_positions,
-            obstacles,
-        }
-    }
-
     // Create StationPositions from optimization vector
     pub fn from_optimization_vector(
-        x: &ArrayView2<f64>, 
-        obstacles: &[Obstacle], 
-        n_stations: usize
+        x: &ArrayView2<f64>,
+        obstacles: &[Obstacle],
+        n_stations: usize,
+        domain: &SearchDomain,
     ) -> Self {
         let mut station_positions = Vec::with_capacity(n_stations);
 
-        // -------------------------------------------------
-        // Compute real field bounds
-        // -------------------------------------------------
-        let scene_config: SceneConfig =
-                load_json_or_panic(DEFAULT_SCENE_CONFIG_PATH.to_string());
-
-        let field_config: FieldConfig =
-            load_json_or_panic(scene_config.field_config_path.clone());
-
-        let field_bounds = FieldBounds::from_field_config(&field_config);
-        
         // -------------------------------------------------
         // Extract positions
         // -------------------------------------------------
@@ -78,16 +39,9 @@ impl StationPositions {
             let x_coord = x[[0, i * 2]] as f32;
             let y_coord = x[[0, i * 2 + 1]] as f32;
 
-            // Clamp to REAL field boundaries
-            let x_clamped = x_coord.clamp(
-                field_bounds.min_x + STATION_MARGIN,
-                field_bounds.max_x - STATION_MARGIN,
-            );
-
-            let y_clamped = y_coord.clamp(
-                field_bounds.min_y + STATION_MARGIN,
-                field_bounds.max_y - STATION_MARGIN,
-            );
+            // Clamp to the same search domain the optimizer is bounded to
+            let x_clamped = x_coord.clamp(domain.min_x, domain.max_x);
+            let y_clamped = y_coord.clamp(domain.min_y, domain.max_y);
 
             station_positions.push(
                 round_to_centimeters(
@@ -95,68 +49,54 @@ impl StationPositions {
                 )
             );
         }
-        
+
         Self {
             station_positions,
             obstacles: obstacles.to_vec(),
         }
     }
 
-    // Generate a valid position that doesn't intersect with obstacles
-    fn generate_valid_position(obstacles: &[Obstacle], rng: &mut impl Rng) -> Pos2 {
+    // Generate a valid position: within the search domain, not inside any field,
+    // and not too close to obstacles
+    fn generate_valid_position(
+        domain: &SearchDomain,
+        field_bounds: &[FieldBounds],
+        obstacles: &[Obstacle],
+        rng: &mut impl Rng,
+    ) -> Pos2 {
         let max_attempts = 100; // Prevent infinite loops
 
-        // -------------------------------------------------
-        // Compute real field bounds
-        // -------------------------------------------------
-        let scene_config: SceneConfig =
-                load_json_or_panic(DEFAULT_SCENE_CONFIG_PATH.to_string());
-
-        let field_config: FieldConfig =
-            load_json_or_panic(scene_config.field_config_path.clone());
-
-        let field_bounds = FieldBounds::from_field_config(&field_config);
-        
         // -------------------------------------------------
         // Try random valid positions
         // -------------------------------------------------
         for _ in 0..max_attempts {
 
-            let x = rng.random_range(
-                (field_bounds.min_x + STATION_MARGIN)
-                ..
-                (field_bounds.max_x - STATION_MARGIN)
-            );
-
-            let y = rng.random_range(
-                (field_bounds.min_y + STATION_MARGIN)
-                ..
-                (field_bounds.max_y - STATION_MARGIN)
-            );
+            let x = rng.random_range(domain.min_x..domain.max_x);
+            let y = rng.random_range(domain.min_y..domain.max_y);
 
             let candidate =
                 round_to_centimeters(Pos2::new(x, y));
 
-            if is_position_valid(candidate, obstacles) {
+            if is_position_valid(candidate, obstacles, field_bounds) {
                 return candidate;
             }
         }
-        
 
         // -------------------------------------------------
-        // Fallback
+        // Fallback: warn and return the domain center
+        // (may still be invalid if the domain is mostly occupied by fields)
         // -------------------------------------------------
         println!(
-            "Warning: Could not find valid position after {} attempts, using field center",
+            "Warning: Could not find valid position after {} attempts, using domain center",
             max_attempts
         );
 
         round_to_centimeters(Pos2::new(
-            (field_bounds.min_x + field_bounds.max_x) / 2.0,
-            (field_bounds.min_y + field_bounds.max_y) / 2.0,
+            (domain.min_x + domain.max_x) / 2.0,
+            (domain.min_y + domain.max_y) / 2.0,
         ))
     }
-    
+
     // Helper method to create station configs from optimized positions
     pub fn create_station_configs(&self, original_scene: &SceneConfig) -> Vec<StationConfig> {
         let mut station_configs = Vec::new();
@@ -180,17 +120,24 @@ impl StationPositions {
     }
 
     // Generate initial population for EGO
-    pub fn generate_initial_population(obstacles: &[Obstacle], n_stations: usize, population_size: usize, rng: &mut impl Rng) -> Vec<StationPositions> {
+    pub fn generate_initial_population(
+        domain: &SearchDomain,
+        field_bounds: &[FieldBounds],
+        obstacles: &[Obstacle],
+        n_stations: usize,
+        population_size: usize,
+        rng: &mut impl Rng,
+    ) -> Vec<StationPositions> {
         let mut population = Vec::with_capacity(population_size);
-        
+
         for _ in 0..population_size {
             let mut station_positions = Vec::with_capacity(n_stations);
-            
+
             for _ in 0..n_stations {
-                let position = Self::generate_valid_position(obstacles, rng);
+                let position = Self::generate_valid_position(domain, field_bounds, obstacles, rng);
                 station_positions.push(position);
             }
-            
+
             population.push(StationPositions {
                 station_positions,
                 obstacles: obstacles.to_vec(),

@@ -2,14 +2,18 @@ use crate::environment::obstacle::Obstacle;
 use egui::Pos2;
 use crate::experiment::search_domain::SearchDomain;
 use crate::environment::geometry::FieldBounds;
-use crate::environment::field_config::LineFieldConfig;
 use crate::environment::field_config::FieldConfig;
 use crate::environment::field_config::VariantFieldConfig;
 
-pub struct FieldPolygon {
-    pub points: Vec<Pos2>, // closed loop
-}
-
+/// Forbidden strips between every pair of adjacent rows in a field group.
+///
+/// Uses the same row/spacing-axis convention as `FieldConfig::get_obstacles()`
+/// and `FieldBounds::per_group_from_field_config()`: the row itself runs
+/// along `angle + 90°`, and the spacing between parallel rows runs along
+/// `angle`. Keeping this consistent matters -- a mismatched convention here
+/// previously produced gap strips with the wrong orientation, which spanned
+/// much further than the real field and rejected valid positions well
+/// outside it (see various/field_bounds_angle_convention_bug.txt).
 pub fn generate_row_gap_obstacles(
     field_config: &FieldConfig,
     gap_margin: f32,
@@ -23,56 +27,20 @@ pub fn generate_row_gap_obstacles(
 
             let origin = field.left_top_pos;
 
-            let angle_deg = field.angle.to_degrees();
+            // to_base_unit() already returns radians
+            let theta = field.angle.to_base_unit();
+
+            let row_dir_x = -theta.sin();
+            let row_dir_y = theta.cos();
+
+            let spacing_dir_x = theta.cos();
+            let spacing_dir_y = theta.sin();
 
             let length = field.length.to_base_unit();
 
             let spacing = field.line_spacing.to_base_unit();
 
             let n_lines = field.n_lines;
-
-            // rows approximately horizontal?
-            let x_aligned =
-                angle_deg.rem_euclid(180.0) < 45.0
-                || angle_deg.rem_euclid(180.0) > 135.0;
-
-                // for i in 0..(n_lines - 1) {
-
-                //     let local_rect = if x_aligned {
-
-                //         let y0 = i as f32 * spacing + gap_margin;
-                //         let y1 = (i as f32 + 1.0) * spacing - gap_margin;
-
-                //         vec![
-                //             Pos2::new(0.0, y0),
-                //             Pos2::new(length, y0),
-                //             Pos2::new(length, y1),
-                //             Pos2::new(0.0, y1),
-                //         ]
-
-                //     } else {
-
-                //         let x0 = i as f32 * spacing + gap_margin;
-                //         let x1 = (i as f32 + 1.0) * spacing - gap_margin;
-
-                //         vec![
-                //             Pos2::new(x0, 0.0),
-                //             Pos2::new(x1, 0.0),
-                //             Pos2::new(x1, length),
-                //             Pos2::new(x0, length),
-                //         ]
-                //     };
-
-                //     let world_points =
-                //         local_rect
-                //             .into_iter()
-                //             .map(|p| rotate_local_point(p, origin, angle_deg))
-                //             .collect();
-
-                //     obstacles.push(Obstacle {
-                //         points: world_points,
-                //     });
-                // }
 
             // create one forbidden strip between every pair of rows
             for i in 0..(n_lines - 1) {
@@ -81,40 +49,28 @@ pub fn generate_row_gap_obstacles(
 
                 let half_gap = (spacing * 0.5) - gap_margin;
 
-                let local_rect = if x_aligned {
+                let near = offset - half_gap;
+                let far = offset + half_gap;
 
-                    // rows run along X axis
-                    // forbidden strip spans horizontally
-
-                    vec![
-                        Pos2::new(0.0, offset - half_gap),
-                        Pos2::new(length, offset - half_gap),
-                        Pos2::new(length, offset + half_gap),
-                        Pos2::new(0.0, offset + half_gap),
-                    ]
-
-                } else {
-
-                    // rows run along Y axis
-                    // forbidden strip spans vertically
-
-                    vec![
-                        Pos2::new(offset - half_gap, 0.0),
-                        Pos2::new(offset + half_gap, 0.0),
-                        Pos2::new(offset + half_gap, length),
-                        Pos2::new(offset - half_gap, length),
-                    ]
-                };
-
-                // rotate + translate into world coordinates
-                let world_points =
-                    local_rect
-                        .into_iter()
-                        .map(|p| rotate_local_point(p, origin, angle_deg))
-                        .collect();
+                let p1 = Pos2::new(
+                    origin.x + spacing_dir_x * near,
+                    origin.y + spacing_dir_y * near,
+                );
+                let p2 = Pos2::new(
+                    origin.x + spacing_dir_x * far,
+                    origin.y + spacing_dir_y * far,
+                );
+                let p3 = Pos2::new(
+                    p2.x + row_dir_x * length,
+                    p2.y + row_dir_y * length,
+                );
+                let p4 = Pos2::new(
+                    p1.x + row_dir_x * length,
+                    p1.y + row_dir_y * length,
+                );
 
                 obstacles.push(Obstacle {
-                    points: world_points,
+                    points: vec![p1, p2, p3, p4],
                 });
             }
 
@@ -124,105 +80,13 @@ pub fn generate_row_gap_obstacles(
     obstacles
 }
 
-fn rotate_local_point(
-    local: Pos2,
-    origin: Pos2,
-    angle_deg: f32,
-) -> Pos2 {
-
-    let rad = angle_deg.to_radians();
-
-    let cos = rad.cos();
-    let sin = rad.sin();
-
-    Pos2::new(
-        origin.x + local.x * cos - local.y * sin,
-        origin.y + local.x * sin + local.y * cos,
-    )
-}
-
-pub fn field_polygon(cfg: &LineFieldConfig) -> FieldPolygon {
-    let origin = cfg.left_top_pos;
-    let angle = cfg.angle.to_degrees().to_radians();
-
-    let length = cfg.length.to_base_unit();
-    //let width = cfg.line_spacing.to_base_unit() * cfg.n_lines as f32;
-    let width = cfg.line_spacing.to_base_unit() * (cfg.n_lines as f32 - 1.0);
-
-    let cos = angle.cos();
-    let sin = angle.sin();
-
-    // local rectangle corners (before rotation)
-    let local = [
-        Pos2::new(0.0, 0.0),
-        Pos2::new(length, 0.0),
-        Pos2::new(length, width),
-        Pos2::new(0.0, width),
-    ];
-
-    let mut world = Vec::with_capacity(4);
-
-    for p in local {
-        let rotated = Pos2::new(
-            origin.x + p.x * cos - p.y * sin,
-            origin.y + p.x * sin + p.y * cos,
-        );
-        world.push(rotated);
-    }
-
-    FieldPolygon { points: world }
-}
-
-pub fn is_point_in_polygon(point: Pos2, poly: &FieldPolygon) -> bool {
-    let pts = &poly.points;
-
-    if pts.len() < 3 {
-        return false;
-    }
-
-    let mut inside = false;
-    let mut j = pts.len() - 1;
-
-    for i in 0..pts.len() {
-        let pi = pts[i];
-        let pj = pts[j];
-
-        if ((pi.y > point.y) != (pj.y > point.y)) &&
-            (point.x < (pj.x - pi.x) * (point.y - pi.y) / (pj.y - pi.y) + pi.x)
-        {
-            inside = !inside;
-        }
-
-        j = i;
-    }
-
-    inside
-}
-
-pub fn is_in_vineyard(
-    position: Pos2,
-    vineyards: &[FieldPolygon],
-) -> bool {
-    vineyards.iter().any(|v| is_point_in_polygon(position, v))
-}
-
-pub fn vineyard_polygons(cfg: &FieldConfig) -> Vec<FieldPolygon> {
-    cfg.configs.iter().filter_map(|c| {
-        if let VariantFieldConfig::Line(line) = c {
-            Some(field_polygon(line))
-        } else {
-            None
-        }
-    }).collect()
-}
-
-/// Generate valid grid points that don't intersect with obstacles
+/// Generate valid grid points that don't intersect with obstacles or fall inside any field
 pub fn generate_valid_grid_points(
     domain: &SearchDomain,
     resolution: usize,
     obstacles: &[Obstacle],
     obstacle_margin: f32,
-    vineyards: &[FieldPolygon],
+    field_bounds: &[FieldBounds],
 ) -> Vec<Pos2> {
     let mut valid_points = Vec::new();
 
@@ -240,7 +104,7 @@ pub fn generate_valid_grid_points(
                 point,
                 obstacles,
                 obstacle_margin,
-                vineyards,
+                field_bounds,
             ) {
                 valid_points.push(point);
             }
@@ -326,10 +190,10 @@ pub fn is_station_position_valid(
     position: Pos2,
     obstacles: &[Obstacle],
     obstacle_margin: f32,
-    vineyards: &[FieldPolygon],
+    field_bounds: &[FieldBounds],
 ) -> bool {
 
-    if is_in_vineyard(position, vineyards) {
+    if is_inside_field_bounds(position, field_bounds) {
         return false;
     }
 

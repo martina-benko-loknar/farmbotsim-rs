@@ -1,6 +1,8 @@
 use crate::environment::{
-    obstacle::Obstacle
+    obstacle::Obstacle,
+    geometry::FieldBounds,
 };
+use crate::experiment::geometry::is_inside_field_bounds;
 use crate::optimization::constants::*;
 use egui::Pos2;
 
@@ -12,8 +14,11 @@ pub fn round_to_centimeters(pos: Pos2) -> Pos2 {
     )
 }
 
-// Check if a position is valid (not inside or too close to obstacles)
-pub fn is_position_valid(position: Pos2, obstacles: &[Obstacle]) -> bool {
+// Check if a position is valid: not inside any field, and not too close to obstacles
+pub fn is_position_valid(position: Pos2, obstacles: &[Obstacle], field_bounds: &[FieldBounds]) -> bool {
+    if is_inside_field_bounds(position, field_bounds) {
+        return false;
+    }
     for obstacle in obstacles {
         // Check if position is inside obstacle or too close to it
         if is_point_near_obstacle(position, obstacle, OBSTACLE_MARGIN) {

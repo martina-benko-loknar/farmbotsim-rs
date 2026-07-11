@@ -9,15 +9,17 @@ use ndarray::{Array2, ArrayView2};
 use crate::optimization::station_positions::StationPositions;
 use crate::experiment::config::ExperimentConfig;
 use crate::experiment::models::EvaluatedCandidate;
+use crate::experiment::search_domain::SearchDomain;
 
 // Context struct to hold optimization parameters
 #[derive(Clone)]
 pub struct OptimizationContext {
     pub obstacles: Vec<Obstacle>,
     pub n_stations: usize,
-    pub max_iterations: usize,   
+    pub max_iterations: usize,
     pub scene_config: SceneConfig,
     pub experiment_config: ExperimentConfig,
+    pub domain: SearchDomain,
 }
 
 // Objective function for EGO optimization 
@@ -36,6 +38,7 @@ pub fn station_objective_function(
             &xi.insert_axis(ndarray::Axis(0)),
             &context.obstacles,
             context.n_stations,
+            &context.domain,
         );
 
         let metrics = evaluate_station_layout(

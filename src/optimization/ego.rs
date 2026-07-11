@@ -1,20 +1,19 @@
-use crate::cfg::DEFAULT_SCENE_CONFIG_PATH;
-use crate::environment::{
-    field_config::FieldConfig,
-    scene_config::SceneConfig,
-};
 use crate::optimization::constants::*;
 use crate::optimization::geometry::{is_position_valid, round_to_centimeters};
 use crate::optimization::objective::{station_objective_function, OptimizationContext};
 use crate::optimization::station_positions::StationPositions;
-use crate::utilities::utils::load_json_or_panic;
 use crate::experiment::models::{EgoOptimizationResults, EgoSummary, EgoTrace, ExperimentMetrics};
 use crate::experiment::config::ExperimentConfig;
 use crate::experiment::models::EvaluatedCandidate;
 use crate::experiment::models::EvaluationRecord;
+use crate::experiment::search_domain::SearchDomain;
+use crate::terrain::TerrainLoader;
 
-
-use egobox_ego::EgorBuilder;
+// EgorFactory (not the EgorBuilder alias) is used below because EgorBuilder<O>
+// = EgorFactory<O, Cstr> pins constraints to a bare `fn` pointer, which can't
+// capture the experiment's field/obstacles. EgorFactory is generic over the
+// constraint type and accepts any `Fn + Clone + Sync` closure instead.
+use egobox_ego::EgorFactory;
 use egui::Pos2;
 use ndarray::{Array2, ArrayView2};
 use std::sync::{Arc, RwLock};
@@ -131,32 +130,38 @@ pub fn optimize_station_positions_ego(
     let obstacles = field_config.get_obstacles();
 
     // ------------------------------
+    // Search domain: same domain grid search uses (field bounds, padded and
+    // clipped to the terrain map's real footprint), so EGO and grid search
+    // explore the same area outside the field rather than inside it.
+    // ------------------------------
+    const VINEYARD_PADDING: f32 = 5.0;
+
+    let field_bounds = FieldBounds::from_field_config(&field_config);
+    let field_group_bounds = FieldBounds::per_group_from_field_config(&field_config);
+
+    let terrain_map = TerrainLoader::from_gps_csv(
+        "configs/scene_configs/vineyard_scene/baggy-altitude-empirical-lut.csv",
+    );
+    let terrain_bounds = terrain_map.bounds();
+
+    let domain = SearchDomain::from_bounds(
+        field_bounds,
+        terrain_bounds,
+        VINEYARD_PADDING,
+        STATION_MARGIN,
+    );
+
+    // ------------------------------
     // Bounds
     // ------------------------------
     let mut bounds_vec = Vec::with_capacity(n_stations * 4);
 
-    let field_config: FieldConfig =
-        load_json_or_panic(scene_config.field_config_path.clone());
-
-    let field_bounds = FieldBounds::from_field_config(&field_config);
-
     for _ in 0..n_stations {
 
-        bounds_vec.push(
-            field_bounds.min_x as f64 + STATION_MARGIN as f64
-        );
-
-        bounds_vec.push(
-            field_bounds.max_x as f64 - STATION_MARGIN as f64
-        );
-
-        bounds_vec.push(
-            field_bounds.min_y as f64 + STATION_MARGIN as f64
-        );
-
-        bounds_vec.push(
-            field_bounds.max_y as f64 - STATION_MARGIN as f64
-        );
+        bounds_vec.push(domain.min_x as f64);
+        bounds_vec.push(domain.max_x as f64);
+        bounds_vec.push(domain.min_y as f64);
+        bounds_vec.push(domain.max_y as f64);
     }
 
     let bounds_array =
@@ -168,6 +173,8 @@ pub fn optimize_station_positions_ego(
     let mut rng = rand::rng();
 
     let initial_positions = StationPositions::generate_initial_population(
+        &domain,
+        &field_group_bounds,
         &obstacles,
         n_stations,
         20,
@@ -205,6 +212,7 @@ pub fn optimize_station_positions_ego(
         max_iterations,
         scene_config: scene_config.clone(),
         experiment_config: exp.clone(),
+        domain,
     };
 
     // let evaluated_positions_obj = Arc::clone(&evaluated_positions);
@@ -292,66 +300,42 @@ pub fn optimize_station_positions_ego(
         y
     };
     
-    let result = EgorBuilder::optimize(objective_wrapped)
+    let result = EgorFactory::optimize(objective_wrapped)
         .configure(|config| config.max_iters(max_iterations).doe(&initial_x))
-        .subject_to(vec![|x: &[f64], g: Option<&mut [f64]>, _u| {
+        .subject_to(vec![{
+            let obstacles = obstacles.clone();
+            let field_group_bounds = field_group_bounds.clone();
 
-            if let Some(g) = g {
-                g[0] = 0.0;
-            }
+            move |x: &[f64], g: Option<&mut [f64]>, _u: &mut egobox_ego::InfillObjData<f64>| {
 
-            let scene_config: SceneConfig =
-                load_json_or_panic(DEFAULT_SCENE_CONFIG_PATH.to_string());
-
-            let n_stations = scene_config.station_configs.len();
-
-            let field_config: FieldConfig =
-                load_json_or_panic(scene_config.field_config_path);
-
-            let obstacles = field_config.get_obstacles();
-
-            // -------------------------------------------------
-            // Compute field bounds from obstacles
-            // -------------------------------------------------
-
-            let field_bounds = FieldBounds::from_field_config(&field_config);
-
-            let mut violation = 0.0;
-
-            if x.len() != n_stations * 2 {
-                return 1.0;
-            }
-
-            for i in 0..n_stations {
-
-                let x_coord = x[i * 2] as f32;
-                let y_coord = x[i * 2 + 1] as f32;
-
-                // ---------------------------------------------
-                // Clamp using computed bounds
-                // ---------------------------------------------
-                let x_clamped = x_coord.clamp(
-                    field_bounds.min_x + STATION_MARGIN,
-                    field_bounds.max_x - STATION_MARGIN,
-                );
-
-                let y_clamped = y_coord.clamp(
-                    field_bounds.min_y + STATION_MARGIN,
-                    field_bounds.max_y - STATION_MARGIN,
-                );
-
-                let position =
-                    round_to_centimeters(Pos2::new(
-                        x_clamped,
-                        y_clamped,
-                    ));
-
-                if !is_position_valid(position, &obstacles) {
-                    violation += 1.0;
+                if let Some(g) = g {
+                    g[0] = 0.0;
                 }
-            }
 
-            violation
+                let mut violation = 0.0;
+
+                if x.len() != n_stations * 2 {
+                    return 1.0;
+                }
+
+                for i in 0..n_stations {
+
+                    let x_coord = x[i * 2] as f32;
+                    let y_coord = x[i * 2 + 1] as f32;
+
+                    // x, y already lie within `domain` (the optimizer's box
+                    // constraint), so just round and check validity directly
+                    // rather than re-clamping into the field's own bounds.
+                    let position =
+                        round_to_centimeters(Pos2::new(x_coord, y_coord));
+
+                    if !is_position_valid(position, &obstacles, &field_group_bounds) {
+                        violation += 1.0;
+                    }
+                }
+
+                violation
+            }
         }])
         .min_within(&bounds_array)
         .run();
@@ -464,6 +448,8 @@ pub fn optimize_station_positions_ego(
             let mut rng = rand::rng();
 
             let fallback = StationPositions::generate_initial_population(
+                &domain,
+                &field_group_bounds,
                 &obstacles,
                 n_stations,
                 100,
