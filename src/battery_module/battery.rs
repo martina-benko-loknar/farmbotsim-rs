@@ -2,11 +2,11 @@ use std::collections::VecDeque;
 
 use crate::{
     battery_module::{
-        battery_config::BatteryConfig, charging::seasonal_solar::SeasonalBatteryModel, discharging::physics_model::PhysicsDischargeModel, is_battery::IsBattery
+        battery_config::BatteryConfig, charging::CcCvChargingModel, discharging::physics_model::PhysicsDischargeModel, is_battery::IsBattery
     },
     units::{duration::Duration, energy::Energy, power::Power, voltage::Voltage},
 };
-/// Represents a rechargeable battery with energy capacity, voltage, and seasonal data models.
+/// Represents a rechargeable battery with energy capacity, voltage, and a CC-CV charging model.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Battery {
     pub voltage: Voltage,
@@ -17,7 +17,7 @@ pub struct Battery {
     update_count: u32,
     pub soc_history: VecDeque<f32>,
 
-    pub charging_model: SeasonalBatteryModel,
+    pub charging_model: CcCvChargingModel,
     pub discharging_model: PhysicsDischargeModel
 }
 
@@ -37,29 +37,17 @@ impl IsBattery for Battery {
         self.update();
     }
     
-    /// Increases battery energy using solar charge interpolation curves.
-    fn charge(&mut self, duration: Duration, month: u32) {
+    /// Increases battery energy using the CC-CV charging model.
+    fn charge(&mut self, duration: Duration) {
         if self.energy >= self.capacity {
             return;
         }
 
-        // seasonal logic 
-        let result = self.charging_model.compute_charge(
-            self.energy,
-            duration,
-            month,
-        );
+        let new_energy = self.charging_model.compute_charge(self.energy, duration);
 
-        match result {
-            Ok(new_energy) => {
-                self.energy = new_energy.min(self.capacity);
-                self.soc = (self.energy / self.capacity) * 100.0;
-                self.update();
-            }
-            Err(e) => {
-                eprintln!("⚠️ Failed to charge: {e}");
-            }
-        }
+        self.energy = new_energy.min(self.capacity);
+        self.soc = (self.energy / self.capacity) * 100.0;
+        self.update();
     }
     
     /// Returns the current battery state of charge.
@@ -78,7 +66,7 @@ impl Battery {
     pub fn from_config(
         config: BatteryConfig,
         initial_soc: f32,
-        charging_model: SeasonalBatteryModel,
+        charging_model: CcCvChargingModel,
         discharging_model: PhysicsDischargeModel,
     ) -> Self {
         let soc = initial_soc.clamp(0.0, 100.0);

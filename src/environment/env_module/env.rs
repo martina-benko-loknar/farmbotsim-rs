@@ -1,7 +1,7 @@
 use egui::Vec2;
 
 use crate::{
-    agent_module::{agent::Agent, agent_config::AgentConfig}, battery_module::{battery::Battery, battery_config::BatteryConfig, charging::SeasonalBatteryModel, discharging::{VoltageDropLUT, physics_model::PhysicsDischargeModel}}, environment::{
+    agent_module::{agent::Agent, agent_config::AgentConfig}, battery_module::{battery::Battery, battery_config::BatteryConfig, charging::CcCvChargingModel, discharging::{VoltageDropLUT, physics_model::PhysicsDischargeModel}}, environment::{
         datetime::{DateTimeConfig, DateTimeManager},
         env_module::env_config::EnvConfig,
         field_config::FieldConfig,
@@ -137,7 +137,7 @@ impl Env {
             // );
 
             let charging_model =
-                SeasonalBatteryModel::from_config(&battery_config);
+                CcCvChargingModel::from_config(&battery_config);
 
             let discharging_model =
                 PhysicsDischargeModel::new(
@@ -273,7 +273,7 @@ impl Env {
             );
 
             let charging_model =
-                SeasonalBatteryModel::from_config(&battery_config);
+                CcCvChargingModel::from_config(&battery_config);
 
             let discharging_model =
                 PhysicsDischargeModel::new(

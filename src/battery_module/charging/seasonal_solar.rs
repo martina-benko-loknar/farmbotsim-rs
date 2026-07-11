@@ -130,20 +130,27 @@ impl SeasonalBatteryModel{
                 config.name,
             );
 
+        let jan_max = config.jan_max.as_ref()
+            .unwrap_or_else(|| panic!("battery '{}' has no jan_max for seasonal-solar charging", config.name));
+        let jan_min = config.jan_min.as_ref()
+            .unwrap_or_else(|| panic!("battery '{}' has no jan_min for seasonal-solar charging", config.name));
+        let jun_max = config.jun_max.as_ref()
+            .unwrap_or_else(|| panic!("battery '{}' has no jun_max for seasonal-solar charging", config.name));
+
         Self {
             jan_max_data:
                 Self::get_month_data_points(
-                    format!("{}{}", path, config.jan_max)
+                    format!("{}{}", path, jan_max)
                 ),
 
             jan_min_data:
                 Self::get_month_data_points(
-                    format!("{}{}", path, config.jan_min)
+                    format!("{}{}", path, jan_min)
                 ),
 
             jun_max_data:
                 Self::get_month_data_points(
-                    format!("{}{}", path, config.jun_max)
+                    format!("{}{}", path, jun_max)
                 ),
 
             start_index: HashMap::from([

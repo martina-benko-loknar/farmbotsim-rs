@@ -6,11 +6,13 @@ use crate::{
     battery_module::{battery::Battery, battery_config::BatteryConfig, is_battery::IsBattery}, cfg::BATTERIES_PATH, tool_module::{has_help::HasHelp, tool::Tool}, utilities::utils::get_folders_in_folder
 };
 
+use crate::battery_module::charging::CcCvChargingModel;
 use crate::battery_module::discharging::physics_model::PhysicsDischargeModel;
-use crate::battery_module::charging::seasonal_solar::SeasonalBatteryModel;
+use crate::battery_module::discharging::VoltageDropLUT;
 use crate::terrain::TerrainLoader;
 use crate::terrain::slip::SlipModel;
-use crate::battery_module::discharging::VoltageDropLUT;
+use crate::units::duration::Duration;
+use crate::units::energy::Energy;
 
 /// A tool for inspecting and interacting with battery configuration data.
 #[derive(Debug)]
@@ -18,8 +20,7 @@ pub struct BatteryTool {
     selected: Option<String>,
     folder_names: Vec<String>,
     battery_map: HashMap<String, Battery>,
-    month: u32,
-    morph_data: Option<Vec<(u32, f32)>>,
+    charge_curve: HashMap<String, Vec<(f32, f32)>>,
     pub help_open: bool,
 }
 
@@ -30,13 +31,33 @@ impl Default for BatteryTool {
             selected: None,
             folder_names: folders,
             battery_map: HashMap::new(),
-            month: 1,
-            morph_data: None,
+            charge_curve: HashMap::new(),
             help_open: false,
         }
     }
 }
 
+/// Simulates charging from empty to (near) full and records energy over time,
+/// mirroring the step-wise updates the simulation itself performs.
+fn compute_charge_curve(model: &CcCvChargingModel) -> Vec<(f32, f32)> {
+    let step = Duration::seconds(10.0);
+    let mut energy = Energy::ZERO;
+    let mut elapsed = 0.0_f32;
+    let mut points = vec![(elapsed, energy.to_watt_hour())];
+
+    while energy < model.capacity {
+        let next_energy = model.compute_charge(energy, step);
+        elapsed += step.to_base_unit();
+        points.push((elapsed, next_energy.to_watt_hour()));
+
+        if (next_energy - energy).to_base_unit().abs() < f32::EPSILON {
+            break;
+        }
+        energy = next_energy;
+    }
+
+    points
+}
 
 impl Tool for BatteryTool {
     fn render_main(&mut self, ui: &mut egui::Ui) {
@@ -44,41 +65,18 @@ impl Tool for BatteryTool {
             None => {}
             Some(selected) => {
                 if let Some(battery) = self.battery_map.get(selected) {
-
-                    let jan_max: PlotPoints = battery.charging_model.jan_max_data
-                        .iter()
-                        .map(|(x, y)| [f64::from(*x), f64::from(*y)])
-                        .collect::<Vec<_>>()
-                        .into();
-                    let line_jan_max = Line::new("January Max", jan_max);
-            
-                    let jan_min: PlotPoints = battery.charging_model.jan_min_data
-                        .iter()
-                        .map(|(x, y)| [f64::from(*x), f64::from(*y)])
-                        .collect::<Vec<_>>()
-                        .into();
-                    let line_jan_min = Line::new("January Min", jan_min);
-            
-                    let jun_max: PlotPoints = battery.charging_model.jun_max_data
-                        .iter()
-                        .map(|(x, y)| [f64::from(*x), f64::from(*y)])
-                        .collect::<Vec<_>>()
-                        .into();
-                    let line_jun_max = Line::new("June Max", jun_max);
-
-                    let line_morph = match &self.morph_data {
-                        Some(data) => {
-                            let morph: PlotPoints = data
+                    let curve: PlotPoints = self.charge_curve
+                        .get(selected)
+                        .map(|points| {
+                            points
                                 .iter()
                                 .map(|(x, y)| [f64::from(*x), f64::from(*y)])
                                 .collect::<Vec<_>>()
-                                .into();
-                            Line::new("Morph", morph)
-                        }
-                        None => Line::new("Morph", vec![]), // fallback empty line
-                    };
-            
-            
+                        })
+                        .unwrap_or_default()
+                        .into();
+                    let line_charge_curve = Line::new("CC-CV charge curve", curve);
+
                     Plot::new("battery_plot")
                         .legend(Legend::default())
                         .auto_bounds(true)
@@ -87,14 +85,9 @@ impl Tool for BatteryTool {
                         .show(ui, |plot_ui| {
                             let line = HLine::new("Current energy", battery.energy.value);
                             plot_ui.hline(line);
-                            plot_ui.line(line_jan_max);
-                            plot_ui.line(line_jan_min);
-                            plot_ui.line(line_jun_max);
-                            plot_ui.line(line_morph);
+                            plot_ui.line(line_charge_curve);
                         });
                 }
-        
-
             }
         }
     }
@@ -123,7 +116,13 @@ impl Tool for BatteryTool {
                         );
                     // Charging model
                     let charging_model =
-                        SeasonalBatteryModel::from_config(&battery_config);
+                        CcCvChargingModel::from_config(&battery_config);
+
+                    self.charge_curve.insert(
+                        whole_path.clone(),
+                        compute_charge_curve(&charging_model),
+                    );
+
                     // Terrain
                     let terrain =
                         TerrainLoader::from_gps_csv(
@@ -148,7 +147,7 @@ impl Tool for BatteryTool {
                         );
                     // Battery
                     Battery::from_config(
-                        battery_config, 
+                        battery_config,
                         70.0,
                         charging_model,
                         discharging_model)
@@ -179,38 +178,14 @@ impl Tool for BatteryTool {
                 if response.changed() {
                     battery.recalculate_energy();
                 }
-                let response = ui.add(Slider::new(
-                    &mut self.month,
-                    1..=12)
-                    .text("Month")
-                    .step_by(1.0)
-                );
-                if response.changed() || response.enabled() {
-                    let mut data = vec![];
-                    let mut i = 26.0;
-                    battery.charging_model.start_index.insert("jan".to_string(), 1);
-                    battery.charging_model.start_index.insert("jun".to_string(), 1);
-                    while i <= battery.capacity.value {
-                        match battery.charging_model.get_morph_x_y(i, self.month, 1) {
-                            Ok((time, energy)) => {
-                                data.push((time, energy));
-                            }
-                            Err(e) => {
-                                eprintln!("⚠️ Failed to get morph x/y for i = {}: {}", i, e);
-                            }
-                        }
-                        i += 5.0;
-                    }
-                    self.morph_data = Some(data);
-                }
             }
         }
-        
+
         self.render_help(ui);
     }
 
     fn update(&mut self) {
-        
+
     }
 }
 
@@ -223,6 +198,6 @@ impl HasHelp for BatteryTool {
         ui.label("This is a battery tool where you can see selected battery charging characteristics and parameters.");
         ui.separator();
 
-        ui.label("When battery is selected you can see morphed characteristics between jan and jun data.");
+        ui.label("The plot shows the simulated CC-CV charge curve (energy vs. time from empty to full) for the selected battery.");
     }
 }

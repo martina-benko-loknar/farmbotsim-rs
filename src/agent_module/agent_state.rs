@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     agent_module::agent::Agent, battery_module::{is_battery::IsBattery}, cfg::{
         POWER_CONSUMPTION_WAIT
@@ -22,17 +20,12 @@ pub enum AgentState {
 
 impl AgentState {
     /// Called when the agent enters this state.
-    pub fn on_enter(&mut self, agent: &mut Agent) {
+    pub fn on_enter(&mut self, _agent: &mut Agent) {
         match self {
             AgentState::Wait => { },
             AgentState::Travel => { },
             AgentState::Work => { },
-            AgentState::Charging => {
-                agent.battery.charging_model.start_index = HashMap::from([
-                    ("jan".to_string(), 1),
-                    ("jun".to_string(), 1),
-                ]);
-            },
+            AgentState::Charging => { },
             AgentState::Discharged => { },
         }
     }
@@ -43,7 +36,7 @@ impl AgentState {
         &mut self, 
         simulation_step: Duration, 
         agent: &mut Agent, 
-        date_time_manager: &DateTimeManager
+        _date_time_manager: &DateTimeManager
     ) -> Option<AgentState> {
         match self {
             AgentState::Wait => {
@@ -161,7 +154,7 @@ impl AgentState {
             },
             AgentState::Charging => {
                 // charge battery
-                agent.battery.charge(simulation_step, date_time_manager.get_month());
+                agent.battery.charge(simulation_step);
                 // transitions
                 if let Some(task) = &agent.current_task {
                     if !task.is_wait() && !task.is_charge_intent() { Some(AgentState::Travel) }
