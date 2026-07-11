@@ -52,18 +52,22 @@ def parse_grid_search_results(data):
     """Parse grid search results from JSON data"""
 
     grid_search = data.get('grid_search', {})
-    results_data = grid_search.get('points', [])
-    grid_resolution = grid_search.get('grid_resolution', 50)
+    summary = grid_search.get('summary', {})
+    results_data = grid_search.get('trace', {}).get('points', [])
+    grid_resolution = summary.get('grid_resolution', 50)
     results = []
 
     for point in results_data:
-        pos = Pos2(point['x'], point['y'])
-        energy = point['energy_consumption']
-        total_distance = point['total_distance']
-        charging_distance = point['charging_distance']
-        
+        position = point['position']
+        metrics = point['metrics']
+
+        pos = Pos2(position['x'], position['y'])
+        energy = metrics['energy_wh']
+        total_distance = metrics['total_distance_m']
+        charging_distance = metrics['charging_distance_m']
+
         results.append((pos, energy, total_distance, charging_distance))
-    
+
     return results, grid_resolution
 
 
@@ -72,16 +76,12 @@ def find_optimization_minimum(data, results):
     Find the point with minimum energy consumption
     """
 
-    # First, check if optimization_minimum is provided in JSON
-    if 'optimization_minimum' in data:
+    # First, check if the grid search summary already has the best point
+    best_point = data.get('grid_search', {}).get('summary', {}).get('best_point')
 
-        opt_min = data.get('optimization_minimum')
-
-        if opt_min is None:
-            return None
-
-        pos = Pos2(opt_min['x'], opt_min['y'])
-        energy = opt_min['energy_consumption']
+    if best_point is not None:
+        pos = Pos2(best_point['position']['x'], best_point['position']['y'])
+        energy = best_point['metrics']['energy_wh']
 
         return (pos, energy)
 
