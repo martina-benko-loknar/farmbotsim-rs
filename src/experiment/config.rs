@@ -30,6 +30,22 @@ impl ExperimentConfig {
     pub fn load_scene_config(&self) -> SceneConfig {
         load_scene_config(self.field_config_path.clone())
     }
+
+    /// Short label describing the field size, derived from field_config_path
+    /// so filenames can't drift out of sync with the config actually in use.
+    pub fn field_size_label(&self) -> String {
+        match self.field_config_path.as_str() {
+            "configs/field_configs/vineyard/small.json" => "S".to_string(),
+            "configs/field_configs/vineyard/medium.json" => "M".to_string(),
+            "configs/field_configs/vineyard/large.json" => "L".to_string(),
+            "configs/field_configs/vineyard/xlarge.json" => "XL".to_string(),
+            other => std::path::Path::new(other)
+                .file_stem()
+                .and_then(|stem| stem.to_str())
+                .unwrap_or(other)
+                .to_string(),
+        }
+    }
 }
 
 impl Default for ExperimentConfig {

@@ -11,7 +11,6 @@ pub fn run_fleet_sweep(
     let fleet_sizes = vec![1, 2, 3, 4];
     let seeds = 0..5;
     let resolution = 15;
-    let label = "M";
     let output_dir_sweep = create_results_subdir(output_dir, "raw/fleet_sweep")?;
   
     println!("\n===== EXPERIMENT: Fleet size sweep ===================================");
@@ -26,11 +25,11 @@ pub fn run_fleet_sweep(
                 ..Default::default()
             };
 
-            print_experiment_info(label, &exp);
+            print_experiment_info(&exp);
 
             let filename=  format!(
                 "size={}_fleet={}_batt={}_soc={}",
-                label,
+                exp.field_size_label(),
                 exp.n_agents,
                 exp.battery_capacity_wh,
                 exp.soc_threshold_percent,

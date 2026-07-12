@@ -11,7 +11,6 @@ pub fn run_battery_sweep(
     let capacities = vec![65.0, 70.0, 75.0, 80.0];
     let seeds = 0..5;
     let resolution = 15;
-    let label = "M";
     let output_dir_sweep = create_results_subdir(output_dir, "raw/battery_sweep")?;
 
 
@@ -27,11 +26,11 @@ pub fn run_battery_sweep(
                 ..Default::default()
             };
 
-            print_experiment_info(label, &exp);
+            print_experiment_info(&exp);
 
             let filename=  format!(
                 "size={}_fleet={}_batt={}_soc={}",
-                label,
+                exp.field_size_label(),
                 exp.n_agents,
                 battery_capacity_wh,
                 exp.soc_threshold_percent,

@@ -158,7 +158,7 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
         let output_dir_exp = create_results_subdir(&base_output, "raw/single_evaluation_exp")?;
         let filename=  format!(
             "size={}_fleet={}_batt={:.0}_soc={}",
-            "XL",
+            exp.field_size_label(),
             exp.n_agents,
             exp.battery_capacity_wh,
             exp.soc_threshold_percent,
@@ -186,7 +186,7 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
         let output_dir_exp = create_results_subdir(&base_output, "raw/ego_exp")?;
         let filename=  format!(
             "size={}_fleet={}_batt={:.0}_soc={}",
-            "XL",
+            exp.field_size_label(),
             exp.n_agents,
             exp.battery_capacity_wh,
             exp.soc_threshold_percent,
@@ -227,7 +227,7 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
         let output_dir_exp = create_results_subdir(&base_output, "raw/grid_search_exp")?;
         let filename=  format!(
             "size={}_fleet={}_batt={:.0}_soc={}",
-            "XL",
+            exp.field_size_label(),
             exp.n_agents,
             exp.battery_capacity_wh,
             exp.soc_threshold_percent,
@@ -267,7 +267,7 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
         let output_dir_exp = create_results_subdir(&base_output, "raw/single_station_exp")?;
         let filename=  format!(
             "size={}_fleet={}_batt={:.0}_soc={}",
-            "XL",
+            exp.field_size_label(),
             exp.n_agents,
             exp.battery_capacity_wh,
             exp.soc_threshold_percent,
@@ -306,7 +306,7 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
         let output_dir_exp = create_results_subdir(&base_output, "raw/multi_station_exp")?;
         let filename=  format!(
             "size={}_fleet={}_batt={:.0}_soc={}",
-            "XL",
+            exp.field_size_label(),
             exp.n_agents,
             exp.battery_capacity_wh,
             exp.soc_threshold_percent,

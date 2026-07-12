@@ -9,10 +9,10 @@ pub fn run_field_size_sweep(
 ) -> Result<(), Box<dyn std::error::Error>> {
 
     let field_sizes = vec![
-        ("S", "configs/field_configs/vineyard/small.json"),
-        ("M", "configs/field_configs/vineyard/medium.json"),
-        ("L", "configs/field_configs/vineyard/large.json"),
-        ("XL", "configs/field_configs/vineyard/xlarge.json"),
+        "configs/field_configs/vineyard/small.json",
+        "configs/field_configs/vineyard/medium.json",
+        "configs/field_configs/vineyard/large.json",
+        "configs/field_configs/vineyard/xlarge.json",
     ];
 
     let seeds = 0..5;
@@ -21,7 +21,7 @@ pub fn run_field_size_sweep(
 
     println!("\n===== EXPERIMENT: Field size sweep ===================================");
 
-    for (label, path) in field_sizes {
+    for path in field_sizes {
 
         for seed in seeds.clone() {
 
@@ -31,11 +31,11 @@ pub fn run_field_size_sweep(
                 ..Default::default()
             };
 
-            print_experiment_info(label, &exp);
+            print_experiment_info(&exp);
 
             let filename=  format!(
                 "size={}_fleet={}_batt={}_soc={}",
-                label,
+                exp.field_size_label(),
                 exp.n_agents,
                 exp.battery_capacity_wh,
                 exp.soc_threshold_percent,

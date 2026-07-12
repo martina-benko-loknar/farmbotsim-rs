@@ -14,17 +14,17 @@ pub fn run_combined_sweep(
     let battery_sizes = vec![350.0, 400.0, 450.0, 500.0];
     let soc_thresholds = vec![50.0, 60.0, 70.0, 80.0];
     let field_sizes = vec![
-        ("S", "configs/field_configs/vineyard/small.json"),
-        ("M", "configs/field_configs/vineyard/medium.json"),
-        ("L", "configs/field_configs/vineyard/large.json"),
-        ("XL", "configs/field_configs/vineyard/xlarge.json"),
+        "configs/field_configs/vineyard/small.json",
+        "configs/field_configs/vineyard/medium.json",
+        "configs/field_configs/vineyard/large.json",
+        "configs/field_configs/vineyard/xlarge.json",
     ];
     let resolution = 15;
     let seeds = 0..5;
     let output_dir_sweep = create_results_subdir(output_dir, "raw/combined_sweep")?;
 
 
-    for (label, path) in field_sizes {
+    for path in field_sizes {
 
         for n_agents in fleet_sizes.clone() {
 
@@ -45,11 +45,11 @@ pub fn run_combined_sweep(
                             field_config_path: path.to_string(),
                         };
 
-                        print_experiment_info(label, &exp);
+                        print_experiment_info(&exp);
 
                         let filename=  format!(
                             "size={}_fleet={}_batt={}_soc={}",
-                            label,
+                            exp.field_size_label(),
                             exp.n_agents,
                             exp.battery_capacity_wh,
                             exp.soc_threshold_percent,
