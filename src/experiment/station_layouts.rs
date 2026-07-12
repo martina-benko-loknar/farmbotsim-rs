@@ -4,45 +4,48 @@ use crate::{environment::field_config::FieldConfig, experiment::models::{
     EvaluatedLayout, ExperimentMetrics, SpecialistLayoutResults, StationLayout
 }};
 use crate::experiment::evaluation::evaluate_station_layout;
+use crate::environment::geometry::FieldBounds;
 use crate::environment::scene_config::SceneConfig;
 use crate::experiment::config::ExperimentConfig;
 
-/// Predefined human/specialist-inspired layouts
+/// Distance outside the field's row bounds at which edge/corner stations
+/// are placed, matching the padding grid-search uses to keep candidate
+/// positions clear of the rows themselves.
+const FIELD_PADDING: f32 = 1.0;
+
+/// Fixed gap between the two stations in the "tight_center" layout. Kept
+/// as an absolute distance rather than scaled to field size, since it
+/// represents a minimum physical station separation, not a field-relative
+/// position.
+const TIGHT_CENTER_GAP: f32 = 2.0;
+
+/// Predefined human/specialist-inspired layouts, derived from the field's
+/// actual bounds so they scale to whatever field_config is in use.
 pub fn specialist_layouts(
     field_config: &FieldConfig
 ) -> Vec<StationLayout> {
 
-    // TODO: 
-    // struct FieldBounds {
-    //     min_x: f32,
-    //     max_x: f32,
-    //     min_y: f32,
-    //     max_y: f32,
-    // }
-    // let center_x = (bounds.min_x + bounds.max_x) / 2.0;
-
-    // ---------------------------------------------------------
-    // Assumptions: two Line configs, rectangular fields
-    // ---------------------------------------------------------
-
-    let fields = &field_config.configs;
-
-    if fields.len() < 2 {
+    if field_config.configs.is_empty() {
         return Vec::new();
     }
 
     // ---------------------------------------------------------
-    // Extract geometry 
+    // Extract geometry
     // ---------------------------------------------------------
 
-    let left_x = 1.5;
-    let right_x = 23.0;
+    let bounds = FieldBounds::from_field_config(field_config)
+        .padded(FIELD_PADDING);
 
-    let center_x = 12.5;
-    let center_y = 12.5;
+    let left_x = bounds.min_x;
+    let right_x = bounds.max_x;
 
-    let bottom_y = 1.5;
-    let top_y = 23.5;
+    let bottom_y = bounds.min_y;
+    let top_y = bounds.max_y;
+
+    let center_x = (left_x + right_x) / 2.0;
+    let center_y = (bottom_y + top_y) / 2.0;
+
+    let height = top_y - bottom_y;
 
     vec![
         StationLayout {
@@ -72,16 +75,16 @@ pub fn specialist_layouts(
         StationLayout {
             name: "split_center".to_string(),
             stations: vec![
-                Pos2::new(center_x, 7.5),
-                Pos2::new(center_x, 17.5),
+                Pos2::new(center_x, bottom_y + 0.25 * height),
+                Pos2::new(center_x, bottom_y + 0.75 * height),
             ],
         },
 
         StationLayout {
             name: "tight_center".to_string(),
             stations: vec![
-                Pos2::new(center_x, 11.5),
-                Pos2::new(center_x, 13.5),
+                Pos2::new(center_x, center_y - TIGHT_CENTER_GAP / 2.0),
+                Pos2::new(center_x, center_y + TIGHT_CENTER_GAP / 2.0),
             ],
         },
     ]
