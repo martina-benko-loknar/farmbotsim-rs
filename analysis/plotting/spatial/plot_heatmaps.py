@@ -14,7 +14,8 @@ def generate_energy_heatmap_plot(
     obstacles: List[Obstacle], 
     grid_resolution: int, 
     optimization_minimum: Optional[Tuple[Pos2, float]] = None,
-    output_dir: str = "results"
+    output_dir: str = "results",
+    prefix: Optional[str] = None,
 ):
     """Generate 2D heatmap plot for energy consumption with discrete grid (like Rust)"""
     setup_latex_fonts(30)
@@ -57,8 +58,9 @@ def generate_energy_heatmap_plot(
     ax.tick_params(labelsize=25)
     
     plt.tight_layout()
-    filename = f"{output_dir}/grid_search_{grid_resolution}x{grid_resolution}_energy_heatmap"
-    fname = f"grid_search_{grid_resolution}x{grid_resolution}_energy_heatmap"
+    stem = prefix or f"grid_search_{grid_resolution}x{grid_resolution}"
+    filename = f"{output_dir}/{stem}_energy_heatmap"
+    fname = f"{stem}_energy_heatmap"
     #plt.savefig(f"{filename}.png", dpi=150, bbox_inches='tight')
     plt.savefig(f"{filename}.pdf", bbox_inches='tight')
     #print(f"Plot saved to: {filename}.png and {filename}.pdf")
@@ -71,7 +73,8 @@ def generate_distance_heatmap_plot(
     obstacles: List[Obstacle], 
     grid_resolution: int, 
     optimization_minimum: Optional[Tuple[Pos2, float]] = None,
-    output_dir: str = "results"
+    output_dir: str = "results",
+    prefix: Optional[str] = None,
 ):
     """Generate 2D heatmap plot for total distance driven with discrete grid (like Rust)"""
     setup_latex_fonts(30)
@@ -114,8 +117,9 @@ def generate_distance_heatmap_plot(
     ax.tick_params(labelsize=25)
     
     plt.tight_layout()
-    filename = f"{output_dir}/grid_search_{grid_resolution}x{grid_resolution}_distance_heatmap"
-    fname = f"grid_search_{grid_resolution}x{grid_resolution}_distance_heatmap"
+    stem = prefix or f"grid_search_{grid_resolution}x{grid_resolution}"
+    filename = f"{output_dir}/{stem}_distance_heatmap"
+    fname = f"{stem}_distance_heatmap"
     #plt.savefig(f"{filename}.png", dpi=150, bbox_inches='tight')
     plt.savefig(f"{filename}.pdf", bbox_inches='tight')
     #print(f"Plot saved to: {filename}.png and {filename}.pdf")
@@ -128,7 +132,8 @@ def generate_charging_distance_heatmap_plot(
     obstacles: List[Obstacle], 
     grid_resolution: int, 
     optimization_minimum: Optional[Tuple[Pos2, float]] = None,
-    output_dir: str = "results"
+    output_dir: str = "results",
+    prefix: Optional[str] = None,
 ):
     """Generate 2D heatmap plot for charging distance with discrete grid (like Rust)"""
     setup_latex_fonts(30)
@@ -171,8 +176,9 @@ def generate_charging_distance_heatmap_plot(
     ax.tick_params(labelsize=25)
     
     plt.tight_layout()
-    filename = f"{output_dir}/grid_search_{grid_resolution}x{grid_resolution}_charging_distance_heatmap"
-    fname = f"grid_search_{grid_resolution}x{grid_resolution}_charging_distance_heatmap"
+    stem = prefix or f"grid_search_{grid_resolution}x{grid_resolution}"
+    filename = f"{output_dir}/{stem}_charging_distance_heatmap"
+    fname = f"{stem}_charging_distance_heatmap"
     #plt.savefig(f"{filename}.png", dpi=150, bbox_inches='tight')
     plt.savefig(f"{filename}.pdf", bbox_inches='tight')
     #print(f"Plot saved to: {filename}.png and {filename}.pdf")

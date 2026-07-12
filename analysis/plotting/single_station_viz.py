@@ -1,51 +1,7 @@
-import json
 import os
 
 from viz_pipeline import *
-
-
-def load_json_data(json_path):
-    """Load grid search results from JSON file"""
-    with open(json_path, 'r') as f:
-        data = json.load(f)
-    return data
-
-
-def parse_field_config(data):
-    """
-    Compute field bounds directly from exported obstacle geometry.
-    """
-
-    field = data.get("field", {})
-    obstacles = field.get("obstacles", [])
-
-    if not obstacles:
-        print("WARNING: no obstacle geometry available.")
-        return (0.0, 12.0, 0.0, 12.0)
-
-    xs = []
-    ys = []
-
-    for obs in obstacles:
-        for p in obs:
-            xs.append(p["x"])
-            ys.append(p["y"])
-
-    min_x = min(xs)
-    max_x = max(xs)
-
-    min_y = min(ys)
-    max_y = max(ys)
-
-    # small padding
-    padding = 1.0
-
-    return (
-        min_x - padding,
-        max_x + padding,
-        min_y - padding,
-        max_y + padding
-    )
+from viz_io import load_json_data, parse_field_config, parse_obstacles
 
 
 def parse_grid_search_results(data):
@@ -95,75 +51,7 @@ def find_optimization_minimum(data, results):
     return (pos, energy)
 
 
-# ============================================================================
-# IMPORTANT:
-# DO NOT reconstruct geometry from angles / rows in Python.
-#
-# Rust already computes the real obstacle geometry internally.
-# Python should only visualize already-generated obstacle polygons.
-# ============================================================================
-
-def parse_obstacles(data):
-    """
-    Parse already-generated obstacle polygons exported from Rust.
-
-    Expected JSON format:
-
-    "field": {
-        "obstacles": [
-            [
-                {"x": ..., "y": ...},
-                {"x": ..., "y": ...},
-                ...
-            ],
-            ...
-        ]
-    }
-    """
-
-    obstacles = []
-
-    field = data.get('field', {})
-
-    obstacles_raw = field.get('obstacles', [])
-
-    if not obstacles_raw:
-
-        print("WARNING:")
-        print("No exported obstacle polygons found in JSON.")
-        print("Python will show empty field geometry.")
-        print(
-            "Export final obstacle polygons from Rust "
-            "(FieldConfig::get_obstacles())."
-        )
-
-        return obstacles
-
-    total_obstacles = 0
-
-    for obs in obstacles_raw:
-
-        points = []
-
-        for p in obs:
-            points.append(
-                Pos2(p['x'], p['y'])
-            )
-
-        obstacles.append(
-            Obstacle(points)
-        )
-
-        total_obstacles += 1
-
-    print(
-        f"Loaded {total_obstacles} obstacle polygons from Rust export."
-    )
-
-    return obstacles
-
-
-def visualize_single_station(json_path, output_dir="results"):
+def visualize_single_station(json_path, output_dir="results", prefix=None):
     """
     Visualization using Rust-generated obstacle geometry.
     """
@@ -234,7 +122,8 @@ def visualize_single_station(json_path, output_dir="results"):
     generate_all_grid_plots(
         grid_results,
         optimization_minimum,
-        output_dir=output_dir
+        output_dir=output_dir,
+        prefix=prefix,
     )
 
 
@@ -264,9 +153,12 @@ if __name__ == "__main__":
     else:
         output_directory = os.path.dirname(json_file)
 
+    # Optional run stem used to prefix generated plot filenames
+    run_prefix = sys.argv[3] if len(sys.argv) > 3 else None
+
     print(f"Input file: {json_file}")
 
-    visualize_single_station(json_file, output_directory)
+    visualize_single_station(json_file, output_directory, run_prefix)
 
     print("-" * 70)
     print(f"✓ Plots generated successfully and saved to '{output_directory}'!")

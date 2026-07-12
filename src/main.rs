@@ -42,6 +42,7 @@ use crate::experiment::runner::{
 };
 use crate::experiment::config::ExperimentConfig;
 use crate::experiment::models::{ExperimentInfo, ExperimentType};
+use crate::experiment::output::create_results_subdir;
 
 //use egui::Pos2;
 use env_logger::Env;
@@ -164,29 +165,36 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
 
         let n_stations = get_station_number(&args);
         let exp = ExperimentConfig::default();
+        let output_dir_exp = create_results_subdir(&base_output, "raw/ego_exp")?;
         let filename=  format!(
-                "stations={}",
-                n_stations,
-            );
+            "size={}_fleet={}_batt={:.0}_soc={}",
+            "XL",
+            exp.n_agents,
+            exp.battery_capacity_wh,
+            exp.soc_threshold_percent,
+        );
         let info = ExperimentInfo {
                 experiment_type: ExperimentType::EGO,
                 timestamp: timestamp.clone(),
             };
 
         let run = run_ego_experiment(
-            n_stations, 
-            10, 
+            n_stations,
+            10,
             &filename,
-            &base_output,
-            exp, 
+            &output_dir_exp,
+            exp,
             info
         );
 
         if run_viz {
+            let figures_dir_exp = create_results_subdir(&base_output, "figures/ego_exp")?;
+            let run_stem = format!("{timestamp}_{filename}");
             run_viz_script(
-                "viz/optimization_viz.py",
+                "analysis/plotting/ego_viz.py",
                 &run.results_path,
-                &base_output,
+                &figures_dir_exp,
+                &run_stem,
             );
         }
 
@@ -198,28 +206,35 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
 
         let exp = ExperimentConfig::default();
         let resolution = get_grid_resolution(&args, exp.field_resolution);
+        let output_dir_exp = create_results_subdir(&base_output, "raw/grid_search_exp")?;
         let filename=  format!(
-                "res{}",
-                resolution,
-            );
+            "size={}_fleet={}_batt={:.0}_soc={}",
+            "XL",
+            exp.n_agents,
+            exp.battery_capacity_wh,
+            exp.soc_threshold_percent,
+        );
         let info = ExperimentInfo {
                 experiment_type: ExperimentType::GridSearch,
                 timestamp: timestamp.clone(),
             };
 
         let run = run_grid_search_experiment(
-            resolution, 
+            resolution,
             &filename,
-            &base_output,
+            &output_dir_exp,
             exp,
             info,
             );
 
         if run_viz {
+            let figures_dir_exp = create_results_subdir(&base_output, "figures/grid_search_exp")?;
+            let run_stem = format!("{timestamp}_{filename}");
             run_viz_script(
-                "viz/single_station_viz.py",
+                "analysis/plotting/single_station_viz.py",
                 &run.results_path,
-                &base_output,
+                &figures_dir_exp,
+                &run_stem,
             );
         }
 
@@ -231,7 +246,14 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
 
         let exp = ExperimentConfig::default();
         let resolution = get_grid_resolution(&args, exp.field_resolution);
-        let filename= "single_station";
+        let output_dir_exp = create_results_subdir(&base_output, "raw/single_station_exp")?;
+        let filename=  format!(
+            "size={}_fleet={}_batt={:.0}_soc={}",
+            "XL",
+            exp.n_agents,
+            exp.battery_capacity_wh,
+            exp.soc_threshold_percent,
+        );
         let info = ExperimentInfo {
                 experiment_type: ExperimentType::SingleStation,
                 timestamp: timestamp.clone(),
@@ -240,16 +262,19 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
         let run = run_single_station_experiment(
             resolution,
             &filename,
-            &base_output,
+            &output_dir_exp,
             exp,
             info
         );
 
         if run_viz {
+            let figures_dir_exp = create_results_subdir(&base_output, "figures/single_station_exp")?;
+            let run_stem = format!("{timestamp}_{filename}");
             run_viz_script(
                 "analysis/plotting/single_station_viz.py",
                 &run.results_path,
-                &base_output,
+                &figures_dir_exp,
+                &run_stem,
             );
         }
 
@@ -260,24 +285,34 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
     if args.contains(&"--multi-station-study".to_string()) {
 
         let exp = ExperimentConfig::default();
-        let filename=  "multi_station";
+        let output_dir_exp = create_results_subdir(&base_output, "raw/multi_station_exp")?;
+        let filename=  format!(
+            "size={}_fleet={}_batt={:.0}_soc={}",
+            "XL",
+            exp.n_agents,
+            exp.battery_capacity_wh,
+            exp.soc_threshold_percent,
+        );
         let info = ExperimentInfo {
                 experiment_type: ExperimentType::MultiStation,
                 timestamp: timestamp.clone(),
             };
 
         let run = run_multi_station_experiment(
-            10, 
+            10,
             &filename,
-            &base_output,
-            exp, 
+            &output_dir_exp,
+            exp,
             info);
 
         if run_viz {
+            let figures_dir_exp = create_results_subdir(&base_output, "figures/multi_station_exp")?;
+            let run_stem = format!("{timestamp}_{filename}");
             run_viz_script(
-                "viz/multi_station_viz.py",
+                "analysis/plotting/multi_station_viz.py",
                 &run.results_path,
-                &base_output,
+                &figures_dir_exp,
+                &run_stem,
             );
         }
 

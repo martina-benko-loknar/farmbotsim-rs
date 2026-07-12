@@ -12,7 +12,8 @@ def generate_3d_plot(
     obstacles: List[Obstacle], 
     grid_resolution: int, 
     optimization_minimum: Optional[Tuple[Pos2, float]] = None,
-    output_dir: str = "results"
+    output_dir: str = "results",
+    prefix: Optional[str] = None,
 ):
     """Generate 3D scatter plot"""
     setup_latex_fonts(30)
@@ -52,8 +53,9 @@ def generate_3d_plot(
     ax.legend()
     
     plt.tight_layout()
-    filename = f"{output_dir}/grid_search_{grid_resolution}x{grid_resolution}_3d"
-    fname = f"grid_search_{grid_resolution}x{grid_resolution}_3d"
+    stem = prefix or f"grid_search_{grid_resolution}x{grid_resolution}"
+    filename = f"{output_dir}/{stem}_3d"
+    fname = f"{stem}_3d"
     # plt.savefig(f"{filename}.png", dpi=150, bbox_inches='tight')
     plt.savefig(f"{filename}.pdf", bbox_inches='tight')
     # print(f"Plot saved to: {filename}.png and {filename}.pdf")

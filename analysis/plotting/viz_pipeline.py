@@ -10,6 +10,7 @@ import os
 from spatial.plot_heatmaps import generate_energy_heatmap_plot, generate_charging_distance_heatmap_plot, generate_distance_heatmap_plot
 from spatial.plot_surface_3d import generate_3d_plot
 from spatial.plot_multi_station import generate_multi_station_distance_plot, generate_multi_station_plot
+from spatial.plot_ego import generate_optimization_landscape_plot, generate_convergence_plot
 from viz_models import Pos2, Obstacle, GridSearchResults, MultiStationResults
 
 # ==========================================================================
@@ -19,65 +20,86 @@ from viz_models import Pos2, Obstacle, GridSearchResults, MultiStationResults
 def generate_all_grid_plots(
     results: GridSearchResults,
     optimization_minimum: Optional[Tuple[Pos2, float]] = None,
-    output_dir: str = "results"
+    output_dir: str = "results",
+    prefix: Optional[str] = None,
 ):
     """Generate all plots for grid search results"""
     os.makedirs(output_dir, exist_ok=True)
-    
+
     generate_3d_plot(
-        results.results, 
-        results.obstacles, 
-        results.grid_resolution, 
+        results.results,
+        results.obstacles,
+        results.grid_resolution,
         optimization_minimum,
-        output_dir
+        output_dir,
+        prefix,
     )
     generate_energy_heatmap_plot(
-        results.results, 
-        results.obstacles, 
-        results.grid_resolution, 
+        results.results,
+        results.obstacles,
+        results.grid_resolution,
         optimization_minimum,
-        output_dir
+        output_dir,
+        prefix,
     )
     generate_distance_heatmap_plot(
-        results.results, 
-        results.obstacles, 
-        results.grid_resolution, 
+        results.results,
+        results.obstacles,
+        results.grid_resolution,
         optimization_minimum,
-        output_dir
+        output_dir,
+        prefix,
     )
     generate_charging_distance_heatmap_plot(
-        results.results, 
-        results.obstacles, 
-        results.grid_resolution, 
+        results.results,
+        results.obstacles,
+        results.grid_resolution,
         optimization_minimum,
-        output_dir
+        output_dir,
+        prefix,
     )
 
 
 def generate_all_multi_station_plots(
     results: MultiStationResults,
-    output_dir: str = "results"
+    output_dir: str = "results",
+    prefix: Optional[str] = None,
 ):
     """Generate all plots for multi-station results"""
     os.makedirs(output_dir, exist_ok=True)
-    
+
     generate_multi_station_plot(
         results.optimal_stations,
         results.optimal_energy,
         results.suboptimal_configs_energy,
         results.obstacles,
         results.field_bounds,
-        output_dir
+        output_dir,
+        prefix,
     )
-    
+
     generate_multi_station_distance_plot(
         results.optimal_stations,
         results.optimal_distance,
         results.suboptimal_configs_distance,
         results.obstacles,
         results.field_bounds,
-        output_dir
+        output_dir,
+        prefix,
     )
+
+
+def generate_all_ego_plots(
+    evaluations: List[dict],
+    obstacles: List[Obstacle],
+    output_dir: str = "results",
+    prefix: Optional[str] = None,
+):
+    """Generate all plots for a standalone EGO optimization run"""
+    os.makedirs(output_dir, exist_ok=True)
+
+    generate_optimization_landscape_plot(evaluations, obstacles, output_dir, prefix)
+    generate_convergence_plot(evaluations, output_dir, prefix)
 
 # ==========================================================================
 # Interpolation Functions

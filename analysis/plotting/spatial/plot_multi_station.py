@@ -14,7 +14,8 @@ def generate_multi_station_plot(
     suboptimal_configs: List[Tuple[List[Pos2], float]],
     obstacles: List[Obstacle],
     field_bounds: Tuple[float, float, float, float],
-    output_dir: str = "results"
+    output_dir: str = "results",
+    prefix: str = None,
 ):
     """Generate multi-station configuration plot (energy-based)"""
     setup_latex_fonts(30)
@@ -96,8 +97,9 @@ def generate_multi_station_plot(
     ax.spines['left'].set_color('black')
     
     plt.tight_layout()
-    filename = f"{output_dir}/multi_station_{len(optimal_stations)}_energy"
-    fname = f"multi_station_{len(optimal_stations)}_energy"
+    stem = prefix or f"multi_station_{len(optimal_stations)}"
+    filename = f"{output_dir}/{stem}_energy"
+    fname = f"{stem}_energy"
     #plt.savefig(f"{filename}.png", dpi=150, bbox_inches='tight')
     plt.savefig(f"{filename}.pdf", bbox_inches='tight')
     #print(f"Plot saved to: {filename}.png and {filename}.pdf")
@@ -111,7 +113,8 @@ def generate_multi_station_distance_plot(
     suboptimal_configs: List[Tuple[List[Pos2], float]],
     obstacles: List[Obstacle],
     field_bounds: Tuple[float, float, float, float],
-    output_dir: str = "results"
+    output_dir: str = "results",
+    prefix: str = None,
 ):
     """Generate multi-station configuration plot (distance-based)"""
     setup_latex_fonts(30)
@@ -200,8 +203,9 @@ def generate_multi_station_distance_plot(
     ax.spines['left'].set_color('black')
     
     plt.tight_layout()
-    filename = f"{output_dir}/multi_station_{len(optimal_stations)}_distance"
-    fname = f"multi_station_{len(optimal_stations)}_distance"
+    stem = prefix or f"multi_station_{len(optimal_stations)}"
+    filename = f"{output_dir}/{stem}_distance"
+    fname = f"{stem}_distance"
     #plt.savefig(f"{filename}.png", dpi=150, bbox_inches='tight')
     plt.savefig(f"{filename}.pdf", bbox_inches='tight')
     #print(f"Plot saved to: {filename}.png and {filename}.pdf")

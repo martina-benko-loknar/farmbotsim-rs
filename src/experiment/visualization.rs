@@ -4,11 +4,13 @@ pub fn run_viz_script(
     script: &str,
     input_path: &str,
     output_dir: &str,
+    run_stem: &str,
 ) {
     let status = Command::new("python")
         .arg(script)
         .arg(input_path)
         .arg(output_dir)
+        .arg(run_stem)
         .status();
 
     match status {
