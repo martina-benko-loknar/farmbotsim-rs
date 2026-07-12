@@ -147,9 +147,7 @@ pub fn evaluate_station_layout(
         charging_distance_m: result.total_charging_distance as f64, 
         simulation_time_sec: result.env_duration.value as f64, 
         evaluation_time_sec: runtime_sec, 
-        charging_events: result.charging_events, 
-        charge_attempts: 0, //TODO 
-        failed_charge_attempts: 0, //TODO 
-        completed_tasks: 0, //TODO 
+        charging_events: result.charging_events,
+        completed_tasks: result.completed_moving_tasks + result.completed_stationary_tasks, 
     }
 }

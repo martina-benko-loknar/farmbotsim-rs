@@ -13,8 +13,6 @@ pub struct ExperimentMetrics {
     pub simulation_time_sec: f64,
     pub evaluation_time_sec: f64,
     pub charging_events: u32,
-    pub charge_attempts: u32,
-    pub failed_charge_attempts: u32,
     pub completed_tasks: u32,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]

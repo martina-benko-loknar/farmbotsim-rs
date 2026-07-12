@@ -5,8 +5,6 @@ use crate::{environment::field_config::FieldConfig, experiment::models::{
 }};
 use crate::experiment::evaluation::evaluate_station_layout;
 use crate::environment::scene_config::SceneConfig;
-use crate::cfg::DEFAULT_SCENE_CONFIG_PATH;
-use crate::utilities::utils::load_json_or_panic;
 use crate::experiment::config::ExperimentConfig;
 
 /// Predefined human/specialist-inspired layouts
@@ -91,12 +89,9 @@ pub fn specialist_layouts(
 
 pub fn evaluate_station_layouts(
     layouts: &[StationLayout],
+    scene_config: &SceneConfig,
+    exp: &ExperimentConfig
 ) -> SpecialistLayoutResults {
-
-    let scene_config: SceneConfig =
-        load_json_or_panic(
-            DEFAULT_SCENE_CONFIG_PATH.to_string()
-        );
 
     let mut evaluated_layouts = Vec::new();
 
@@ -111,7 +106,6 @@ pub fn evaluate_station_layouts(
         // -------------------------------------------------
         // Simulation call
         // -------------------------------------------------
-        let exp = ExperimentConfig::default();
 
         let result = 
             evaluate_station_layout(
@@ -126,12 +120,10 @@ pub fn evaluate_station_layouts(
                     energy_wh: result.energy_wh,
                     total_distance_m: result.total_distance_m,
                     charging_distance_m: result.charging_distance_m,
-                    simulation_time_sec: 0.0, //TODO
-                    evaluation_time_sec: 0.0, //TODO
-                    charging_events: 0, //TODO
-                    charge_attempts: 0, //TODO
-                    failed_charge_attempts: 0, //TODO
-                    completed_tasks: 0, //TODO
+                    simulation_time_sec: result.simulation_time_sec, 
+                    evaluation_time_sec: result.evaluation_time_sec, 
+                    charging_events: result.charging_events,
+                    completed_tasks: result.completed_tasks,
                 }
             }
         );

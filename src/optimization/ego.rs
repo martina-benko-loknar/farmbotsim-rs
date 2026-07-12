@@ -472,8 +472,6 @@ pub fn optimize_station_positions_ego(
                         simulation_time_sec: 0.0,
                         evaluation_time_sec: 0.0,
                         charging_events: 0,
-                        charge_attempts: 0,
-                        failed_charge_attempts: 0,
                         completed_tasks: 0,
                     },
                     optimal_position: fallback.station_positions.clone(),

@@ -22,10 +22,7 @@ use crate::experiment::models::{
 
 use egui::Pos2;
 
-use crate::environment::{
-    field_config::FieldConfig,
-    scene_config::SceneConfig,
-};
+use crate::environment::scene_config::SceneConfig;
 
 use crate::cfg::DEFAULT_SCENE_CONFIG_PATH;
 
@@ -176,15 +173,11 @@ pub fn run_multi_station_experiment(
 
     println!("Experiment type: MULTI-STATION (EGO + specialized layouts)");
 
-    let scene_config: SceneConfig =
-    load_json_or_panic(
-        DEFAULT_SCENE_CONFIG_PATH.to_string()
-    );
-
-    let field_config: FieldConfig =
-        load_json_or_panic(
-            scene_config.field_config_path.clone()
-        );
+    // ------------------------------
+    // Load config
+    // ------------------------------
+    let scene_config = exp.load_scene_config();
+    let field_config = exp.load_field_config();
 
     // ---------------------------------------------------------
     // Phase 1: EGO optimization
@@ -205,7 +198,10 @@ pub fn run_multi_station_experiment(
         specialist_layouts(&field_config);
 
     let specialist_results = 
-        evaluate_station_layouts(&layouts);
+        evaluate_station_layouts(
+            &layouts, 
+            &scene_config, 
+            &exp);
 
     // ---------------------------------------------------------
     // Save & aggregate experiment results

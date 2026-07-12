@@ -104,9 +104,7 @@ pub fn grid_search_experiment(
                 simulation_time_sec: sim_time,
                 evaluation_time_sec: elapsed,
                 charging_events: charging_events,
-                charge_attempts: 0, //TODO
-                failed_charge_attempts: 0, // TODO
-                completed_tasks: 0, // TODO
+                completed_tasks: evaluation.completed_tasks,
             }
         });
         
