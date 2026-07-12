@@ -8,13 +8,15 @@ use crate::experiment::models::ExperimentMetadata;
 use egui::Pos2;
 use crate::experiment::models::SingleStationExport;
 use crate::experiment::models::MultiStationExport;
+use crate::experiment::models::SingleEvaluationExport;
 
 use crate::environment::field_config::FieldConfig;
 
 use crate::experiment::models::{
-    EgoOptimizationResults, 
-    GridSearchResults, 
-    MultiStationExperimentResults, 
+    EgoOptimizationResults,
+    ExperimentMetrics,
+    GridSearchResults,
+    MultiStationExperimentResults,
     SingleStationExperimentResults,
     ExperimentInfo
 };
@@ -437,6 +439,85 @@ pub fn save_multi_station_results(
 
         Ok(_) => {
             println!("Multi-station results saved:");
+            println!("{}", absolute_path);
+        }
+
+        Err(e) => {
+            eprintln!("Failed saving results: {}", e);
+        }
+    }
+
+    absolute_path
+}
+
+pub fn save_single_evaluation_results(
+    metrics: &ExperimentMetrics,
+    config: &ExperimentConfig,
+    info: &ExperimentInfo,
+    filename: &str,
+    output_dir: &str,
+) -> String {
+
+    // ---------------------------------------------------------
+    // Output file
+    // ---------------------------------------------------------
+
+    let absolute_path = format!(
+        "{}/{}_{}.json",
+        output_dir,
+        info.timestamp,
+        filename,
+    );
+
+    // ---------------------------------------------------------
+    // Timing statistics (single point)
+    // ---------------------------------------------------------
+
+    let timing = TimingStatistics {
+        average_evaluation_time_sec: metrics.evaluation_time_sec,
+        minimum_evaluation_time_sec: metrics.evaluation_time_sec,
+        maximum_evaluation_time_sec: metrics.evaluation_time_sec,
+        total_evaluation_time_sec: metrics.evaluation_time_sec,
+    };
+
+    // ---------------------------------------------------------
+    // Load field
+    // ---------------------------------------------------------
+
+    let field = export_field(config);
+
+    // ---------------------------------------------------------
+    // Metadata
+    // ---------------------------------------------------------
+
+    let metadata = ExperimentMetadata {
+        experiment_type: info.experiment_type.clone(),
+        config: config.clone(),
+        timestamp: info.timestamp.clone(),
+        seed: config.seed,
+    };
+
+    // ---------------------------------------------------------
+    // Final JSON: assemble export
+    // ---------------------------------------------------------
+
+    let export = SingleEvaluationExport {
+        metadata,
+        single_evaluation: metrics.clone(),
+        timing,
+        field,
+    };
+
+    // ---------------------------------------------------------
+    // Save
+    // ---------------------------------------------------------
+
+    match fs::write(
+        &absolute_path,
+        serde_json::to_string_pretty(&export).unwrap(),
+    ) {
+        Ok(_) => {
+            println!("Single-evaluation results saved:");
             println!("{}", absolute_path);
         }
 

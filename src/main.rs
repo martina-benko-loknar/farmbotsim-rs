@@ -29,16 +29,13 @@ pub mod optimization;
 pub mod terrain;
 
 use crate::app_module::app::App;
-use crate::experiment::{
-    single_evaluation::run_single_evaluation,
-    //grid_search::run_grid_search_experiment,
-    visualization::run_viz_script
-};
+use crate::experiment::visualization::run_viz_script;
 use crate::experiment::runner::{
     run_ego_experiment,
     run_grid_search_experiment,
     run_single_station_experiment,
-    run_multi_station_experiment
+    run_multi_station_experiment,
+    run_single_evaluation,
 };
 use crate::experiment::config::ExperimentConfig;
 use crate::experiment::models::{ExperimentInfo, ExperimentType};
@@ -156,7 +153,28 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
 
     // ---------- Single evaluation ----------------
     if args.contains(&"--single-evaluation".to_string()) {
-        run_single_evaluation();
+
+        let exp = ExperimentConfig::default();
+        let output_dir_exp = create_results_subdir(&base_output, "raw/single_evaluation_exp")?;
+        let filename=  format!(
+            "size={}_fleet={}_batt={:.0}_soc={}",
+            "XL",
+            exp.n_agents,
+            exp.battery_capacity_wh,
+            exp.soc_threshold_percent,
+        );
+        let info = ExperimentInfo {
+                experiment_type: ExperimentType::SingleRun,
+                timestamp,
+            };
+
+        run_single_evaluation(
+            &filename,
+            &output_dir_exp,
+            exp,
+            info
+        );
+
         return Ok(());
     }
 

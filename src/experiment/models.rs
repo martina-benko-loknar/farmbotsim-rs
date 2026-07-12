@@ -226,3 +226,11 @@ pub struct MultiStationExport {
     pub timing: TimingStatistics,
     pub field: FieldExport,
 }
+
+#[derive(Clone, Debug, Serialize)]
+pub struct SingleEvaluationExport {
+    pub metadata: ExperimentMetadata,
+    pub single_evaluation: ExperimentMetrics,
+    pub timing: TimingStatistics,
+    pub field: FieldExport,
+}

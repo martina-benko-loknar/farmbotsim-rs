@@ -2,11 +2,13 @@
 
 use crate::experiment::config::ExperimentConfig;
 use crate::experiment::grid_search::grid_search_experiment;
+use crate::experiment::evaluation::evaluate_station_layout;
 use crate::experiment::export::{
     save_grid_search_results,
-    save_single_station_results, 
+    save_single_station_results,
     save_ego_results,
-    save_multi_station_results};
+    save_multi_station_results,
+    save_single_evaluation_results};
 use crate::experiment::station_layouts::{
     specialist_layouts,
     evaluate_station_layouts};
@@ -17,6 +19,8 @@ use crate::experiment::models::{
     ExperimentRun,
     ExperimentInfo
 };
+
+use egui::Pos2;
 
 use crate::environment::{
     field_config::FieldConfig,
@@ -220,6 +224,56 @@ pub fn run_multi_station_experiment(
         filename,
         output_dir,
     );
+
+    ExperimentRun{
+        timestamp: info.timestamp,
+        output_dir: output_dir.to_string(),
+        results_path}
+}
+
+pub fn run_single_evaluation(
+    filename: &str,
+    output_dir: &str,
+    exp: ExperimentConfig,
+    info: ExperimentInfo,
+) -> ExperimentRun {
+
+    println!("Experiment type: SINGLE EVALUATION");
+
+    let scene_config: SceneConfig =
+        load_json_or_panic(
+            DEFAULT_SCENE_CONFIG_PATH.to_string()
+        );
+
+    let stations: Vec<Pos2> = scene_config
+        .station_configs
+        .iter()
+        .map(|station| station.pose.position)
+        .collect();
+
+    // ---------------------------------------------------------
+    // Single evaluation
+    // ---------------------------------------------------------
+
+    let metrics = evaluate_station_layout(
+        &stations,
+        &scene_config,
+        &exp,
+    );
+
+    // ---------------------------------------------------------
+    // Save experiment results
+    // ---------------------------------------------------------
+
+    let results_path = save_single_evaluation_results(
+        &metrics,
+        &exp,
+        &info,
+        filename,
+        output_dir,
+    );
+
+    println!("Single evaluation experiment completed.");
 
     ExperimentRun{
         timestamp: info.timestamp,
