@@ -1,17 +1,4 @@
-use std::error::Error;
-use std::fs;
 use crate::ExperimentConfig;
-
-pub fn create_sweep_output_directory(
-    base_output: &str,
-    sweep_output: &str,
-) -> Result<String, Box<dyn Error>> {
-    let output_dir = format!("{base_output}/{sweep_output}");
-
-    fs::create_dir_all(&output_dir)?;
-
-    Ok(output_dir)
-}
 
 pub fn print_experiment_info(
     label: &str,

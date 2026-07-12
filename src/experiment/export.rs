@@ -51,7 +51,7 @@ pub fn save_grid_search_results(
     // ---------------------------------------------------------
 
     let absolute_path = format!(
-        "{}/gs_{}_{}.json",
+        "{}/{}_{}.json",
         output_dir,
         info.timestamp,
         filename,
@@ -109,8 +109,7 @@ pub fn save_grid_search_results(
 
     let export = GridSearchExport {
         metadata,
-        summary: results.summary.clone(),
-        trace: results.trace.clone(),
+        grid_search: results.clone(),
         timing,
         field,
     };
@@ -148,7 +147,7 @@ pub fn save_single_station_results(
     // ---------------------------------------------------------
 
     let absolute_path = format!(
-        "{}/single_station_{}_{}.json",
+        "{}/{}_{}.json",
         output_dir,
         info.timestamp,
         filename,
@@ -261,7 +260,7 @@ pub fn save_ego_results(
     // ---------------------------------------------------------
 
     let absolute_path = format!(
-        "{}/ego_{}_{}.json",
+        "{}/{}_{}.json",
         output_dir,
         info.timestamp,
         filename,
@@ -319,8 +318,7 @@ pub fn save_ego_results(
 
     let export = EgoExport {
         metadata,
-        summary: results.summary.clone(),
-        trace: results.trace.clone(),
+        ego: results.clone(),
         timing,
         field,
     };
@@ -359,7 +357,7 @@ pub fn save_multi_station_results(
     // ---------------------------------------------------------
 
     let absolute_path = format!(
-        "{}/multi_station_{}_{}.json",
+        "{}/{}_{}.json",
         output_dir,
         info.timestamp,
         filename,

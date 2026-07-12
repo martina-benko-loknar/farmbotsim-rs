@@ -124,8 +124,7 @@ pub struct GridSearchResults {
 #[derive(Serialize)]
 pub struct GridSearchExport {
     pub metadata: ExperimentMetadata,
-    pub summary: GridSearchSummary,
-    pub trace: GridSearchTrace,
+    pub grid_search: GridSearchResults,
     pub timing: TimingStatistics,
     pub field: FieldExport,
 }
@@ -154,8 +153,7 @@ pub struct EgoOptimizationResults {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EgoExport {
     pub metadata: ExperimentMetadata,
-    pub summary: EgoSummary,
-    pub trace: EgoTrace,
+    pub ego: EgoOptimizationResults,
     pub timing: TimingStatistics,
     pub field: FieldExport,
 }

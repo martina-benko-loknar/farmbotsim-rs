@@ -1,5 +1,5 @@
 use crate::experiment::runner::run_single_station_experiment;
-use crate::experiment::sweeps::sweep_utils::create_sweep_output_directory;
+use crate::experiment::output::create_results_subdir;
 use crate::experiment::sweeps::sweep_utils::print_experiment_info;
 use crate::experiment::models::{ExperimentType, ExperimentInfo};
 use crate::ExperimentConfig;
@@ -12,7 +12,7 @@ pub fn run_soc_sweep(
     let seeds = 0..5;
     let resolution = 15;
     let label = "M";
-    let output_dir_sweep = create_sweep_output_directory(output_dir, "raw/soc_sweep")?;
+    let output_dir_sweep = create_results_subdir(output_dir, "raw/soc_sweep")?;
    
     println!("\n===== EXPERIMENT: SoC threshold sweep ===================================");
 

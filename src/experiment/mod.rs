@@ -5,6 +5,7 @@ pub mod geometry;
 pub mod runner;
 pub mod models;
 pub mod export;
+pub mod output;
 pub mod station_layouts;
 pub mod evaluation;
 pub mod search_domain;
