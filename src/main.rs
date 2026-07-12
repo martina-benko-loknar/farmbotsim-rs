@@ -168,7 +168,10 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
                 timestamp,
             };
 
+        let station_position = exp.load_scene_config().station_configs[0].pose.position;
+
         run_single_evaluation(
+            station_position,
             &filename,
             &output_dir_exp,
             exp,
@@ -277,7 +280,7 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
                 timestamp: timestamp.clone(),
             };
 
-        let run = run_single_station_experiment(
+        let (run, _) = run_single_station_experiment(
             resolution,
             &filename,
             &output_dir_exp,

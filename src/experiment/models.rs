@@ -165,6 +165,21 @@ pub struct SingleStationExperimentResults {
     pub grid_search: GridSearchResults,
 }
 
+impl SingleStationExperimentResults {
+    /// Best station position across both methods, by lowest energy consumption
+    /// (the same criterion grid search uses internally to pick its own best point).
+    pub fn best_position(&self) -> Pos2 {
+        let ego_energy = self.ego.summary.best_metrics.energy_wh;
+        let grid_energy = self.grid_search.summary.best_point.metrics.energy_wh;
+
+        if ego_energy <= grid_energy {
+            self.ego.summary.optimal_position[0]
+        } else {
+            self.grid_search.summary.best_point.position
+        }
+    }
+}
+
 // ============================================================
 // Multi-station layout evaluation
 // ============================================================

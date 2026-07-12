@@ -34,11 +34,12 @@ pub fn run_field_size_sweep(
             print_experiment_info(&exp);
 
             let filename=  format!(
-                "size={}_fleet={}_batt={}_soc={}",
+                "size={}_fleet={}_batt={}_soc={}_seed={}",
                 exp.field_size_label(),
                 exp.n_agents,
                 exp.battery_capacity_wh,
                 exp.soc_threshold_percent,
+                seed,
             );
 
             let timestamp = chrono::Utc::now()

@@ -22,12 +22,6 @@ use crate::experiment::models::{
 
 use egui::Pos2;
 
-use crate::environment::scene_config::SceneConfig;
-
-use crate::cfg::DEFAULT_SCENE_CONFIG_PATH;
-
-use crate::utilities::utils::load_json_or_panic;
-
 pub fn run_ego_experiment(
     n_stations: usize,
     max_iterations: usize,
@@ -114,7 +108,7 @@ pub fn run_single_station_experiment(
     output_dir: &str,
     exp: ExperimentConfig,
     info: ExperimentInfo,
-) -> ExperimentRun {
+) -> (ExperimentRun, Pos2) {
 
     println!("Experiment type: SINGLE-STATION (grid search + EGO)");
 
@@ -148,18 +142,20 @@ pub fn run_single_station_experiment(
             grid_search: grid_results,
         };
 
+    let best_position = experiment_results.best_position();
+
     let results_path = save_single_station_results(
         &experiment_results,
-        &exp, 
+        &exp,
         &info,
         filename,
         output_dir,
     );
 
-    ExperimentRun{
+    (ExperimentRun{
         timestamp: info.timestamp,
         output_dir: output_dir.to_string(),
-        results_path}
+        results_path}, best_position)
 
 }
 
@@ -228,6 +224,7 @@ pub fn run_multi_station_experiment(
 }
 
 pub fn run_single_evaluation(
+    station_position: Pos2,
     filename: &str,
     output_dir: &str,
     exp: ExperimentConfig,
@@ -236,16 +233,8 @@ pub fn run_single_evaluation(
 
     println!("Experiment type: SINGLE EVALUATION");
 
-    let scene_config: SceneConfig =
-        load_json_or_panic(
-            DEFAULT_SCENE_CONFIG_PATH.to_string()
-        );
-
-    let stations: Vec<Pos2> = scene_config
-        .station_configs
-        .iter()
-        .map(|station| station.pose.position)
-        .collect();
+    let scene_config = exp.load_scene_config();
+    let stations = vec![station_position];
 
     // ---------------------------------------------------------
     // Single evaluation
