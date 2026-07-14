@@ -1,5 +1,5 @@
 use crate::{
-    agent_module::agent::Agent, battery_module::{is_battery::IsBattery}, cfg::{
+    agent_module::agent::Agent, battery_module::{discharging::DischargingModel, is_battery::IsBattery}, cfg::{
         POWER_CONSUMPTION_WAIT
     }, environment::datetime::DateTimeManager, units::{
         duration::Duration,
@@ -35,8 +35,8 @@ impl AgentState {
     pub fn update(
         &mut self, 
         simulation_step: Duration, 
-        agent: &mut Agent, 
-        _date_time_manager: &DateTimeManager
+        agent: &mut Agent,
+        date_time_manager: &DateTimeManager
     ) -> Option<AgentState> {
         match self {
             AgentState::Wait => {
@@ -62,20 +62,21 @@ impl AgentState {
                 let x2 = agent.pose.position.x;
                 let y2 = agent.pose.position.y;
 
-                let slope_rad = agent.battery
-                    .discharging_model
-                    .terrain
-                    .slope_between(
-                        x1 as f64, 
-                        y1 as f64, 
-                        x2 as f64, 
-                        y2 as f64)
-                    .unwrap_or(0.0);
+                let slope_rad = match &agent.battery.discharging_model {
+                    DischargingModel::Physics(model) => model.terrain
+                        .slope_between(
+                            x1 as f64,
+                            y1 as f64,
+                            x2 as f64,
+                            y2 as f64)
+                        .unwrap_or(0.0) as f32,
+                    DischargingModel::Simple => 0.0,
+                };
 
-                let energy_loss = agent.compute_energy_loss(
-                    slope_rad as f32,
+                let energy_loss = agent.compute_travel_energy_loss(
+                    slope_rad,
                     simulation_step,
-                );  
+                );
 
                 agent.battery.energy = agent.battery.energy - energy_loss;
 
@@ -85,14 +86,14 @@ impl AgentState {
 
                 agent.battery.soc =
                     (agent.battery.energy / agent.battery.capacity)
-                        * 100.0;    
+                        * 100.0;
 
                 // check battery
                 if let Some(discharge) = Self::check_battery(agent) { return Some(discharge); }
                 // transitions
                 if let Some(task) = &agent.current_task {
                     if task.is_work() {
-                        Some(AgentState::Work) 
+                        Some(AgentState::Work)
                     } else if task.is_wait() && task.is_charge_intent() {
                         Some(AgentState::Charging) 
                     } else if task.is_wait() {
@@ -114,20 +115,21 @@ impl AgentState {
                 let x2 = agent.pose.position.x;
                 let y2 = agent.pose.position.y;
 
-                let slope_rad = agent.battery
-                    .discharging_model
-                    .terrain
-                    .slope_between(
-                        x1 as f64, 
-                        y1 as f64, 
-                        x2 as f64, 
-                        y2 as f64)
-                    .unwrap_or(0.0);
-                
-                let energy_loss = agent.compute_energy_loss(
-                    slope_rad as f32,
+                let slope_rad = match &agent.battery.discharging_model {
+                    DischargingModel::Physics(model) => model.terrain
+                        .slope_between(
+                            x1 as f64,
+                            y1 as f64,
+                            x2 as f64,
+                            y2 as f64)
+                        .unwrap_or(0.0) as f32,
+                    DischargingModel::Simple => 0.0,
+                };
+
+                let energy_loss = agent.compute_work_energy_loss(
+                    slope_rad,
                     simulation_step,
-                );  
+                );
 
                 agent.battery.energy = agent.battery.energy - energy_loss;
 
@@ -154,7 +156,7 @@ impl AgentState {
             },
             AgentState::Charging => {
                 // charge battery
-                agent.battery.charge(simulation_step);
+                agent.battery.charge(simulation_step, date_time_manager.get_month());
                 // transitions
                 if let Some(task) = &agent.current_task {
                     if !task.is_wait() && !task.is_charge_intent() { Some(AgentState::Travel) }

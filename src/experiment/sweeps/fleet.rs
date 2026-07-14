@@ -22,6 +22,11 @@ pub fn run_fleet_sweep(
             let exp = ExperimentConfig {
                 seed,
                 n_agents: n_agents as u32,
+                // Pinned explicitly: this sweep is the CC-CV/physics/Leo-Rover
+                // story, independent of whatever ExperimentConfig::default()
+                // currently is.
+                battery_capacity_wh: 73.2,
+                battery_voltage_v: 10.8,
                 ..Default::default()
             };
 

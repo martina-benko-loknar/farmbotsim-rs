@@ -6,9 +6,9 @@ use crate::{
     battery_module::{battery::Battery, battery_config::BatteryConfig, is_battery::IsBattery}, cfg::BATTERIES_PATH, tool_module::{has_help::HasHelp, tool::Tool}, utilities::utils::get_folders_in_folder
 };
 
-use crate::battery_module::charging::CcCvChargingModel;
+use crate::battery_module::charging::ChargingModel;
 use crate::battery_module::discharging::physics_model::PhysicsDischargeModel;
-use crate::battery_module::discharging::VoltageDropLUT;
+use crate::battery_module::discharging::{DischargeModelKind, DischargingModel, VoltageDropLUT};
 use crate::terrain::TerrainLoader;
 use crate::terrain::slip::SlipModel;
 use crate::units::duration::Duration;
@@ -39,7 +39,16 @@ impl Default for BatteryTool {
 
 /// Simulates charging from empty to (near) full and records energy over time,
 /// mirroring the step-wise updates the simulation itself performs.
-fn compute_charge_curve(model: &CcCvChargingModel) -> Vec<(f32, f32)> {
+///
+/// Only supported for the CC-CV model, whose curve is month-independent.
+/// The seasonal-solar model's charge curve depends on calendar month, so a
+/// single fixed "empty to full" curve isn't representative -- skipped here.
+fn compute_charge_curve(model: &ChargingModel) -> Vec<(f32, f32)> {
+    let model = match model {
+        ChargingModel::CcCv(model) => model,
+        ChargingModel::SeasonalSolar(_) => return Vec::new(),
+    };
+
     let step = Duration::seconds(10.0);
     let mut energy = Energy::ZERO;
     let mut elapsed = 0.0_f32;
@@ -75,7 +84,7 @@ impl Tool for BatteryTool {
                         })
                         .unwrap_or_default()
                         .into();
-                    let line_charge_curve = Line::new("CC-CV charge curve", curve);
+                    let line_charge_curve = Line::new("Charge curve", curve);
 
                     Plot::new("battery_plot")
                         .legend(Legend::default())
@@ -116,7 +125,7 @@ impl Tool for BatteryTool {
                         );
                     // Charging model
                     let charging_model =
-                        CcCvChargingModel::from_config(&battery_config);
+                        ChargingModel::from_config(&battery_config);
 
                     self.charge_curve.insert(
                         whole_path.clone(),
@@ -138,13 +147,17 @@ impl Tool for BatteryTool {
                         VoltageDropLUT::from_csv(
                             "configs/movement_configs/consumption/fitted_lut.csv",
                         );
-                    // Physics discharge model
-                    let discharging_model =
-                        PhysicsDischargeModel::new(
-                            slip_model,
-                            voltage_drop_lut,
-                            terrain,
-                        );
+                    // Discharging model
+                    let discharging_model = match battery_config.discharge_model {
+                        DischargeModelKind::Physics => DischargingModel::Physics(
+                            PhysicsDischargeModel::new(
+                                slip_model,
+                                voltage_drop_lut,
+                                terrain,
+                            )
+                        ),
+                        DischargeModelKind::Simple => DischargingModel::Simple,
+                    };
                     // Battery
                     Battery::from_config(
                         battery_config,

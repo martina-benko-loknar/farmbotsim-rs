@@ -1,14 +1,21 @@
-use crate::{units::{duration::Duration, energy::Energy, power::Power, voltage::Voltage}, utilities::utils::load_json_or_panic};
+use crate::{battery_module::{charging::ChargingModelKind, discharging::DischargeModelKind}, units::{duration::Duration, energy::Energy, power::Power, voltage::Voltage}, utilities::utils::load_json_or_panic};
 
 /// Configuration for a battery model, including capacity, voltage, and charging parameters.
 ///
 /// The CC-CV fields and the seasonal-solar fields are each optional so a given
-/// battery config only needs to populate whichever charging model it uses.
+/// battery config only needs to populate whichever charging model
+/// `charging_model` selects.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct BatteryConfig {
     pub name: String,
     pub capacity: Energy,
     pub voltage: Voltage,
+
+    /// Which charging model to build from the fields below.
+    pub charging_model: ChargingModelKind,
+    /// Which discharging model to use (Physics ignores the fields below;
+    /// Simple needs none either, it uses global power-consumption constants).
+    pub discharge_model: DischargeModelKind,
 
     /// Constant-current charging power used below `cv_fraction` of capacity.
     #[serde(default)]

@@ -11,7 +11,7 @@ pub fn run_soc_sweep(
     output_dir: &str
 )-> Result<(), Box<dyn std::error::Error>> {
 
-    let thresholds = vec![50.0, 60.0, 70.0, 80.0];
+    let thresholds = vec![50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0];
     let seeds = 0..15;
     let resolution = 15;
     let output_dir_sweep = create_results_subdir(output_dir, "raw/soc_sweep")?;
@@ -25,6 +25,10 @@ pub fn run_soc_sweep(
 
     let baseline_exp = ExperimentConfig {
         n_agents: 3,
+        // Pinned explicitly: this sweep is the CC-CV/physics/Leo-Rover
+        // story, independent of whatever ExperimentConfig::default() is.
+        battery_capacity_wh: 73.2,
+        battery_voltage_v: 10.8,
         ..Default::default()
     };
     let filename = format!(
@@ -59,6 +63,10 @@ pub fn run_soc_sweep(
                 seed,
                 n_agents: 3,
                 soc_threshold_percent: threshold as f32,
+                // Pinned explicitly: this sweep is the CC-CV/physics/Leo-Rover
+                // story, independent of whatever ExperimentConfig::default() is.
+                battery_capacity_wh: 73.2,
+                battery_voltage_v: 10.8,
                 ..Default::default()
             };
 

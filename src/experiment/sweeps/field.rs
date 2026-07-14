@@ -28,6 +28,11 @@ pub fn run_field_size_sweep(
             let exp = ExperimentConfig {
                 seed,
                 field_config_path: path.to_string(),
+                // Pinned explicitly: this sweep is the CC-CV/physics/Leo-Rover
+                // story, independent of whatever ExperimentConfig::default()
+                // currently is.
+                battery_capacity_wh: 73.2,
+                battery_voltage_v: 10.8,
                 ..Default::default()
             };
 

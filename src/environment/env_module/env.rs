@@ -1,7 +1,7 @@
 use egui::Vec2;
 
 use crate::{
-    agent_module::{agent::Agent, agent_config::AgentConfig}, battery_module::{battery::Battery, battery_config::BatteryConfig, charging::CcCvChargingModel, discharging::{VoltageDropLUT, physics_model::PhysicsDischargeModel}}, environment::{
+    agent_module::{agent::Agent, agent_config::AgentConfig}, battery_module::{battery::Battery, battery_config::BatteryConfig, charging::ChargingModel, discharging::{DischargeModelKind, DischargingModel, VoltageDropLUT, physics_model::PhysicsDischargeModel}}, environment::{
         datetime::{DateTimeConfig, DateTimeManager},
         env_module::env_config::EnvConfig,
         field_config::FieldConfig,
@@ -137,14 +137,18 @@ impl Env {
             // );
 
             let charging_model =
-                CcCvChargingModel::from_config(&battery_config);
+                ChargingModel::from_config(&battery_config);
 
-            let discharging_model =
-                PhysicsDischargeModel::new(
-                    slip_model.clone(),
-                    voltage_drop_lut.clone(),
-                    terrain.clone(),
-                );
+            let discharging_model = match battery_config.discharge_model {
+                DischargeModelKind::Physics => DischargingModel::Physics(
+                    PhysicsDischargeModel::new(
+                        slip_model.clone(),
+                        voltage_drop_lut.clone(),
+                        terrain.clone(),
+                    )
+                ),
+                DischargeModelKind::Simple => DischargingModel::Simple,
+            };
 
             // let initial_soc = overrides
             //     .and_then(|o| o.initial_soc_percent)
@@ -273,14 +277,18 @@ impl Env {
             );
 
             let charging_model =
-                CcCvChargingModel::from_config(&battery_config);
+                ChargingModel::from_config(&battery_config);
 
-            let discharging_model =
-                PhysicsDischargeModel::new(
-                    slip_model.clone(),
-                    voltage_drop_lut.clone(),
-                    terrain.clone(),
-                );
+            let discharging_model = match battery_config.discharge_model {
+                DischargeModelKind::Physics => DischargingModel::Physics(
+                    PhysicsDischargeModel::new(
+                        slip_model.clone(),
+                        voltage_drop_lut.clone(),
+                        terrain.clone(),
+                    )
+                ),
+                DischargeModelKind::Simple => DischargingModel::Simple,
+            };
 
             let battery = Battery::from_config(
                 battery_config,

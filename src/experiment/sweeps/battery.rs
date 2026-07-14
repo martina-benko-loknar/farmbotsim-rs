@@ -11,7 +11,7 @@ pub fn run_battery_sweep(
     output_dir: &str
 ) -> Result<(), Box<dyn std::error::Error>> {
 
-    let capacities = vec![65.0, 73.2, 75.0, 80.0];
+    let capacities = vec![65.0, 67.5, 70.0, 72.5, 73.2, 75.0, 77.5, 80.0];
     let seeds = 0..15;
     let resolution = 15;
     let output_dir_sweep = create_results_subdir(output_dir, "raw/battery_sweep")?;
@@ -24,7 +24,13 @@ pub fn run_battery_sweep(
     // then run the sensitivity sweep around that fixed position.
     // ---------------------------------------------------------
 
-    let baseline_exp = ExperimentConfig::default();
+    let baseline_exp = ExperimentConfig {
+        // Pinned explicitly: this sweep is the CC-CV/physics/Leo-Rover
+        // story, independent of whatever ExperimentConfig::default() is.
+        battery_capacity_wh: 73.2,
+        battery_voltage_v: 10.8,
+        ..Default::default()
+    };
     let filename = format!(
         "size={}_fleet={}_batt={}_soc={}",
         baseline_exp.field_size_label(),
@@ -57,6 +63,9 @@ pub fn run_battery_sweep(
             let exp = ExperimentConfig {
                 seed,
                 battery_capacity_wh: battery_capacity_wh as f32,
+                // Pinned explicitly: this sweep is the CC-CV/physics/Leo-Rover
+                // story, independent of whatever ExperimentConfig::default() is.
+                battery_voltage_v: 10.8,
                 ..Default::default()
             };
 

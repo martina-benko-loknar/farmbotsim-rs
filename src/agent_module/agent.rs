@@ -11,7 +11,7 @@ use crate::{
 };
 
 use crate::units::energy::Energy;
-use crate::battery_module::discharging::traits::DischargeModel;
+use crate::battery_module::discharging::WorkPowerDraw;
 /// Represents agent ID
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AgentId(u32);
@@ -78,7 +78,8 @@ impl Agent {
         }
     }
 
-    pub fn compute_energy_loss(
+    /// Energy lost while traveling (state `Travel`).
+    pub fn compute_travel_energy_loss(
         &self,
         slope_rad: f32,
         dt: Duration,
@@ -87,7 +88,39 @@ impl Agent {
 
         self.battery
             .discharging_model
-            .compute_energy_loss(wheel_speed, slope_rad, dt)
+            .compute_travel_energy_loss(
+                self.velocity_lin,
+                self.movement.max_velocity(),
+                wheel_speed,
+                slope_rad,
+                dt,
+            )
+    }
+
+    /// Energy lost while working (state `Work`).
+    pub fn compute_work_energy_loss(
+        &self,
+        slope_rad: f32,
+        dt: Duration,
+    ) -> Energy {
+        let wheel_speed = self.velocity_lin.to_base_unit();
+
+        let work_power_draw = match &self.current_task {
+            Some(Task::Stationary { power, .. }) => WorkPowerDraw::Stationary(*power),
+            Some(Task::Moving { power, .. }) => WorkPowerDraw::Moving(*power),
+            _ => WorkPowerDraw::Other,
+        };
+
+        self.battery
+            .discharging_model
+            .compute_work_energy_loss(
+                self.velocity_lin,
+                self.movement.max_velocity(),
+                work_power_draw,
+                wheel_speed,
+                slope_rad,
+                dt,
+            )
     }
 
     /// Updates the agent's state, task, movement, and battery based on simulation time.

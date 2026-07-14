@@ -54,8 +54,8 @@ impl Default for ExperimentConfig {
 
         Self {
             seed: 0,
-            battery_capacity_wh: 73.2,
-            battery_voltage_v: 10.8,
+            battery_capacity_wh: 423.0,
+            battery_voltage_v: 24.0,
             n_agents: 1,
             critical_soc_percent: 45.0,
             soc_threshold_percent: 60.0,

@@ -2,11 +2,11 @@ use std::collections::VecDeque;
 
 use crate::{
     battery_module::{
-        battery_config::BatteryConfig, charging::CcCvChargingModel, discharging::physics_model::PhysicsDischargeModel, is_battery::IsBattery
+        battery_config::BatteryConfig, charging::ChargingModel, discharging::DischargingModel, is_battery::IsBattery
     },
     units::{duration::Duration, energy::Energy, power::Power, voltage::Voltage},
 };
-/// Represents a rechargeable battery with energy capacity, voltage, and a CC-CV charging model.
+/// Represents a rechargeable battery with energy capacity, voltage, and a charging model, and a discharging model.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Battery {
     pub voltage: Voltage,
@@ -17,8 +17,8 @@ pub struct Battery {
     update_count: u32,
     pub soc_history: VecDeque<f32>,
 
-    pub charging_model: CcCvChargingModel,
-    pub discharging_model: PhysicsDischargeModel
+    pub charging_model: ChargingModel,
+    pub discharging_model: DischargingModel
 }
 
 impl IsBattery for Battery {
@@ -37,13 +37,13 @@ impl IsBattery for Battery {
         self.update();
     }
     
-    /// Increases battery energy using the CC-CV charging model.
-    fn charge(&mut self, duration: Duration) {
+    /// Increases battery energy using the battery's configured charging model.
+    fn charge(&mut self, duration: Duration, month: u32) {
         if self.energy >= self.capacity {
             return;
         }
 
-        let new_energy = self.charging_model.compute_charge(self.energy, duration);
+        let new_energy = self.charging_model.compute_charge(self.energy, duration, month);
 
         self.energy = new_energy.min(self.capacity);
         self.soc = (self.energy / self.capacity) * 100.0;
@@ -66,8 +66,8 @@ impl Battery {
     pub fn from_config(
         config: BatteryConfig,
         initial_soc: f32,
-        charging_model: CcCvChargingModel,
-        discharging_model: PhysicsDischargeModel,
+        charging_model: ChargingModel,
+        discharging_model: DischargingModel,
     ) -> Self {
         let soc = initial_soc.clamp(0.0, 100.0);
 
