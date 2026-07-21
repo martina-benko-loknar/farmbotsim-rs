@@ -1,4 +1,4 @@
-use std::{collections::{HashMap}, fs::File, io::{BufRead, BufReader}, path::Path};
+use std::{fs::File, io::{BufRead, BufReader}, path::Path};
 
 use crate::{
     battery_module::{
@@ -16,8 +16,6 @@ pub struct SeasonalBatteryModel {
     pub jan_max_data: Vec<(u32, f32)>,
     pub jan_min_data: Vec<(u32, f32)>,
     pub jun_max_data: Vec<(u32, f32)>,
-
-    pub start_index: HashMap<String, usize>,
 }
 
 impl SeasonalBatteryModel{
@@ -60,6 +58,12 @@ impl SeasonalBatteryModel{
     }
 
     // Finds interpolated energy output for a given input time in the month’s dataset.
+    //
+    // Always scans from the start: energy isn't monotonic across calls (the
+    // agent discharges between charging visits, so a later call's `x`/`y`
+    // can be lower than an earlier call's), so a cached forward-only start
+    // index would skip past the bracket that a lower value falls into.
+    // Tables are a few hundred rows, so the full scan is cheap.
     fn find_y_for_x_month(&mut self, month: &str, x: u32) -> Result<f32, BatteryError> {
         let data = match month {
             "jan" => &self.jan_min_data,
@@ -67,19 +71,19 @@ impl SeasonalBatteryModel{
             _ => return Err(BatteryError::UnsupportedMonth(month.to_string())),
         };
 
-        let start = *self.start_index.get(month).unwrap_or(&1);
-        for i in start..data.len() {
+        for i in 1..data.len() {
             let (x0, y0) = data[i - 1];
             let (x1, y1) = data[i];
             if x0 <= x && x <= x1 {
-                self.start_index.insert(month.to_string(), std::cmp::max(1, i - 1));
                 return Ok(linear_interpolate(x0 as f32, y0, x1 as f32, y1, x as f32));
             }
         }
         Err(BatteryError::NoYForX(x.to_string()))
     }
 
-    // Finds interpolated time needed to reach a given energy in the month’s dataset.
+    // Finds interpolated time needed to reach a given energy in the month’s
+    // dataset. See find_y_for_x_month's doc comment for why this always
+    // scans from the start rather than caching a forward-only position.
     fn find_x_for_y_month(&mut self, month: &str, y: f32) -> Result<u32, BatteryError> {
         let data = match month {
             "jan" => &self.jan_min_data,
@@ -87,12 +91,10 @@ impl SeasonalBatteryModel{
             _ => return  Err(BatteryError::UnsupportedMonth(month.to_string())),
         };
 
-        let start = *self.start_index.get(month).unwrap_or(&1);
-        for i in start..data.len() {
+        for i in 1..data.len() {
             let (x0, y0) = data[i - 1];
             let (x1, y1) = data[i];
             if y0 <= y && y <= y1 {
-                self.start_index.insert(month.to_string(), std::cmp::max(1, i - 1));
                 return Ok(linear_interpolate(y0, x0 as f32, y1, x1 as f32, y) as u32);
             }
         }
@@ -152,11 +154,6 @@ impl SeasonalBatteryModel{
                 Self::get_month_data_points(
                     format!("{}{}", path, jun_max)
                 ),
-
-            start_index: HashMap::from([
-                ("jan".to_string(), 1),
-                ("jun".to_string(), 1),
-            ]),
         }
     }
 
