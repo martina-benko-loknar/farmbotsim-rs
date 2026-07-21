@@ -38,6 +38,7 @@ use crate::experiment::runner::{
     run_single_evaluation,
 };
 use crate::experiment::config::ExperimentConfig;
+use crate::experiment::profile::ExperimentProfile;
 use crate::experiment::models::{ExperimentInfo, ExperimentType};
 use crate::experiment::output::create_results_subdir;
 
@@ -137,6 +138,10 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
 
     let args: Vec<String> = std::env::args().collect();
 
+    let profile = ExperimentProfile::from_flag(
+        get_arg_value(&args, "--profile").as_deref()
+    );
+
     let base_output = create_output_directory()?;
 
     let run_viz = args.contains(&"--viz".to_string());
@@ -154,8 +159,11 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
     // ---------- Single evaluation ----------------
     if args.contains(&"--single-evaluation".to_string()) {
 
-        let exp = ExperimentConfig::default();
-        let output_dir_exp = create_results_subdir(&base_output, "raw/single_evaluation_exp")?;
+        let exp = ExperimentConfig::for_profile(profile);
+        let output_dir_exp = create_results_subdir(
+            &base_output,
+            &format!("raw/{}/single_evaluation_exp", profile.label()),
+        )?;
         let filename=  format!(
             "size={}_fleet={}_batt={:.0}_soc={}",
             exp.field_size_label(),
@@ -185,8 +193,11 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
     if args.contains(&"--optimize-ego".to_string()) {
 
         let n_stations = get_station_number(&args);
-        let exp = ExperimentConfig::default();
-        let output_dir_exp = create_results_subdir(&base_output, "raw/ego_exp")?;
+        let exp = ExperimentConfig::for_profile(profile);
+        let output_dir_exp = create_results_subdir(
+            &base_output,
+            &format!("raw/{}/ego_exp", profile.label()),
+        )?;
         let filename=  format!(
             "size={}_fleet={}_batt={:.0}_soc={}",
             exp.field_size_label(),
@@ -209,7 +220,10 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
         );
 
         if run_viz {
-            let figures_dir_exp = create_results_subdir(&base_output, "figures/ego_exp")?;
+            let figures_dir_exp = create_results_subdir(
+                &base_output,
+                &format!("figures/{}/ego_exp", profile.label()),
+            )?;
             let run_stem = format!("{timestamp}_{filename}");
             run_viz_script(
                 "analysis/plotting/ego_viz.py",
@@ -225,9 +239,12 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
     // ---------- Grid search experiment -----------
     if args.contains(&"--grid-search".to_string()) {
 
-        let exp = ExperimentConfig::default();
+        let exp = ExperimentConfig::for_profile(profile);
         let resolution = get_grid_resolution(&args, exp.field_resolution);
-        let output_dir_exp = create_results_subdir(&base_output, "raw/grid_search_exp")?;
+        let output_dir_exp = create_results_subdir(
+            &base_output,
+            &format!("raw/{}/grid_search_exp", profile.label()),
+        )?;
         let filename=  format!(
             "size={}_fleet={}_batt={:.0}_soc={}",
             exp.field_size_label(),
@@ -249,7 +266,10 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
             );
 
         if run_viz {
-            let figures_dir_exp = create_results_subdir(&base_output, "figures/grid_search_exp")?;
+            let figures_dir_exp = create_results_subdir(
+                &base_output,
+                &format!("figures/{}/grid_search_exp", profile.label()),
+            )?;
             let run_stem = format!("{timestamp}_{filename}");
             run_viz_script(
                 "analysis/plotting/single_station_viz.py",
@@ -265,9 +285,12 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
     // --- Single-station study (EGO + grid search) ---
     if args.contains(&"--single-station-study".to_string()) {
 
-        let exp = ExperimentConfig::default();
+        let exp = ExperimentConfig::for_profile(profile);
         let resolution = get_grid_resolution(&args, exp.field_resolution);
-        let output_dir_exp = create_results_subdir(&base_output, "raw/single_station_exp")?;
+        let output_dir_exp = create_results_subdir(
+            &base_output,
+            &format!("raw/{}/single_station_exp", profile.label()),
+        )?;
         let filename=  format!(
             "size={}_fleet={}_batt={:.0}_soc={}",
             exp.field_size_label(),
@@ -289,7 +312,10 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
         );
 
         if run_viz {
-            let figures_dir_exp = create_results_subdir(&base_output, "figures/single_station_exp")?;
+            let figures_dir_exp = create_results_subdir(
+                &base_output,
+                &format!("figures/{}/single_station_exp", profile.label()),
+            )?;
             let run_stem = format!("{timestamp}_{filename}");
             run_viz_script(
                 "analysis/plotting/single_station_viz.py",
@@ -305,8 +331,11 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
     // --- Multi(2)-station study (EGO + specialist layouts) -----
     if args.contains(&"--multi-station-study".to_string()) {
 
-        let exp = ExperimentConfig::default();
-        let output_dir_exp = create_results_subdir(&base_output, "raw/multi_station_exp")?;
+        let exp = ExperimentConfig::for_profile(profile);
+        let output_dir_exp = create_results_subdir(
+            &base_output,
+            &format!("raw/{}/multi_station_exp", profile.label()),
+        )?;
         let filename=  format!(
             "size={}_fleet={}_batt={:.0}_soc={}",
             exp.field_size_label(),
@@ -327,7 +356,10 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
             info);
 
         if run_viz {
-            let figures_dir_exp = create_results_subdir(&base_output, "figures/multi_station_exp")?;
+            let figures_dir_exp = create_results_subdir(
+                &base_output,
+                &format!("figures/{}/multi_station_exp", profile.label()),
+            )?;
             let run_stem = format!("{timestamp}_{filename}");
             run_viz_script(
                 "analysis/plotting/multi_station_viz.py",
@@ -343,22 +375,23 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
     // --- Sweeps ------------------------------------------------
 
     if args.contains(&"--battery-sweep".to_string()) {
-        experiment::sweeps::battery::run_battery_sweep(&base_output)?;
+        experiment::sweeps::battery::run_battery_sweep(profile, &base_output)?;
         return Ok(())
     }
 
     if args.contains(&"--fleet-sweep".to_string()) {
-        experiment::sweeps::fleet::run_fleet_sweep(&base_output)?;
+        experiment::sweeps::fleet::run_fleet_sweep(profile, &base_output)?;
         return Ok(())
     }
 
     if args.contains(&"--field-sweep".to_string()) {
+        // Vineyard-only: see run_field_size_sweep's doc comment.
         experiment::sweeps::field::run_field_size_sweep(&base_output)?;
         return Ok(())
     }
 
     if args.contains(&"--soc-sweep".to_string()) {
-        experiment::sweeps::soc::run_soc_sweep(&base_output)?;
+        experiment::sweeps::soc::run_soc_sweep(profile, &base_output)?;
         return Ok(())
     }
 

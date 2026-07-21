@@ -1,7 +1,6 @@
 use egui::Pos2;
 use std::time::Instant;
 
-use crate::cfg::DEFAULT_AGENT_CONFIG_PATH;
 use crate::experiment::config::ExperimentConfig;
 use crate::environment::{
     datetime::DateTimeConfig,
@@ -34,6 +33,7 @@ pub struct LayoutEvaluation {
 
 fn default_env_config(
     scene_config_path: String,
+    agent_config_path: String,
 ) -> EnvConfig {
 
     let mut env_config = EnvConfig::default();
@@ -42,7 +42,7 @@ fn default_env_config(
         scene_config_path;
 
     env_config.agent_config_path =
-        DEFAULT_AGENT_CONFIG_PATH.to_string();
+        agent_config_path;
 
     env_config.datetime_config =
         DateTimeConfig::from_string(
@@ -92,7 +92,10 @@ pub fn evaluate_station_layout(
     // ----------------------------------------
     // Env config (base)
     // ----------------------------------------
-    let mut env_config = default_env_config(temp_scene_path.clone());
+    let mut env_config = default_env_config(
+        temp_scene_path.clone(),
+        exp.agent_config_path.clone(),
+    );
     env_config.n_agents = exp.n_agents;
 
     // ----------------------------------------
@@ -114,7 +117,7 @@ pub fn evaluate_station_layout(
         agent_config_path: env_config.agent_config_path.clone(),
         datetime_config: env_config.datetime_config.clone(),
         env_config,
-        termination_condition: TerminationCondition::NumberCompletedTasks(1000),
+        termination_condition: TerminationCondition::NumberCompletedTasks(exp.n_tasks_target),
         env: None, // Some (env)
         save_to_file: false,
         save_file_name: format!("layout_eval_{}", random_id),

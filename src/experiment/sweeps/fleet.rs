@@ -3,17 +3,22 @@ use crate::experiment::output::create_results_subdir;
 use crate::experiment::sweeps::sweep_utils::print_experiment_info;
 use crate::experiment::models::{ExperimentType, ExperimentInfo};
 use crate::experiment::config::ExperimentConfig;
+use crate::experiment::profile::ExperimentProfile;
 
 pub fn run_fleet_sweep(
+    profile: ExperimentProfile,
     output_dir: &str
 ) -> Result<(), Box<dyn std::error::Error>> {
 
     let fleet_sizes = vec![1, 2, 3, 4];
     let seeds = 0..5;
     let resolution = 15;
-    let output_dir_sweep = create_results_subdir(output_dir, "raw/fleet_sweep")?;
-  
-    println!("\n===== EXPERIMENT: Fleet size sweep ===================================");
+    let output_dir_sweep = create_results_subdir(
+        output_dir,
+        &format!("raw/{}/fleet_sweep", profile.label()),
+    )?;
+
+    println!("\n===== EXPERIMENT: Fleet size sweep ({}) ======================", profile.label());
 
     for n_agents in fleet_sizes {
 
@@ -22,12 +27,7 @@ pub fn run_fleet_sweep(
             let exp = ExperimentConfig {
                 seed,
                 n_agents: n_agents as u32,
-                // Pinned explicitly: this sweep is the CC-CV/physics/Leo-Rover
-                // story, independent of whatever ExperimentConfig::default()
-                // currently is.
-                battery_capacity_wh: 73.2,
-                battery_voltage_v: 10.8,
-                ..Default::default()
+                ..ExperimentConfig::for_profile(profile)
             };
 
             print_experiment_info(&exp);

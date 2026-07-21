@@ -2,24 +2,28 @@ use crate::experiment::runner::run_single_station_experiment;
 use crate::experiment::output::create_results_subdir;
 use crate::experiment::sweeps::sweep_utils::print_experiment_info;
 use crate::experiment::models::{ExperimentType, ExperimentInfo};
+use crate::experiment::profile::ExperimentProfile;
 use crate::ExperimentConfig;
 
+/// Vineyard-only for now: field size is a meaningful sweep axis for the
+/// vineyard small/medium/large/xlarge fields, but field1-4 in the legacy
+/// profile are four distinct fields rather than a size progression, so
+/// what a "legacy field sweep" should even mean is still undecided.
 pub fn run_field_size_sweep(
     output_dir: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
 
-    let field_sizes = vec![
-        "configs/field_configs/vineyard/small.json",
-        "configs/field_configs/vineyard/medium.json",
-        "configs/field_configs/vineyard/large.json",
-        "configs/field_configs/vineyard/xlarge.json",
-    ];
+    let profile = ExperimentProfile::Vineyard;
+    let field_sizes = profile.field_configs();
 
     let seeds = 0..5;
     let resolution = 15;
-    let output_dir_sweep = create_results_subdir(output_dir, "raw/field_sweep")?;
+    let output_dir_sweep = create_results_subdir(
+        output_dir,
+        &format!("raw/{}/field_sweep", profile.label()),
+    )?;
 
-    println!("\n===== EXPERIMENT: Field size sweep ===================================");
+    println!("\n===== EXPERIMENT: Field size sweep ({}) ======================", profile.label());
 
     for path in field_sizes {
 
@@ -28,12 +32,7 @@ pub fn run_field_size_sweep(
             let exp = ExperimentConfig {
                 seed,
                 field_config_path: path.to_string(),
-                // Pinned explicitly: this sweep is the CC-CV/physics/Leo-Rover
-                // story, independent of whatever ExperimentConfig::default()
-                // currently is.
-                battery_capacity_wh: 73.2,
-                battery_voltage_v: 10.8,
-                ..Default::default()
+                ..ExperimentConfig::for_profile(profile)
             };
 
             print_experiment_info(&exp);

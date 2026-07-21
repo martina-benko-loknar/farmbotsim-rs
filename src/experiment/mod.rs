@@ -9,4 +9,5 @@ pub mod station_layouts;
 pub mod evaluation;
 pub mod search_domain;
 pub mod config;
+pub mod profile;
 pub mod sweeps;

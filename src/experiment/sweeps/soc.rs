@@ -5,18 +5,23 @@ use crate::experiment::runner::{
 use crate::experiment::output::create_results_subdir;
 use crate::experiment::sweeps::sweep_utils::print_experiment_info;
 use crate::experiment::models::{ExperimentType, ExperimentInfo};
+use crate::experiment::profile::ExperimentProfile;
 use crate::ExperimentConfig;
 
 pub fn run_soc_sweep(
+    profile: ExperimentProfile,
     output_dir: &str
 )-> Result<(), Box<dyn std::error::Error>> {
 
     let thresholds = vec![50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0];
     let seeds = 0..15;
     let resolution = 15;
-    let output_dir_sweep = create_results_subdir(output_dir, "raw/soc_sweep")?;
+    let output_dir_sweep = create_results_subdir(
+        output_dir,
+        &format!("raw/{}/soc_sweep", profile.label()),
+    )?;
 
-    println!("\n===== EXPERIMENT: SoC threshold sweep ===================================");
+    println!("\n===== EXPERIMENT: SoC threshold sweep ({}) ===================", profile.label());
 
     // ---------------------------------------------------------
     // Find the best station position once (grid search + EGO),
@@ -25,11 +30,7 @@ pub fn run_soc_sweep(
 
     let baseline_exp = ExperimentConfig {
         n_agents: 3,
-        // Pinned explicitly: this sweep is the CC-CV/physics/Leo-Rover
-        // story, independent of whatever ExperimentConfig::default() is.
-        battery_capacity_wh: 73.2,
-        battery_voltage_v: 10.8,
-        ..Default::default()
+        ..ExperimentConfig::for_profile(profile)
     };
     let filename = format!(
         "size={}_fleet={}_batt={}_soc={}",
@@ -63,11 +64,7 @@ pub fn run_soc_sweep(
                 seed,
                 n_agents: 3,
                 soc_threshold_percent: threshold as f32,
-                // Pinned explicitly: this sweep is the CC-CV/physics/Leo-Rover
-                // story, independent of whatever ExperimentConfig::default() is.
-                battery_capacity_wh: 73.2,
-                battery_voltage_v: 10.8,
-                ..Default::default()
+                ..ExperimentConfig::for_profile(profile)
             };
 
             print_experiment_info(&exp);

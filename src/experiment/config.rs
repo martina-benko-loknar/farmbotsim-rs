@@ -3,12 +3,18 @@ use serde::Deserialize;
 
 use crate::environment::field_config::FieldConfig;
 use crate::environment::scene_config::SceneConfig;
+use crate::experiment::profile::ExperimentProfile;
 use crate::utilities::utils::load_json_or_panic;
 use crate::utilities::utils::load_scene_config;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ExperimentConfig {
     pub seed: u64,
+
+    /// Agent config selecting the battery (capacity/voltage and
+    /// charging/discharging model) this experiment runs with. Set via
+    /// `ExperimentProfile::agent_config_path`.
+    pub agent_config_path: String,
 
     pub battery_capacity_wh: f32,
     pub battery_voltage_v: f32,
@@ -20,6 +26,11 @@ pub struct ExperimentConfig {
 
     pub field_resolution: usize,
     pub field_config_path: String,
+
+    /// Number of completed tasks a single evaluation runs until. Set via
+    /// `ExperimentProfile::n_tasks_target` so slower/lower-capacity robots
+    /// aren't held to the same task count as the legacy robot.
+    pub n_tasks_target: u32,
 }
 
 impl ExperimentConfig {
@@ -48,19 +59,28 @@ impl ExperimentConfig {
     }
 }
 
-impl Default for ExperimentConfig {
-
-    fn default() -> Self {
-
+impl ExperimentConfig {
+    /// Baseline config for a given experiment profile: agent/battery config,
+    /// field config, and battery capacity/voltage all come from `profile`,
+    /// so the field-set and the battery model can never drift out of sync.
+    pub fn for_profile(profile: ExperimentProfile) -> Self {
         Self {
             seed: 0,
-            battery_capacity_wh: 423.0,
-            battery_voltage_v: 24.0,
+            agent_config_path: profile.agent_config_path().to_string(),
+            battery_capacity_wh: profile.battery_capacity_wh(),
+            battery_voltage_v: profile.battery_voltage_v(),
             n_agents: 1,
             critical_soc_percent: 45.0,
             soc_threshold_percent: 60.0,
             field_resolution: 35,
-            field_config_path: "configs/field_configs/vineyard/xlarge.json".to_string(),
+            field_config_path: profile.default_field_config().to_string(),
+            n_tasks_target: profile.n_tasks_target(),
         }
+    }
+}
+
+impl Default for ExperimentConfig {
+    fn default() -> Self {
+        Self::for_profile(ExperimentProfile::Vineyard)
     }
 }
