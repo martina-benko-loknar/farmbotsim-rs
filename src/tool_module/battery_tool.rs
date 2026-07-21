@@ -8,7 +8,7 @@ use crate::{
 
 use crate::battery_module::charging::ChargingModel;
 use crate::battery_module::discharging::physics_model::PhysicsDischargeModel;
-use crate::battery_module::discharging::{DischargeModelKind, DischargingModel, VoltageDropLUT};
+use crate::battery_module::discharging::{DischargeModelKind, DischargingModel, SlopeConsumptionConfig};
 use crate::terrain::TerrainLoader;
 use crate::terrain::slip::SlipModel;
 use crate::units::duration::Duration;
@@ -142,17 +142,18 @@ impl Tool for BatteryTool {
                         SlipModel::from_json_file(
                             "configs/scene_configs/vineyard_scene/baggy-slip-linear.json",
                         );
-                    // Voltage-drop LUT
-                    let voltage_drop_lut =
-                        VoltageDropLUT::from_csv(
-                            "configs/movement_configs/consumption/fitted_lut.csv",
+                    // Slope-based consumption model (travel/work)
+                    let slope_consumption =
+                        SlopeConsumptionConfig::from_json_file(
+                            "configs/movement_configs/consumption/slope_consumption.json",
                         );
                     // Discharging model
                     let discharging_model = match battery_config.discharge_model {
                         DischargeModelKind::Physics => DischargingModel::Physics(
                             PhysicsDischargeModel::new(
                                 slip_model,
-                                voltage_drop_lut,
+                                slope_consumption.travel,
+                                slope_consumption.work,
                                 terrain,
                             )
                         ),

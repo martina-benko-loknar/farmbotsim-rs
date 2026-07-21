@@ -6,6 +6,18 @@ pub const TOLERANCE_ANGLE: Angle = Angle::degrees(0.05);
 pub const POWER_CONSUMPTION_WAIT: Power = Power::watts(10.0); // W/s
 pub const POWER_CONSUMPTION_TRAVEL: Power = Power::watts(2.0*350.0); // W/s
 
+/// Leo Rover's official average power draw while driving, backed out from
+/// the manufacturer's published runtime spec for the same 3S2P 6800mAh
+/// (73.2 Wh) battery used in configs/batteries/leo_rover: ~4h of nominal
+/// driving on a full charge, i.e. 73.2 Wh / 4 h = 18.3 W.
+/// Source: https://docs.fictionlab.pl/leo-rover/documentation/specification
+/// No direct current/power-draw spec is published, so this runtime figure
+/// is used instead to calibrate PhysicsDischargeModel's V-drop-to-Wh
+/// conversion constant (see physics_model.rs) -- it's a single lumped
+/// average over unspecified driving conditions, not a slope/speed-resolved
+/// measurement, so treat it as a plausible anchor, not ground truth.
+pub const LEO_ROVER_NOMINAL_DRIVING_POWER_W: f32 = 18.3;
+
 pub const MAX_VELOCITY_BETWEEN_POINTS: LinearVelocity = LinearVelocity::kilometers_per_hour(3.0); // between farm entities
 
 

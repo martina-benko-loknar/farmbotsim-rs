@@ -1,7 +1,9 @@
 pub mod traits;
 pub mod lut;
+pub mod slope_consumption;
 pub mod physics_model;
 pub use lut::VoltageDropLUT;
+pub use slope_consumption::{SlopeConsumptionConfig, SlopeConsumptionModel};
 
 use crate::battery_module::discharging::traits::DischargeModel;
 use crate::cfg::POWER_CONSUMPTION_TRAVEL;
@@ -50,7 +52,7 @@ impl DischargingModel {
     ) -> Energy {
         match self {
             Self::Physics(model) =>
-                model.compute_energy_loss(wheel_speed, slope_rad, duration),
+                model.compute_travel_energy_loss(wheel_speed, slope_rad, duration),
             Self::Simple => {
                 let power = POWER_CONSUMPTION_TRAVEL * (velocity_lin / max_velocity);
                 power * duration
@@ -72,7 +74,7 @@ impl DischargingModel {
     ) -> Energy {
         match self {
             Self::Physics(model) =>
-                model.compute_energy_loss(wheel_speed, slope_rad, duration),
+                model.compute_work_energy_loss(wheel_speed, slope_rad, duration),
             Self::Simple => {
                 let travel_power = POWER_CONSUMPTION_TRAVEL * (velocity_lin / max_velocity);
                 let power = match work_power_draw {

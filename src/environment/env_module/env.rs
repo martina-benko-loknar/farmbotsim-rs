@@ -1,7 +1,7 @@
 use egui::Vec2;
 
 use crate::{
-    agent_module::{agent::Agent, agent_config::AgentConfig}, battery_module::{battery::Battery, battery_config::BatteryConfig, charging::ChargingModel, discharging::{DischargeModelKind, DischargingModel, VoltageDropLUT, physics_model::PhysicsDischargeModel}}, environment::{
+    agent_module::{agent::Agent, agent_config::AgentConfig}, battery_module::{battery::Battery, battery_config::BatteryConfig, charging::ChargingModel, discharging::{DischargeModelKind, DischargingModel, SlopeConsumptionConfig, physics_model::PhysicsDischargeModel}}, environment::{
         datetime::{DateTimeConfig, DateTimeManager},
         env_module::env_config::EnvConfig,
         field_config::FieldConfig,
@@ -103,8 +103,8 @@ impl Env {
             "configs/scene_configs/vineyard_scene/baggy-slip-linear.json",
         );
 
-        let voltage_drop_lut = VoltageDropLUT::from_csv(
-            "configs/movement_configs/consumption/fitted_lut.csv",
+        let slope_consumption = SlopeConsumptionConfig::from_json_file(
+            "configs/movement_configs/consumption/slope_consumption.json",
         );
 
         for i in 0..n_agents {
@@ -143,7 +143,8 @@ impl Env {
                 DischargeModelKind::Physics => DischargingModel::Physics(
                     PhysicsDischargeModel::new(
                         slip_model.clone(),
-                        voltage_drop_lut.clone(),
+                        slope_consumption.travel,
+                        slope_consumption.work,
                         terrain.clone(),
                     )
                 ),
@@ -253,8 +254,8 @@ impl Env {
             "configs/scene_configs/vineyard_scene/baggy-slip-linear.json",
         );
 
-        let voltage_drop_lut = VoltageDropLUT::from_csv(
-            "configs/movement_configs/consumption/fitted_lut.csv",
+        let slope_consumption = SlopeConsumptionConfig::from_json_file(
+            "configs/movement_configs/consumption/slope_consumption.json",
         );
 
         for i in 0..self.n_agents {
@@ -283,7 +284,8 @@ impl Env {
                 DischargeModelKind::Physics => DischargingModel::Physics(
                     PhysicsDischargeModel::new(
                         slip_model.clone(),
-                        voltage_drop_lut.clone(),
+                        slope_consumption.travel,
+                        slope_consumption.work,
                         terrain.clone(),
                     )
                 ),
