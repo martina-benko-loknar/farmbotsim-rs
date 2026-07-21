@@ -135,6 +135,14 @@ impl SingleEvaluation {
         self.previous_agent_positions = vec![egui::Pos2::ZERO; n_agents];
         self.step_start_time = Duration::ZERO;
 
+        // Stall watchdog: if a full episode's worth of wall-clock time
+        // passes with no task completing, the sim has gotten stuck (e.g. an
+        // agent that can never converge on a target) and none of the
+        // termination conditions below can ever fire on their own. Abort
+        // and dump agent state instead of spinning forever.
+        const STALL_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(120);
+        let mut last_progress_at = std::time::Instant::now();
+
         while self.running {
             if let Some(env) = &mut self.env {
 
@@ -255,6 +263,7 @@ impl SingleEvaluation {
                 
                 // Count work tasks that were officially completed this step
                 if completed_tasks_count_after > completed_tasks_count_before {
+                    last_progress_at = std::time::Instant::now();
                     let new_completed_tasks = &env.task_manager.completed_tasks[completed_tasks_count_before..];
                     for task in new_completed_tasks {
                         match task {
@@ -320,32 +329,76 @@ impl SingleEvaluation {
                 // Update total charging distance (sum of approach and departure)
                 self.total_charging_distance = self.total_charging_approach_distance + self.total_charging_departure_distance;
 
-                let (finished, n_completed_tasks, env_duration) = match self.termination_condition {
-                    TerminationCondition::AllTasksCompleted => {
-                        let scene_config: SceneConfig = load_json_or_panic(self.scene_config_path.clone());
-                        let field_config: FieldConfig = load_json_or_panic(scene_config.field_config_path);
-                        if let Some(n_actions) = field_config.number_of_actions() {
-                            if env.task_manager.completed_tasks.len() as u32 == n_actions {
+                // Discharged is a dead end (no transition ever leads back out of
+                // it), so if every agent has landed there the termination
+                // condition below can never be satisfied. Stop here instead of
+                // looping forever; the shortfall shows up as completed_tasks
+                // undershooting whatever the caller expected.
+                let all_agents_discharged = !env.agents.is_empty()
+                    && env.agents.iter().all(|a|
+                        a.state == crate::agent_module::agent_state::AgentState::Discharged
+                    );
+                let stalled = last_progress_at.elapsed() > STALL_TIMEOUT;
+
+                let (finished, n_completed_tasks, env_duration) = if stalled {
+                    println!(
+                        "WARNING: no task completed in the last {:?} -- aborting stalled simulation instead of hanging. \
+                        Simulated time reached: {:.1}s ({} steps). Tasks completed so far: {}. Agent state at abort:",
+                        STALL_TIMEOUT,
+                        env.duration.to_base_unit(),
+                        env.step_count,
+                        env.task_manager.completed_tasks.len(),
+                    );
+                    for agent in &env.agents {
+                        let task_desc = match &agent.current_task {
+                            Some(task) => format!(
+                                "intent={:?}, {} waypoint(s) left",
+                                task.get_intent(),
+                                task.get_path().map(|p| p.len()).unwrap_or(0),
+                            ),
+                            None => "none".to_string(),
+                        };
+                        println!(
+                            "  agent {:?}: state={:?}, pos=({:.3}, {:.3}), soc={:.1}%, task=[{}]",
+                            agent.id, agent.state, agent.pose.position.x, agent.pose.position.y, agent.battery.soc, task_desc,
+                        );
+                    }
+                    (true, env.task_manager.completed_tasks.len() as u32, env.duration)
+                } else if all_agents_discharged {
+                    println!(
+                        "WARNING: all {} agent(s) discharged with only {} task(s) completed -- stopping early instead of hanging.",
+                        env.agents.len(),
+                        env.task_manager.completed_tasks.len(),
+                    );
+                    (true, env.task_manager.completed_tasks.len() as u32, env.duration)
+                } else {
+                    match self.termination_condition {
+                        TerminationCondition::AllTasksCompleted => {
+                            let scene_config: SceneConfig = load_json_or_panic(self.scene_config_path.clone());
+                            let field_config: FieldConfig = load_json_or_panic(scene_config.field_config_path);
+                            if let Some(n_actions) = field_config.number_of_actions() {
+                                if env.task_manager.completed_tasks.len() as u32 == n_actions {
+                                    (true, env.task_manager.completed_tasks.len() as u32, env.duration)
+                                } else {
+                                    (false, 0, Duration::ZERO)
+                                }
+                            } else {
+                                (false, 0, Duration::ZERO)
+                            }
+                        },
+                        TerminationCondition::EnvDuration(duration) => {
+                            if env.duration >= duration {
                                 (true, env.task_manager.completed_tasks.len() as u32, env.duration)
                             } else {
                                 (false, 0, Duration::ZERO)
                             }
-                        } else {
-                            (false, 0, Duration::ZERO)
-                        }
-                    },
-                    TerminationCondition::EnvDuration(duration) => {
-                        if env.duration >= duration {
-                            (true, env.task_manager.completed_tasks.len() as u32, env.duration)
-                        } else {
-                            (false, 0, Duration::ZERO)
-                        }
-                    },
-                    TerminationCondition::NumberCompletedTasks(n_tasks) => {
-                        if env.task_manager.completed_tasks.len() as u32 == n_tasks {
-                            (true, env.task_manager.completed_tasks.len() as u32, env.duration)
-                        } else {
-                            (false, 0, Duration::ZERO)
+                        },
+                        TerminationCondition::NumberCompletedTasks(n_tasks) => {
+                            if env.task_manager.completed_tasks.len() as u32 == n_tasks {
+                                (true, env.task_manager.completed_tasks.len() as u32, env.duration)
+                            } else {
+                                (false, 0, Duration::ZERO)
+                            }
                         }
                     }
                 };
