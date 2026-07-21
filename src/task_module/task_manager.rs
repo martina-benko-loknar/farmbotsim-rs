@@ -181,6 +181,7 @@ impl TaskManager {
                     for station in stations.iter_mut() {
                         if station.slots.contains(&Some(agent.id)) || station.queue.contains(&agent.id) {
                             station.release_agent(agent.id);
+                            station_ids_updated.insert(station.id);
                         }
                     }
                 } else {
