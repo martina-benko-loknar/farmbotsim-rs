@@ -21,18 +21,24 @@ pub enum MovementInputs {
 pub enum Movement {
     /// Romba-based movement.
     RombaMovement(RombaMovement),
+    /// Leo Rover movement: same differential-drive kinematics as
+    /// `RombaMovement`, since the Leo Rover is itself a skid-steer/
+    /// differential-drive robot -- just its own speed/wheel geometry.
+    LeoRoverMovement(RombaMovement),
 }
 impl IsMovement for Movement {
     /// Delegates input calculation to the underlying movement model.
     fn calculate_inputs_for_target(&self, current_pose: &Pose, target_pose: &Pose) -> MovementInputs {
         match self {
-            Movement::RombaMovement(romba) => romba.calculate_inputs_for_target(current_pose, target_pose),
+            Movement::RombaMovement(romba) | Movement::LeoRoverMovement(romba) =>
+                romba.calculate_inputs_for_target(current_pose, target_pose),
         }
     }
     /// Delegates pose update computation to the underlying movement model.
     fn calculate_new_pose_from_inputs(&self, simulation_step: Duration, inputs: MovementInputs, current_pose: Pose, max_velocity: LinearVelocity) -> (Pose, LinearVelocity, AngularVelocity) {
         match self {
-            Movement::RombaMovement(romba) => romba.calculate_new_pose_from_inputs(simulation_step, inputs, current_pose, max_velocity),
+            Movement::RombaMovement(romba) | Movement::LeoRoverMovement(romba) =>
+                romba.calculate_new_pose_from_inputs(simulation_step, inputs, current_pose, max_velocity),
         }
     }
 }
@@ -43,8 +49,8 @@ impl Movement {
     }
     /// Returns the maximum allowed linear velocity for the movement model.
     pub fn max_velocity(&self) -> LinearVelocity {
-        match  &self {
-            Movement::RombaMovement(rm) => rm.max_velocity
+        match &self {
+            Movement::RombaMovement(rm) | Movement::LeoRoverMovement(rm) => rm.max_velocity
         }
     }
 }

@@ -69,10 +69,14 @@ impl MovementConfigEditorTool {
             egui::ComboBox::from_id_salt("Type")
                 .selected_text(match self.movement {
                     Movement::RombaMovement(_) => "RombaMovement",
+                    Movement::LeoRoverMovement(_) => "LeoRoverMovement",
                 })
                 .show_ui(ui, |ui| {
                     if ui.selectable_label(matches!(self.movement, Movement::RombaMovement(_)), "RombaMovement").clicked() {
                         self.movement = Movement::RombaMovement(RombaMovement::default())
+                    }
+                    if ui.selectable_label(matches!(self.movement, Movement::LeoRoverMovement(_)), "LeoRoverMovement").clicked() {
+                        self.movement = Movement::LeoRoverMovement(RombaMovement::default())
                     }
                     // More variants ...
                 });
@@ -80,7 +84,7 @@ impl MovementConfigEditorTool {
 
         // Param fields
         match &mut self.movement {
-            Movement::RombaMovement(params) => {
+            Movement::RombaMovement(params) | Movement::LeoRoverMovement(params) => {
                 ui.label("    params: {");
 
                 // Max velocity
