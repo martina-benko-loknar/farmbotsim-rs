@@ -1,4 +1,6 @@
 use egui::Vec2;
+use rand::SeedableRng;
+use rand::rngs::StdRng;
 
 use crate::{
     agent_module::{agent::Agent, agent_config::AgentConfig}, battery_module::{battery::Battery, battery_config::BatteryConfig, charging::ChargingModel, discharging::{DischargeModelKind, DischargingModel, SlopeConsumptionConfig, physics_model::PhysicsDischargeModel}}, environment::{
@@ -57,6 +59,8 @@ pub struct Env {
     pub date_time_manager: DateTimeManager,
     /// Manages tasks assigned to agents.
     pub task_manager: TaskManager,
+    /// Seed for the environment's random number generator (agent spawn position/orientation).
+    pub seed: u64,
 }
 
 impl Env {
@@ -93,6 +97,7 @@ impl Env {
             load_json_or_panic(config.agent_config_path.clone());
 
         let mut agents = Vec::new();
+        let mut rng = StdRng::seed_from_u64(config.seed);
 
         // --- heavy models  ---
         let terrain = TerrainLoader::from_gps_csv(
@@ -175,8 +180,9 @@ impl Env {
                             ),
                     },
                     spawn_area.angle,
+                    &mut rng,
                 ),
-                random_vec2(),
+                random_vec2(&mut rng),
                 agent_colors[i as usize],
                 battery,
             ));
@@ -234,6 +240,7 @@ impl Env {
             datetime_config: config.datetime_config,
             date_time_manager,
             task_manager,
+            seed: config.seed,
         }
     }
 
@@ -257,6 +264,8 @@ impl Env {
         let slope_consumption = SlopeConsumptionConfig::from_json_file(
             "configs/movement_configs/consumption/slope_consumption.json",
         );
+
+        let mut rng = StdRng::seed_from_u64(self.seed);
 
         for i in 0..self.n_agents {
             let mut battery_config =
@@ -312,8 +321,9 @@ impl Env {
                             ),
                     },
                     self.spawn_area.angle,
+                    &mut rng,
                 ),
-                random_vec2(),
+                random_vec2(&mut rng),
                 agent_colors[i as usize],
                 battery,
             ));
@@ -354,5 +364,38 @@ impl Env {
         //     self.agents[0].state,
         //     self.agents[0].battery.energy
         // );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use egui::Pos2;
+
+    fn spawn_positions(seed: u64, n_agents: u32) -> Vec<Pos2> {
+        let mut config = EnvConfig::default();
+        config.n_agents = n_agents;
+        config.seed = seed;
+        Env::from_config(config)
+            .agents
+            .iter()
+            .map(|a| a.spawn_position)
+            .collect()
+    }
+
+    #[test]
+    fn same_seed_reproduces_identical_spawn_positions() {
+        assert_eq!(spawn_positions(1, 4), spawn_positions(1, 4));
+    }
+
+    #[test]
+    fn different_seeds_produce_different_spawn_positions() {
+        assert_ne!(spawn_positions(1, 4), spawn_positions(2, 4));
+    }
+
+    #[test]
+    fn agents_within_a_run_do_not_collapse_onto_the_same_spawn_point() {
+        let positions = spawn_positions(1, 4);
+        assert!(positions.windows(2).any(|w| w[0] != w[1]));
     }
 }

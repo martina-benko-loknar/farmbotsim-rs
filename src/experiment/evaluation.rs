@@ -97,6 +97,7 @@ pub fn evaluate_station_layout(
         exp.agent_config_path.clone(),
     );
     env_config.n_agents = exp.n_agents;
+    env_config.seed = exp.seed;
 
     // ----------------------------------------
     // Env overrides (bridge layer)

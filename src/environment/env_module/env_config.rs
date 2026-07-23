@@ -26,6 +26,9 @@ pub struct EnvConfig {
     /// Configuration for the task manager.
     #[serde(rename = "task_manager")]
     pub task_manager_config: TaskManagerConfig,
+    /// Seed for the environment's random number generator (agent spawn position/orientation).
+    #[serde(default)]
+    pub seed: u64,
 }
 
 impl Default for EnvConfig {
@@ -38,6 +41,7 @@ impl Default for EnvConfig {
             scene_config_path: DEFAULT_SCENE_CONFIG_PATH.to_string(),
             field_config_path: DEFAULT_FIELD_CONFIG_PATH.to_string(),
             task_manager_config: TaskManagerConfig::default(),
+            seed: 0,
         }
     }
 }
@@ -45,12 +49,13 @@ impl Default for EnvConfig {
 impl EnvConfig {
     /// Creates a new `EnvConfig` with specified parameters.
     pub fn new(
-        n_agents: u32, 
-        agent_config_path: String, 
-        datetime_config: DateTimeConfig, 
-        scene_config_path: String, 
-        field_config_path: String, 
-        task_manager_config: TaskManagerConfig
+        n_agents: u32,
+        agent_config_path: String,
+        datetime_config: DateTimeConfig,
+        scene_config_path: String,
+        field_config_path: String,
+        task_manager_config: TaskManagerConfig,
+        seed: u64,
     ) -> Self {
         Self {
             n_agents,
@@ -59,6 +64,7 @@ impl EnvConfig {
             scene_config_path,
             field_config_path,
             task_manager_config,
+            seed,
         }
     }
 }
