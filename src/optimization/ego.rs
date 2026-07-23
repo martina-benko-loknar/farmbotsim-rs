@@ -120,9 +120,10 @@ fn log_evaluation(
 // ============================================================
 pub fn optimize_station_positions_ego(
     n_stations: usize,
+    n_initial: usize,
     max_iterations: usize,
     exp: &ExperimentConfig,
-) -> EgoOptimizationResults 
+) -> EgoOptimizationResults
     {
     let start_time = Instant::now();
 
@@ -187,7 +188,7 @@ pub fn optimize_station_positions_ego(
         &domain,
         &field_group_bounds,
         n_stations,
-        20,
+        n_initial,
         &mut rng,
     );
 

@@ -52,9 +52,11 @@ pub fn run_fleet_sweep(
 
             run_single_station_experiment(
                 resolution,
+                crate::optimization::constants::DEFAULT_EGO_INITIAL_SAMPLES,
+                crate::optimization::constants::DEFAULT_EGO_MAX_ITERATIONS,
                 &filename,
                 &output_dir_sweep,
-                exp, 
+                exp,
                 info
             );
 

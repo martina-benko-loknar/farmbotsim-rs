@@ -89,6 +89,30 @@ fn get_soc_iterations(args: &[String]) -> usize {
         .unwrap_or(20)
 }
 
+/// Station-placement EGO budget, shared by --optimize-ego, --single-station-study,
+/// and --multi-station-study so a calibration run can override both without
+/// touching each mode's own flag.
+fn get_ego_initial(args: &[String]) -> usize {
+    get_arg_value(args, "--ego-initial")
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(optimization::constants::DEFAULT_EGO_INITIAL_SAMPLES)
+}
+
+fn get_ego_iterations(args: &[String]) -> usize {
+    get_arg_value(args, "--ego-iterations")
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(optimization::constants::DEFAULT_EGO_MAX_ITERATIONS)
+}
+
+/// Fleet-size override, applied on top of `ExperimentConfig::for_profile`'s
+/// default of 1 agent. Lets calibration/sweeps be re-run at a specific fleet
+/// size from the CLI without a code change.
+fn get_n_agents(args: &[String], default: u32) -> u32 {
+    get_arg_value(args, "--n-agents")
+        .and_then(|v| v.parse::<u32>().ok())
+        .unwrap_or(default)
+}
+
 
 fn run_gui() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
@@ -166,7 +190,8 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
     // ---------- Single evaluation ----------------
     if args.contains(&"--single-evaluation".to_string()) {
 
-        let exp = ExperimentConfig::for_profile(profile);
+        let mut exp = ExperimentConfig::for_profile(profile);
+        exp.n_agents = get_n_agents(&args, exp.n_agents);
         let output_dir_exp = create_results_subdir(
             &base_output,
             &format!("raw/{}/single_evaluation_exp", profile.label()),
@@ -200,7 +225,8 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
     if args.contains(&"--optimize-ego".to_string()) {
 
         let n_stations = get_station_number(&args);
-        let exp = ExperimentConfig::for_profile(profile);
+        let mut exp = ExperimentConfig::for_profile(profile);
+        exp.n_agents = get_n_agents(&args, exp.n_agents);
         let output_dir_exp = create_results_subdir(
             &base_output,
             &format!("raw/{}/ego_exp", profile.label()),
@@ -219,7 +245,8 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
 
         let run = run_ego_experiment(
             n_stations,
-            10,
+            get_ego_initial(&args),
+            get_ego_iterations(&args),
             &filename,
             &output_dir_exp,
             exp,
@@ -246,7 +273,8 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
     // ---------- Grid search experiment -----------
     if args.contains(&"--grid-search".to_string()) {
 
-        let exp = ExperimentConfig::for_profile(profile);
+        let mut exp = ExperimentConfig::for_profile(profile);
+        exp.n_agents = get_n_agents(&args, exp.n_agents);
         let resolution = get_grid_resolution(&args, exp.field_resolution);
         let output_dir_exp = create_results_subdir(
             &base_output,
@@ -292,7 +320,8 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
     // --- Single-station study (EGO + grid search) ---
     if args.contains(&"--single-station-study".to_string()) {
 
-        let exp = ExperimentConfig::for_profile(profile);
+        let mut exp = ExperimentConfig::for_profile(profile);
+        exp.n_agents = get_n_agents(&args, exp.n_agents);
         let resolution = get_grid_resolution(&args, exp.field_resolution);
         let output_dir_exp = create_results_subdir(
             &base_output,
@@ -312,6 +341,8 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
 
         let (run, _) = run_single_station_experiment(
             resolution,
+            get_ego_initial(&args),
+            get_ego_iterations(&args),
             &filename,
             &output_dir_exp,
             exp,
@@ -338,7 +369,8 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
     // --- Multi(2)-station study (EGO + specialist layouts) -----
     if args.contains(&"--multi-station-study".to_string()) {
 
-        let exp = ExperimentConfig::for_profile(profile);
+        let mut exp = ExperimentConfig::for_profile(profile);
+        exp.n_agents = get_n_agents(&args, exp.n_agents);
         let output_dir_exp = create_results_subdir(
             &base_output,
             &format!("raw/{}/multi_station_exp", profile.label()),
@@ -356,7 +388,8 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
             };
 
         let run = run_multi_station_experiment(
-            10,
+            get_ego_initial(&args),
+            get_ego_iterations(&args),
             &filename,
             &output_dir_exp,
             exp,
@@ -383,7 +416,8 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
     if args.contains(&"--optimize-soc".to_string()) {
 
         let max_iterations = get_soc_iterations(&args);
-        let exp = ExperimentConfig::for_profile(profile);
+        let mut exp = ExperimentConfig::for_profile(profile);
+        exp.n_agents = get_n_agents(&args, exp.n_agents);
         let output_dir_exp = create_results_subdir(
             &base_output,
             &format!("raw/{}/soc_optimization_exp", profile.label()),

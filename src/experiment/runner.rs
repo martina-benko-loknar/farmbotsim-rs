@@ -26,6 +26,7 @@ use egui::Pos2;
 
 pub fn run_ego_experiment(
     n_stations: usize,
+    n_initial: usize,
     max_iterations: usize,
     filename: &str,
     output_dir: &str,
@@ -33,8 +34,9 @@ pub fn run_ego_experiment(
     info: ExperimentInfo,
 ) -> ExperimentRun {
 
-    println!("Experiment type: EGO ({} stations, {} iterations max)\n", 
-            n_stations, 
+    println!("Experiment type: EGO ({} stations, {} initial + {} BO iterations max)\n",
+            n_stations,
+            n_initial,
             max_iterations);
 
     // ---------------------------------------------------------
@@ -43,6 +45,7 @@ pub fn run_ego_experiment(
 
     let ego_results = optimize_station_positions_ego(
             n_stations,
+            n_initial,
             max_iterations,
             &exp);
 
@@ -106,6 +109,8 @@ pub fn run_grid_search_experiment(
 
 pub fn run_single_station_experiment(
     resolution: usize,
+    n_initial: usize,
+    max_iterations: usize,
     filename: &str,
     output_dir: &str,
     exp: ExperimentConfig,
@@ -122,7 +127,8 @@ pub fn run_single_station_experiment(
     let ego_results =
         optimize_station_positions_ego(
             1,
-            30,
+            n_initial,
+            max_iterations,
             &exp);
 
     // ---------------------------------------------------------
@@ -162,6 +168,7 @@ pub fn run_single_station_experiment(
 }
 
 pub fn run_multi_station_experiment(
+    n_initial: usize,
     max_iterations: usize,
     filename: &str,
     output_dir: &str,
@@ -184,6 +191,7 @@ pub fn run_multi_station_experiment(
     let ego_results =
         optimize_station_positions_ego(
             2,
+            n_initial,
             max_iterations,
             &exp
         );
@@ -243,6 +251,8 @@ pub fn run_soc_threshold_experiment(
     println!("\n=========== Station placement (grid search + EGO) ===========");
     let (_, station_position) = run_single_station_experiment(
         exp.field_resolution,
+        crate::optimization::constants::DEFAULT_EGO_INITIAL_SAMPLES,
+        crate::optimization::constants::DEFAULT_EGO_MAX_ITERATIONS,
         &format!("{filename}_placement"),
         output_dir,
         exp.clone(),

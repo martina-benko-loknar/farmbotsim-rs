@@ -51,6 +51,8 @@ pub fn run_soc_sweep(
 
     let (_, station_position) = run_single_station_experiment(
         resolution,
+        crate::optimization::constants::DEFAULT_EGO_INITIAL_SAMPLES,
+        crate::optimization::constants::DEFAULT_EGO_MAX_ITERATIONS,
         &filename,
         &output_dir_sweep,
         baseline_exp,
