@@ -36,6 +36,7 @@ use crate::experiment::runner::{
     run_single_station_experiment,
     run_multi_station_experiment,
     run_single_evaluation,
+    run_soc_threshold_experiment,
 };
 use crate::experiment::config::ExperimentConfig;
 use crate::experiment::profile::ExperimentProfile;
@@ -80,6 +81,12 @@ fn get_station_number(args: &[String]) -> usize {
     get_arg_value(args, "--optimize-ego")
         .and_then(|v| v.parse::<usize>().ok())
         .unwrap_or(1)
+}
+
+fn get_soc_iterations(args: &[String]) -> usize {
+    get_arg_value(args, "--optimize-soc")
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(20)
 }
 
 
@@ -368,6 +375,37 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
                 &run_stem,
             );
         }
+
+        return Ok(());
+    }
+
+    // --- SoC-threshold optimization (Level II) ------------------
+    if args.contains(&"--optimize-soc".to_string()) {
+
+        let max_iterations = get_soc_iterations(&args);
+        let exp = ExperimentConfig::for_profile(profile);
+        let output_dir_exp = create_results_subdir(
+            &base_output,
+            &format!("raw/{}/soc_optimization_exp", profile.label()),
+        )?;
+        let filename = format!(
+            "size={}_fleet={}_batt={:.0}",
+            exp.field_size_label(),
+            exp.n_agents,
+            exp.battery_capacity_wh,
+        );
+        let info = ExperimentInfo {
+                experiment_type: ExperimentType::SocOptimization,
+                timestamp: timestamp.clone(),
+            };
+
+        run_soc_threshold_experiment(
+            max_iterations,
+            &filename,
+            &output_dir_exp,
+            exp,
+            info
+        );
 
         return Ok(());
     }

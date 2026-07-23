@@ -1,11 +1,15 @@
 use crate::optimization::constants::*;
 use crate::optimization::geometry::{is_position_valid, round_to_centimeters};
-use crate::optimization::objective::{station_objective_function, OptimizationContext};
+use crate::optimization::objective::{
+    station_objective_function, soc_threshold_objective_function,
+    OptimizationContext, SocOptimizationContext,
+};
 use crate::optimization::station_positions::StationPositions;
 use crate::experiment::models::{EgoOptimizationResults, EgoSummary, EgoTrace, ExperimentMetrics};
 use crate::experiment::config::ExperimentConfig;
 use crate::experiment::models::EvaluatedCandidate;
 use crate::experiment::models::EvaluationRecord;
+use crate::experiment::models::{SocEvaluatedCandidate, SocEvaluationRecord, SocOptimizationResults, SocSummary, SocTrace};
 use crate::experiment::search_domain::SearchDomain;
 use crate::terrain::TerrainLoader;
 
@@ -13,9 +17,10 @@ use crate::terrain::TerrainLoader;
 // = EgorFactory<O, Cstr> pins constraints to a bare `fn` pointer, which can't
 // capture the experiment's field/obstacles. EgorFactory is generic over the
 // constraint type and accepts any `Fn + Clone + Sync` closure instead.
-use egobox_ego::EgorFactory;
+use egobox_ego::{EgorBuilder, EgorFactory};
 use egui::Pos2;
 use ndarray::{Array2, ArrayView2};
+use rand::Rng;
 use std::sync::{Arc, RwLock};
 use std::time::Instant;
 
@@ -485,5 +490,349 @@ pub fn optimize_station_positions_ego(
                 },
             }
         }
+    }
+}
+
+// ============================================================
+// SoC-threshold optimizer (Level II)
+// ============================================================
+fn log_soc_evaluation(
+    phase: EvalPhase,
+    eval_id: usize,
+    phase_iter: usize,
+    candidate: &SocEvaluatedCandidate,
+    best_energy: &Arc<RwLock<f64>>,
+    best_threshold: &Arc<RwLock<f32>>,
+) -> SocEvaluationRecord {
+
+    let threshold_percent = candidate.threshold_percent;
+    let energy = candidate.metrics.energy_wh;
+
+    let mut best_e = best_energy.write().unwrap();
+    let mut best_t = best_threshold.write().unwrap();
+
+    let is_new_best = energy < *best_e;
+
+    if is_new_best {
+        *best_e = energy;
+        *best_t = threshold_percent;
+    }
+
+    let best_energy_now = *best_e;
+    let best_threshold_now = *best_t;
+
+    println!(
+        "[{:>2}] | {:>5.2}% | {:.2} kWh | {:.2} km | {:.2} km | {:.2} s{}",
+        phase_iter,
+        threshold_percent,
+        candidate.metrics.energy_wh / 1000.0,
+        candidate.metrics.total_distance_m / 1000.0,
+        candidate.metrics.charging_distance_m / 1000.0,
+        candidate.metrics.evaluation_time_sec,
+        if is_new_best { "  <-- New best" } else { "" },
+    );
+
+    SocEvaluationRecord {
+        evaluation: eval_id,
+        phase: match phase {
+            EvalPhase::Init => "init".to_string(),
+            EvalPhase::BO => "ego".to_string(),
+        },
+        phase_iteration: phase_iter,
+        metrics: candidate.metrics.clone(),
+        best_energy: best_energy_now,
+        is_new_best,
+        threshold_percent,
+        best_threshold_percent: best_threshold_now,
+    }
+}
+
+/// Optimizes the SoC threshold ($\lambda_{SoC}$) that triggers opportunistic
+/// charging (`ThresholdWithLimit` strategy), at a fixed, already-optimized
+/// station position. This is a Level II (decision-making parameter)
+/// optimization, distinct from the Level I station-placement optimizer
+/// above: 1D, box-bounded, no field-exclusion geometry involved.
+pub fn optimize_soc_threshold_ego(
+    max_iterations: usize,
+    fixed_stations: &[Pos2],
+    exp: &ExperimentConfig,
+) -> SocOptimizationResults {
+    let start_time = Instant::now();
+
+    let scene_config = exp.load_scene_config();
+
+    // ------------------------------
+    // Bounds
+    // ------------------------------
+    let low = (exp.critical_soc_percent + SOC_THRESHOLD_MARGIN_ABOVE_CRITICAL) as f64;
+    let high = SOC_THRESHOLD_MAX_PERCENT as f64;
+
+    let bounds_array = Array2::from_shape_vec((1, 2), vec![low, high]).unwrap();
+
+    // ------------------------------
+    // Initial sampling (DOE): plain uniform draws, no geometric validity to
+    // check unlike station placement.
+    // ------------------------------
+    let mut rng = rand::rng();
+
+    let initial_x: Array2<f64> = Array2::from_shape_vec(
+        (SOC_THRESHOLD_INITIAL_SAMPLES, 1),
+        (0..SOC_THRESHOLD_INITIAL_SAMPLES)
+            .map(|_| rng.random_range(low..high))
+            .collect(),
+    )
+    .unwrap();
+
+    // ------------------------------
+    // Shared state
+    // ------------------------------
+    let eval_counter = Arc::new(RwLock::new(0usize));
+    let best_energy = Arc::new(RwLock::new(f64::INFINITY));
+    let best_threshold = Arc::new(RwLock::new(0.0f32));
+    let evaluation_history = Arc::new(RwLock::new(Vec::<SocEvaluationRecord>::new()));
+    let evaluated_candidates = Arc::new(RwLock::new(Vec::<SocEvaluatedCandidate>::new()));
+
+    // ------------------------------
+    // Objective + candidate storage
+    // ------------------------------
+    let context = SocOptimizationContext {
+        max_iterations,
+        scene_config: scene_config.clone(),
+        experiment_config: exp.clone(),
+        fixed_stations: fixed_stations.to_vec(),
+    };
+
+    let evaluated_candidates_for_objective = Arc::clone(&evaluated_candidates);
+
+    let objective_fn = move |x: &ArrayView2<f64>| {
+        let mut records = evaluated_candidates_for_objective
+            .write()
+            .unwrap();
+
+        soc_threshold_objective_function(
+            x,
+            &context,
+            &mut records,
+        )
+    };
+
+    // ------------------------------
+    // WRAPPER (logging layer)
+    // ------------------------------
+    let eval_counter_wrapped = Arc::clone(&eval_counter);
+    let best_energy_wrapped = Arc::clone(&best_energy);
+    let best_threshold_wrapped = Arc::clone(&best_threshold);
+    let history_wrapped = Arc::clone(&evaluation_history);
+    let evaluated_candidates_wrapped = Arc::clone(&evaluated_candidates);
+
+    let n_initial = initial_x.nrows();
+
+    let objective_wrapped = move |x: &ArrayView2<f64>| {
+
+        let start_idx = {
+            evaluated_candidates_wrapped
+            .read()
+            .unwrap()
+            .len()
+        };
+        let y = objective_fn(x);
+
+        for (i, _row) in x.rows().into_iter().enumerate() {
+            let mut counter = eval_counter_wrapped.write().unwrap();
+            *counter += 1;
+            let eval_id = *counter;
+            drop(counter);
+
+            let candidate = {
+                let candidates = evaluated_candidates_wrapped
+                    .read()
+                    .unwrap();
+
+                candidates
+                    .get(start_idx + i)
+                    .expect("Missing evaluated candidate")
+                    .clone()
+            };
+
+            let (phase, phase_iter) = if eval_id <= n_initial {
+                if eval_id == 1 {
+                    println!("\nPhase 1 : initial sampling");
+                    println!("Eval | Threshold |  Energy | Total dist | Charging dist | Time");
+                }
+                (EvalPhase::Init, eval_id)
+            } else {
+                if eval_id - n_initial == 1 {
+                    println!("\nPhase 2 : bayesian optimization");
+                    println!("Iter | Threshold |  Energy | Total dist | Charging dist | Time");
+                }
+                (EvalPhase::BO, eval_id - n_initial)
+            };
+
+            let record = log_soc_evaluation(
+                phase,
+                eval_id,
+                phase_iter,
+                &candidate,
+                &best_energy_wrapped,
+                &best_threshold_wrapped,
+            );
+
+            history_wrapped.write().unwrap().push(record);
+        }
+
+        y
+    };
+
+    let result = EgorBuilder::optimize(objective_wrapped)
+        .configure(|config| config.max_iters(max_iterations).doe(&initial_x))
+        .min_within(&bounds_array)
+        .run();
+
+    let elapsed = start_time.elapsed();
+    let fixed_station_position = fixed_stations
+        .first()
+        .copied()
+        .unwrap_or(Pos2::new(0.0, 0.0));
+
+    // ------------------------------
+    // Results
+    // ------------------------------
+    match result {
+        Ok(_opt) => {
+            let candidates = evaluated_candidates.read().unwrap();
+
+            let best_candidate = candidates
+                .iter()
+                .min_by(|a, b| {
+                    a.metrics
+                        .energy_wh
+                        .partial_cmp(&b.metrics.energy_wh)
+                        .unwrap()
+                })
+                .expect("No evaluated candidates found");
+
+            let history = evaluation_history.read().unwrap();
+            let m = &best_candidate.metrics;
+
+            separator();
+            println!("Summary: ");
+            println!("Evaluations: ");
+            println!("  - initial samples  : {}", n_initial);
+            println!("  - BO iterations    : {}", max_iterations);
+            println!("Best point: ");
+            println!("  - SoC threshold    : {:.2}%", best_candidate.threshold_percent);
+            println!("  - energy           : {:.2} kWh", m.energy_wh / 1000.0);
+            println!("  - distance         : {:.2} km", m.total_distance_m/1000.0);
+            println!("  - charging dist    : {:.2} km", m.charging_distance_m/1000.0);
+            println!("  - mission time     : {:.2} h", m.simulation_time_sec/3600.0);
+            println!("  - charging events  : {}", m.charging_events);
+
+            println!("Experiment time      : {:.2?} s",  elapsed);
+
+            let summary = SocSummary {
+                best_metrics: best_candidate.metrics.clone(),
+                optimal_threshold_percent: best_candidate.threshold_percent,
+                fixed_station_position,
+                optimization_time_sec: elapsed.as_secs_f64(),
+                total_evaluations: history.len(),
+            };
+
+            let trace = SocTrace {
+                evaluation_history: history.clone(),
+                max_iterations,
+            };
+
+            SocOptimizationResults { summary, trace }
+        }
+
+        Err(e) => {
+            eprintln!("SoC-threshold EGO optimization failed: {:?}", e);
+
+            let history = evaluation_history.read().unwrap();
+            let candidates = evaluated_candidates.read().unwrap();
+
+            // ------------------------------------------------------------
+            // Case 1: Use best already evaluated candidate
+            // ------------------------------------------------------------
+            if let Some(best_candidate) = candidates
+                .iter()
+                .min_by(|a, b| {
+                    a.metrics
+                        .energy_wh
+                        .partial_cmp(&b.metrics.energy_wh)
+                        .unwrap()
+                })
+            {
+                println!("\nSoC-threshold EGO failed. Returning best evaluated candidate.");
+
+                let summary = SocSummary {
+                    best_metrics: best_candidate.metrics.clone(),
+                    optimal_threshold_percent: best_candidate.threshold_percent,
+                    fixed_station_position,
+                    optimization_time_sec: elapsed.as_secs_f64(),
+                    total_evaluations: history.len(),
+                };
+
+                return SocOptimizationResults {
+                    summary,
+                    trace: SocTrace {
+                        evaluation_history: history.clone(),
+                        max_iterations,
+                    },
+                };
+            }
+
+            // ------------------------------------------------------------
+            // Case 2: No evaluations happened - fall back to bounds midpoint
+            // ------------------------------------------------------------
+            eprintln!("No evaluated candidates available. Using bounds midpoint fallback.");
+
+            SocOptimizationResults {
+                summary: SocSummary {
+                    best_metrics: ExperimentMetrics {
+                        energy_wh: f64::INFINITY,
+                        total_distance_m: 0.0,
+                        charging_distance_m: 0.0,
+                        simulation_time_sec: 0.0,
+                        evaluation_time_sec: 0.0,
+                        charging_events: 0,
+                        completed_tasks: 0,
+                    },
+                    optimal_threshold_percent: ((low + high) / 2.0) as f32,
+                    fixed_station_position,
+                    optimization_time_sec: elapsed.as_secs_f64(),
+                    total_evaluations: 0,
+                },
+
+                trace: SocTrace {
+                    evaluation_history: vec![],
+                    max_iterations,
+                },
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod soc_threshold_tests {
+    use super::*;
+    use crate::experiment::profile::ExperimentProfile;
+
+    #[test]
+    fn soc_threshold_optimization_stays_within_bounds_and_reports_best() {
+        let exp = ExperimentConfig::for_profile(ExperimentProfile::Legacy);
+        let scene_config = exp.load_scene_config();
+        let station = scene_config.station_configs[0].pose.position;
+
+        let results = optimize_soc_threshold_ego(3, &[station], &exp);
+
+        let low = exp.critical_soc_percent + SOC_THRESHOLD_MARGIN_ABOVE_CRITICAL;
+        let high = SOC_THRESHOLD_MAX_PERCENT;
+
+        assert!(results.summary.optimal_threshold_percent >= low);
+        assert!(results.summary.optimal_threshold_percent <= high);
+        assert!(results.summary.total_evaluations >= SOC_THRESHOLD_INITIAL_SAMPLES);
+        assert_eq!(results.summary.fixed_station_position, station);
+        assert!(results.summary.best_metrics.energy_wh.is_finite());
     }
 }

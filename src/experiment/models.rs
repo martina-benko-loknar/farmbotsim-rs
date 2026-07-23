@@ -63,6 +63,7 @@ pub enum ExperimentType {
     FleetSweep,
     BatterySweep,
     SocSweep,
+    SocOptimization,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 
@@ -152,6 +153,55 @@ pub struct EgoOptimizationResults {
 pub struct EgoExport {
     pub metadata: ExperimentMetadata,
     pub ego: EgoOptimizationResults,
+    pub timing: TimingStatistics,
+    pub field: FieldExport,
+}
+// ============================================================
+// SoC-threshold optimization (Level II: decision-making parameter
+// optimization, at a fixed Level-I-optimal station position)
+// ============================================================
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct SocEvaluationRecord {
+    pub evaluation: usize,
+    pub phase: String, // "init" | "ego"
+    pub phase_iteration: usize,
+    pub metrics: ExperimentMetrics,
+    pub best_energy: f64,
+    pub is_new_best: bool,
+    pub threshold_percent: f32,
+    pub best_threshold_percent: f32,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SocEvaluatedCandidate {
+    pub threshold_percent: f32,
+    pub metrics: ExperimentMetrics,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SocTrace {
+    pub evaluation_history: Vec<SocEvaluationRecord>,
+    pub max_iterations: usize,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SocSummary {
+    pub best_metrics: ExperimentMetrics,
+    pub optimal_threshold_percent: f32,
+    pub fixed_station_position: Pos2,
+    pub optimization_time_sec: f64,
+    pub total_evaluations: usize,
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SocOptimizationResults {
+    pub summary: SocSummary,
+    pub trace: SocTrace,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SocExport {
+    pub metadata: ExperimentMetadata,
+    pub soc: SocOptimizationResults,
     pub timing: TimingStatistics,
     pub field: FieldExport,
 }

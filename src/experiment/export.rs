@@ -9,6 +9,7 @@ use egui::Pos2;
 use crate::experiment::models::SingleStationExport;
 use crate::experiment::models::MultiStationExport;
 use crate::experiment::models::SingleEvaluationExport;
+use crate::experiment::models::SocExport;
 
 use crate::environment::field_config::FieldConfig;
 
@@ -18,6 +19,7 @@ use crate::experiment::models::{
     GridSearchResults,
     MultiStationExperimentResults,
     SingleStationExperimentResults,
+    SocOptimizationResults,
     ExperimentInfo
 };
 
@@ -444,6 +446,103 @@ pub fn save_multi_station_results(
 
         Err(e) => {
             eprintln!("Failed saving results: {}", e);
+        }
+    }
+
+    absolute_path
+}
+
+pub fn save_soc_threshold_results(
+    results: &SocOptimizationResults,
+    config: &ExperimentConfig,
+    info: &ExperimentInfo,
+    filename: &str,
+    output_dir: &str,
+) -> String {
+
+    // ---------------------------------------------------------
+    // Output file
+    // ---------------------------------------------------------
+
+    let absolute_path = format!(
+        "{}/{}_{}.json",
+        output_dir,
+        info.timestamp,
+        filename,
+    );
+
+    // ---------------------------------------------------------
+    // Timing statistics
+    // ---------------------------------------------------------
+
+    let runtimes: Vec<f64> = results
+        .trace
+        .evaluation_history
+        .iter()
+        .map(|e| e.metrics.evaluation_time_sec)
+        .collect();
+
+    let timing = if runtimes.is_empty() {
+        TimingStatistics {
+            average_evaluation_time_sec: 0.0,
+            minimum_evaluation_time_sec: 0.0,
+            maximum_evaluation_time_sec: 0.0,
+            total_evaluation_time_sec: 0.0,
+        }
+    } else {
+        let total: f64 = runtimes.iter().sum();
+
+        TimingStatistics {
+            average_evaluation_time_sec: total / runtimes.len() as f64,
+            minimum_evaluation_time_sec: runtimes.iter().cloned().fold(f64::MAX, f64::min),
+            maximum_evaluation_time_sec: runtimes.iter().cloned().fold(f64::MIN, f64::max),
+            total_evaluation_time_sec: total,
+        }
+    };
+
+    // ---------------------------------------------------------
+    // Load field
+    // ---------------------------------------------------------
+
+    let field = export_field(config);
+
+    // ---------------------------------------------------------
+    // Metadata
+    // ---------------------------------------------------------
+
+    let metadata = ExperimentMetadata {
+        experiment_type: info.experiment_type.clone(),
+        config: config.clone(),
+        timestamp: info.timestamp.clone(),
+        seed: config.seed,
+    };
+
+    // ---------------------------------------------------------
+    // Final JSON: assemble export
+    // ---------------------------------------------------------
+
+    let export = SocExport {
+        metadata,
+        soc: results.clone(),
+        timing,
+        field,
+    };
+
+    // ---------------------------------------------------------
+    // Save
+    // ---------------------------------------------------------
+
+    match std::fs::write(
+        &absolute_path,
+        serde_json::to_string_pretty(&export).unwrap(),
+    ) {
+        Ok(_) => {
+            println!("SoC-threshold optimization results saved:");
+            println!("{}", absolute_path);
+        }
+
+        Err(e) => {
+            eprintln!("Failed to save results: {}", e);
         }
     }
 

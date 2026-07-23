@@ -8,16 +8,18 @@ use crate::experiment::export::{
     save_single_station_results,
     save_ego_results,
     save_multi_station_results,
-    save_single_evaluation_results};
+    save_single_evaluation_results,
+    save_soc_threshold_results};
 use crate::experiment::station_layouts::{
     specialist_layouts,
     evaluate_station_layouts};
-use crate::optimization::ego::optimize_station_positions_ego;
+use crate::optimization::ego::{optimize_station_positions_ego, optimize_soc_threshold_ego};
 use crate::experiment::models::{
     SingleStationExperimentResults,
     MultiStationExperimentResults,
     ExperimentRun,
-    ExperimentInfo
+    ExperimentInfo,
+    ExperimentType,
 };
 
 use egui::Pos2;
@@ -216,6 +218,63 @@ pub fn run_multi_station_experiment(
         filename,
         output_dir,
     );
+
+    ExperimentRun{
+        timestamp: info.timestamp,
+        output_dir: output_dir.to_string(),
+        results_path}
+}
+
+pub fn run_soc_threshold_experiment(
+    max_iterations: usize,
+    filename: &str,
+    output_dir: &str,
+    exp: ExperimentConfig,
+    info: ExperimentInfo,
+) -> ExperimentRun {
+
+    println!("Experiment type: SOC-THRESHOLD OPTIMIZATION (Level II, {} BO iterations max)\n",
+            max_iterations);
+
+    // ---------------------------------------------------------
+    // Phase 1: find the Level-I-optimal station position (grid search +
+    // EGO), held fixed while optimizing the SoC threshold.
+    // ---------------------------------------------------------
+    println!("\n=========== Station placement (grid search + EGO) ===========");
+    let (_, station_position) = run_single_station_experiment(
+        exp.field_resolution,
+        &format!("{filename}_placement"),
+        output_dir,
+        exp.clone(),
+        ExperimentInfo {
+            experiment_type: ExperimentType::SingleStation,
+            timestamp: info.timestamp.clone(),
+        },
+    );
+
+    // ---------------------------------------------------------
+    // Phase 2: SoC-threshold optimization at the fixed position
+    // ---------------------------------------------------------
+    println!("\n=========== SoC-threshold optimization ===========");
+    let soc_results = optimize_soc_threshold_ego(
+        max_iterations,
+        &[station_position],
+        &exp,
+    );
+
+    // ---------------------------------------------------------
+    // Save experiment results
+    // ---------------------------------------------------------
+
+    let results_path = save_soc_threshold_results(
+        &soc_results,
+        &exp,
+        &info,
+        filename,
+        output_dir,
+    );
+
+    println!("SoC-threshold optimization experiment completed.");
 
     ExperimentRun{
         timestamp: info.timestamp,
