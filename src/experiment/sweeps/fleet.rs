@@ -1,4 +1,4 @@
-use crate::experiment::runner::run_single_station_experiment;
+use crate::experiment::runner::run_ego_experiment;
 use crate::experiment::output::create_results_subdir;
 use crate::experiment::sweeps::sweep_utils::print_experiment_info;
 use crate::experiment::models::{ExperimentType, ExperimentInfo};
@@ -11,8 +11,7 @@ pub fn run_fleet_sweep(
 ) -> Result<(), Box<dyn std::error::Error>> {
 
     let fleet_sizes = vec![1, 2, 3, 4];
-    let seeds = 0..5;
-    let resolution = 15;
+    let seeds = 0..15;
     let output_dir_sweep = create_results_subdir(
         output_dir,
         &format!("raw/{}/fleet_sweep", profile.label()),
@@ -50,8 +49,8 @@ pub fn run_fleet_sweep(
                 timestamp: timestamp.clone(),
             };
 
-            run_single_station_experiment(
-                resolution,
+            run_ego_experiment(
+                1,
                 crate::optimization::constants::DEFAULT_EGO_INITIAL_SAMPLES,
                 crate::optimization::constants::DEFAULT_EGO_MAX_ITERATIONS,
                 &filename,

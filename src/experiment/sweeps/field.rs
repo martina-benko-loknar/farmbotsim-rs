@@ -1,4 +1,4 @@
-use crate::experiment::runner::run_single_station_experiment;
+use crate::experiment::runner::run_ego_experiment;
 use crate::experiment::output::create_results_subdir;
 use crate::experiment::sweeps::sweep_utils::print_experiment_info;
 use crate::experiment::models::{ExperimentType, ExperimentInfo};
@@ -16,8 +16,7 @@ pub fn run_field_size_sweep(
     let profile = ExperimentProfile::Vineyard;
     let field_sizes = profile.field_configs();
 
-    let seeds = 0..5;
-    let resolution = 15;
+    let seeds = 0..15;
     let output_dir_sweep = create_results_subdir(
         output_dir,
         &format!("raw/{}/field_sweep", profile.label()),
@@ -55,8 +54,8 @@ pub fn run_field_size_sweep(
                 timestamp: timestamp.clone(),
             };
 
-            run_single_station_experiment(
-                resolution,
+            run_ego_experiment(
+                1,
                 crate::optimization::constants::DEFAULT_EGO_INITIAL_SAMPLES,
                 crate::optimization::constants::DEFAULT_EGO_MAX_ITERATIONS,
                 &filename,
