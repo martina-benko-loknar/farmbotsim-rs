@@ -100,6 +100,26 @@ pub struct SingleEvaluation {
     pub charging_events: u32,
 }
 
+/// Prints per-agent state/task/position for post-mortem diagnosis when a
+/// simulation gets aborted (stalled or hit the hard duration cap) instead of
+/// reaching its intended termination condition.
+fn print_agent_diagnostics(env: &Env) {
+    for agent in &env.agents {
+        let task_desc = match &agent.current_task {
+            Some(task) => format!(
+                "intent={:?}, {} waypoint(s) left",
+                task.get_intent(),
+                task.get_path().map(|p| p.len()).unwrap_or(0),
+            ),
+            None => "none".to_string(),
+        };
+        println!(
+            "  agent {:?}: state={:?}, pos=({:.3}, {:.3}), soc={:.1}%, task=[{}]",
+            agent.id, agent.state, agent.pose.position.x, agent.pose.position.y, agent.battery.soc, task_desc,
+        );
+    }
+}
+
 impl SingleEvaluation {
     /// Runs the simulation for a single episode and saves the result.
     pub fn run_simulation(&mut self) -> EvaluationResult {
@@ -143,12 +163,20 @@ impl SingleEvaluation {
         const STALL_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(120);
         let mut last_progress_at = std::time::Instant::now();
 
+        // Hard backstop, independent of *why* a run might fail to reach its
+        // termination condition (unreachable task, recurring task that
+        // never lands exactly on a target count, or anything not yet seen):
+        // a normal full mission finishes in well under a simulated day, so
+        // a week is generous headroom without risking a genuinely
+        // multi-thousand-step run getting cut short.
+        const MAX_SIMULATION_DURATION: Duration = Duration::days(7.0);
+
         while self.running {
             if let Some(env) = &mut self.env {
 
                 // Track completed tasks count before the step
                 let completed_tasks_count_before = env.task_manager.completed_tasks.len();
-   
+
                 env.task_manager.assign_tasks(&mut env.agents, &mut env.stations);
 
                 // Track energy levels before the step
@@ -179,7 +207,7 @@ impl SingleEvaluation {
 
 
                 env.step(); // Perform the simulation step
-                
+
                 // Track agent actions
                 /* for (i, agent) in env.agents.iter().enumerate() {
                     if i < self.previous_agent_states.len() && i < self.previous_agent_positions.len() {
@@ -339,6 +367,7 @@ impl SingleEvaluation {
                         a.state == crate::agent_module::agent_state::AgentState::Discharged
                     );
                 let stalled = last_progress_at.elapsed() > STALL_TIMEOUT;
+                let exceeded_max_duration = env.duration >= MAX_SIMULATION_DURATION;
 
                 let (finished, n_completed_tasks, env_duration) = if stalled {
                     println!(
@@ -349,20 +378,25 @@ impl SingleEvaluation {
                         env.step_count,
                         env.task_manager.completed_tasks.len(),
                     );
-                    for agent in &env.agents {
-                        let task_desc = match &agent.current_task {
-                            Some(task) => format!(
-                                "intent={:?}, {} waypoint(s) left",
-                                task.get_intent(),
-                                task.get_path().map(|p| p.len()).unwrap_or(0),
-                            ),
-                            None => "none".to_string(),
-                        };
-                        println!(
-                            "  agent {:?}: state={:?}, pos=({:.3}, {:.3}), soc={:.1}%, task=[{}]",
-                            agent.id, agent.state, agent.pose.position.x, agent.pose.position.y, agent.battery.soc, task_desc,
-                        );
-                    }
+                    print_agent_diagnostics(env);
+                    (true, env.task_manager.completed_tasks.len() as u32, env.duration)
+                } else if exceeded_max_duration {
+                    // Progress kept resetting the stall watchdog (some task
+                    // kept completing) without ever satisfying the actual
+                    // termination condition -- e.g. a recurring task that
+                    // never lands exactly on a target completed-count, or a
+                    // target that's unreachable from this station layout.
+                    // Whatever the cause, don't run forever.
+                    println!(
+                        "WARNING: simulation exceeded the {:?} hard cap without reaching its termination condition \
+                        -- aborting instead of running forever. Simulated time reached: {:.1}s ({} steps). \
+                        Tasks completed so far: {}. Agent state at abort:",
+                        MAX_SIMULATION_DURATION,
+                        env.duration.to_base_unit(),
+                        env.step_count,
+                        env.task_manager.completed_tasks.len(),
+                    );
+                    print_agent_diagnostics(env);
                     (true, env.task_manager.completed_tasks.len() as u32, env.duration)
                 } else if all_agents_discharged {
                     println!(
@@ -377,7 +411,16 @@ impl SingleEvaluation {
                             let scene_config: SceneConfig = load_json_or_panic(self.scene_config_path.clone());
                             let field_config: FieldConfig = load_json_or_panic(scene_config.field_config_path);
                             if let Some(n_actions) = field_config.number_of_actions() {
-                                if env.task_manager.completed_tasks.len() as u32 == n_actions {
+                                // >=, not ==: with multiple agents, more than
+                                // one task can complete in the same step, so
+                                // the cumulative count can jump straight past
+                                // an exact target and then never land on it
+                                // again (completed_tasks only grows). That
+                                // silently turned into an unbounded run --
+                                // see MAX_SIMULATION_DURATION above for the
+                                // backstop that used to be the only thing
+                                // catching this.
+                                if env.task_manager.completed_tasks.len() as u32 >= n_actions {
                                     (true, env.task_manager.completed_tasks.len() as u32, env.duration)
                                 } else {
                                     (false, 0, Duration::ZERO)
@@ -394,7 +437,8 @@ impl SingleEvaluation {
                             }
                         },
                         TerminationCondition::NumberCompletedTasks(n_tasks) => {
-                            if env.task_manager.completed_tasks.len() as u32 == n_tasks {
+                            // See the >= note above -- same overshoot risk.
+                            if env.task_manager.completed_tasks.len() as u32 >= n_tasks {
                                 (true, env.task_manager.completed_tasks.len() as u32, env.duration)
                             } else {
                                 (false, 0, Duration::ZERO)

@@ -340,7 +340,11 @@ impl Tool for PerformanceMatrixTool {
                     let scene_config: SceneConfig = load_json_or_panic(self.scene_config_path.clone());
                     let field_config: FieldConfig = load_json_or_panic(scene_config.field_config_path);
                     if let Some(n_actions) = field_config.number_of_actions() {
-                        if env.task_manager.completed_tasks.len() as u32 == n_actions {
+                        // >=, not ==: with multiple agents, more than one
+                        // task can complete in the same step, so the count
+                        // can jump straight past an exact target and never
+                        // land on it again (completed_tasks only grows).
+                        if env.task_manager.completed_tasks.len() as u32 >= n_actions {
                             (true, env.task_manager.completed_tasks.len(), env.duration)
                         } else {
                             (false, 0, Duration::ZERO)
@@ -357,7 +361,8 @@ impl Tool for PerformanceMatrixTool {
                     }
                 },
                 TerminationCondition::NumberCompletedTasks(n_tasks) => {
-                    if env.task_manager.completed_tasks.len() as u32 == n_tasks {
+                    // See the >= note above -- same overshoot risk.
+                    if env.task_manager.completed_tasks.len() as u32 >= n_tasks {
                         (true, env.task_manager.completed_tasks.len(), env.duration)
                     } else {
                         (false, 0, Duration::ZERO)
