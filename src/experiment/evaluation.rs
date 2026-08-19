@@ -76,6 +76,8 @@ pub fn evaluate_station_layout(
     for position in stations {
         let mut station_config = original_scene.station_configs[0].clone();
         station_config.pose.position = *position;
+        station_config.n_slots = exp.n_station_slots;
+        station_config.update_slots_pose();
         modified_scene.station_configs.push(station_config);
     }
 
@@ -107,6 +109,12 @@ pub fn evaluate_station_layout(
         battery_voltage_v: Some(exp.battery_voltage_v),
         critical_soc_percent: Some(exp.critical_soc_percent),
         threshold_soc_percent: Some(exp.soc_threshold_percent),
+        initial_soc_min_percent: exp.initial_soc_min_percent,
+        initial_soc_max_percent: exp.initial_soc_max_percent,
+        initial_soc_seed: exp.initial_soc_seed,
+        task_duration_jitter_min_factor: exp.task_duration_jitter_min_factor,
+        task_duration_jitter_max_factor: exp.task_duration_jitter_max_factor,
+        task_duration_jitter_seed: exp.task_duration_jitter_seed,
     };
 
     // ----------------------------------------
