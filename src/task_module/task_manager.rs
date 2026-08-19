@@ -1,5 +1,8 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use egui::Pos2;
+use rand::Rng;
+use rand::SeedableRng;
+use rand::rngs::StdRng;
 
 use crate::{
     agent_module::{
@@ -19,12 +22,70 @@ use crate::{
     }, task_module::{strategies::{ChargingStrategy, ChooseStationStrategy}, task_manager_config::TaskManagerConfig}, units::duration::Duration};
 use super::task::{Intent, Task};
 
+/// Per-task-instance work-duration jitter (see `apply_task_duration_jitter`).
+/// A fully resolved axis config -- `seed` is already the concrete seed to
+/// use, not a base seed -- so `TaskManager` can just store and reapply it
+/// (e.g. on `reset`) without needing to know about `ExperimentConfig` or
+/// `EnvOverrides`. Resolution (piggybacking off the experiment's base seed
+/// vs. an explicit decoupled seed) happens in `env.rs`, mirroring
+/// `initial_soc_percents`' design there.
+#[derive(Debug, Clone, Copy)]
+pub struct TaskDurationJitter {
+    pub min_factor: f32,
+    pub max_factor: f32,
+    pub seed: u64,
+}
+
+/// Scales each work task's duration by an independent uniform draw from
+/// `[jitter.min_factor, jitter.max_factor]`: `Point` action durations are
+/// multiplied directly; `Line` action velocities are divided by the draw
+/// (duration = path length / velocity for a fixed row, so this has the same
+/// "factor > 1 means this pass takes longer" meaning for both action kinds,
+/// whichever the active field uses -- the vineyard/legacy field configs are
+/// Line-only today, Point support is for point-crop fields). `Wait` stages
+/// (the gap between an entity's growth stages, not robot work time) are
+/// left untouched -- this only jitters how long the robot actively works a
+/// task.
+///
+/// Entities are visited in sorted-id order (not `HashMap` iteration order,
+/// which is randomized per-process) so the same seed always produces the
+/// same draws, matching `get_initial_work_list`'s existing convention.
+fn apply_task_duration_jitter(
+    farm_entities: &mut HashMap<u32, FarmEntity>,
+    jitter: TaskDurationJitter,
+) {
+    let mut rng = StdRng::seed_from_u64(jitter.seed);
+    let mut sorted_ids: Vec<u32> = farm_entities.keys().copied().collect();
+    sorted_ids.sort();
+
+    for id in sorted_ids {
+        let Some(entity) = farm_entities.get_mut(&id) else { continue };
+        let stages = match entity {
+            FarmEntity::Crop(crop) => &mut crop.stages,
+            FarmEntity::Row(row) => &mut row.stages,
+        };
+        for stage in stages.iter_mut() {
+            match stage {
+                FarmEntityActionInstance::Point { duration, .. } => {
+                    let factor = rng.random_range(jitter.min_factor..=jitter.max_factor);
+                    *duration = *duration * factor;
+                }
+                FarmEntityActionInstance::Line { velocity, .. } => {
+                    let factor = rng.random_range(jitter.min_factor..=jitter.max_factor);
+                    *velocity = *velocity / factor;
+                }
+                FarmEntityActionInstance::Wait { .. } => {}
+            }
+        }
+    }
+}
+
 /// Manages task assignment, tracking, and execution for farm entities.
 #[derive(Debug, Clone)]
 pub struct TaskManager {
     id_counter: u32,
     field_config: FieldConfig,
-    
+
     pub farm_entities: HashMap<u32, FarmEntity>,
     pub waiting: HashMap<u32, Duration>, // stores and decremend all waiting actions
 
@@ -37,17 +98,22 @@ pub struct TaskManager {
     pub choose_station_strategy: ChooseStationStrategy,
     pub critical_soc_percent: f32,
     pub low_battery_threshold: f32,
+    pub task_duration_jitter: Option<TaskDurationJitter>,
 }
 
 impl TaskManager {
     /// Creates a new `TaskManager` instance from given configurations and initializes state.
     pub fn from_config(
-        task_manager_config: TaskManagerConfig, 
+        task_manager_config: TaskManagerConfig,
         field_config: FieldConfig,
         critical_soc_percent: f32,
         low_battery_threshold: f32,
+        task_duration_jitter: Option<TaskDurationJitter>,
     ) -> Self {
-        let farm_entities = field_config.get_farm_entities();
+        let mut farm_entities = field_config.get_farm_entities();
+        if let Some(jitter) = task_duration_jitter {
+            apply_task_duration_jitter(&mut farm_entities, jitter);
+        }
         let (id_counter, work_list) = Self::get_initial_work_list(&farm_entities);
         let obstacles = field_config.get_obstacles();
         let visibility_graph = VisibilityGraph::new(&field_config.get_graph_points(), obstacles);
@@ -64,6 +130,7 @@ impl TaskManager {
             choose_station_strategy: task_manager_config.choose_station_strategy,
             critical_soc_percent,
             low_battery_threshold,
+            task_duration_jitter,
         }
     }
 
@@ -73,8 +140,22 @@ impl TaskManager {
     }
 
     /// Resets the TaskManager’s internal state, clearing assigned and completed tasks and reinitializing the work list.
+    ///
+    /// Note (pre-existing, not introduced by task-duration jitter): this
+    /// rebuilds `work_list`/`id_counter` from a freshly loaded
+    /// `farm_entities`, but does not write that back into
+    /// `self.farm_entities` -- which still holds whatever stage progress
+    /// the entities reached before reset. `get_initial_work_list` always
+    /// takes each entity's stage-0 action regardless, so today that's
+    /// harmless; it would stop being harmless if something started relying
+    /// on `self.farm_entities`' stage/duration state right after a reset.
+    /// Only the interactive GUI's reset button calls this path -- no sweep
+    /// or experiment in `experiment::sweeps` does.
     pub fn reset(&mut self) {
-        let farm_entities = self.field_config.get_farm_entities();
+        let mut farm_entities = self.field_config.get_farm_entities();
+        if let Some(jitter) = self.task_duration_jitter {
+            apply_task_duration_jitter(&mut farm_entities, jitter);
+        }
         let (id_counter, work_list) = Self::get_initial_work_list(&farm_entities);
         self.id_counter = id_counter;
         self.work_list = work_list;
@@ -623,5 +704,126 @@ impl TaskManager {
                 stations_with_path.first().map(|(idx, _)| *idx).unwrap_or(0)
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod duration_jitter_tests {
+    use super::*;
+    use crate::environment::farm_entity_module::{
+        crop::Crop, farm_entity_plan::FarmEntityPlan, row::Row,
+    };
+    use crate::units::{linear_velocity::LinearVelocity, power::Power};
+
+    fn dummy_plan() -> FarmEntityPlan {
+        FarmEntityPlan {
+            crop_name: "test".to_string(),
+            type_: "line".to_string(),
+            cycle: None,
+            schedule: vec![],
+        }
+    }
+
+    fn row_entity(id: u32, velocity_kmh: f32) -> FarmEntity {
+        let path = vec![Pos2::new(0.0, 0.0), Pos2::new(10.0, 0.0)];
+        FarmEntity::Row(Row {
+            id,
+            field_id: 0,
+            path: path.clone(),
+            stage: None,
+            plan: dummy_plan(),
+            stages: vec![
+                FarmEntityActionInstance::line(
+                    id, 0, path,
+                    LinearVelocity::kilometers_per_hour(velocity_kmh),
+                    Power::watts(150.0),
+                    "work".to_string(),
+                ),
+                FarmEntityActionInstance::wait(id, Duration::minutes(10.0)),
+            ],
+        })
+    }
+
+    fn crop_entity(id: u32, duration_s: f32) -> FarmEntity {
+        FarmEntity::Crop(Crop {
+            id,
+            field_id: 0,
+            row_id: 0,
+            position: Pos2::new(0.0, 0.0),
+            stage: None,
+            plan: dummy_plan(),
+            stages: vec![
+                FarmEntityActionInstance::point(
+                    id, 0, 0, Pos2::new(0.0, 0.0),
+                    Duration::seconds(duration_s),
+                    Power::watts(100.0),
+                    "work".to_string(),
+                ),
+                FarmEntityActionInstance::wait(id, Duration::minutes(10.0)),
+            ],
+        })
+    }
+
+    #[test]
+    fn jitters_line_velocity_within_inverse_range_and_leaves_wait_untouched() {
+        let mut entities = HashMap::new();
+        entities.insert(0, row_entity(0, 2.0));
+
+        let jitter = TaskDurationJitter { min_factor: 0.8, max_factor: 1.2, seed: 1 };
+        apply_task_duration_jitter(&mut entities, jitter);
+
+        let FarmEntity::Row(row) = entities.get(&0).unwrap() else { panic!("expected Row") };
+        let FarmEntityActionInstance::Line { velocity, .. } = &row.stages[0] else { panic!("expected Line") };
+        let base = LinearVelocity::kilometers_per_hour(2.0).to_base_unit();
+        let scaled = velocity.to_base_unit();
+        // velocity divided by a draw in [0.8, 1.2] -> velocity lands in [base/1.2, base/0.8]
+        assert!(scaled >= base / 1.2 - 1e-4 && scaled <= base / 0.8 + 1e-4);
+
+        let FarmEntityActionInstance::Wait { duration, .. } = &row.stages[1] else { panic!("expected Wait") };
+        assert_eq!(*duration, Duration::minutes(10.0));
+    }
+
+    #[test]
+    fn jitters_point_duration_within_range() {
+        let mut entities = HashMap::new();
+        entities.insert(0, crop_entity(0, 40.0));
+
+        let jitter = TaskDurationJitter { min_factor: 0.5, max_factor: 1.5, seed: 1 };
+        apply_task_duration_jitter(&mut entities, jitter);
+
+        let FarmEntity::Crop(crop) = entities.get(&0).unwrap() else { panic!("expected Crop") };
+        let FarmEntityActionInstance::Point { duration, .. } = &crop.stages[0] else { panic!("expected Point") };
+        assert!(duration.to_base_unit() >= 40.0 * 0.5 - 1e-4);
+        assert!(duration.to_base_unit() <= 40.0 * 1.5 + 1e-4);
+    }
+
+    #[test]
+    fn same_seed_reproduces_identical_jitter() {
+        let mut a = HashMap::new();
+        a.insert(0, row_entity(0, 2.0));
+        a.insert(1, row_entity(1, 2.0));
+        let mut b = a.clone();
+
+        let jitter = TaskDurationJitter { min_factor: 0.7, max_factor: 1.3, seed: 42 };
+        apply_task_duration_jitter(&mut a, jitter);
+        apply_task_duration_jitter(&mut b, jitter);
+
+        for id in [0u32, 1u32] {
+            let FarmEntity::Row(ra) = a.get(&id).unwrap() else { panic!() };
+            let FarmEntity::Row(rb) = b.get(&id).unwrap() else { panic!() };
+            assert_eq!(ra.stages, rb.stages);
+        }
+    }
+
+    #[test]
+    fn different_seeds_produce_different_jitter() {
+        let mut a = HashMap::new();
+        a.insert(0, row_entity(0, 2.0));
+        let mut b = a.clone();
+
+        apply_task_duration_jitter(&mut a, TaskDurationJitter { min_factor: 0.5, max_factor: 1.5, seed: 1 });
+        apply_task_duration_jitter(&mut b, TaskDurationJitter { min_factor: 0.5, max_factor: 1.5, seed: 2 });
+
+        assert_ne!(a, b);
     }
 }
