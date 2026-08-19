@@ -113,6 +113,12 @@ fn get_n_agents(args: &[String], default: u32) -> u32 {
         .unwrap_or(default)
 }
 
+/// Lets --grid-search target a specific field config (e.g. a non-default
+/// vineyard field size) from the CLI without a code change.
+fn get_field_config_override(args: &[String]) -> Option<String> {
+    get_arg_value(args, "--field-config")
+}
+
 
 fn run_gui() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
@@ -275,6 +281,9 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
 
         let mut exp = ExperimentConfig::for_profile(profile);
         exp.n_agents = get_n_agents(&args, exp.n_agents);
+        if let Some(field_config) = get_field_config_override(&args) {
+            exp.field_config_path = field_config;
+        }
         let resolution = get_grid_resolution(&args, exp.field_resolution);
         let output_dir_exp = create_results_subdir(
             &base_output,
@@ -371,6 +380,15 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
 
         let mut exp = ExperimentConfig::for_profile(profile);
         exp.n_agents = get_n_agents(&args, exp.n_agents);
+        if profile == ExperimentProfile::Legacy {
+            // field1 (the profile's own default) is a single uninterrupted
+            // row block, so the specialist layouts' split/tight-center
+            // heuristics (station_layouts.rs) have no real sub-field
+            // structure to land in and can fall arbitrarily between rows.
+            // field4 is two row-blocks with a real gap, matching what
+            // baseline_comparison.rs already uses for the same reason.
+            exp.field_config_path = "configs/field_configs/legacy/field4.json".to_string();
+        }
         let output_dir_exp = create_results_subdir(
             &base_output,
             &format!("raw/{}/multi_station_exp", profile.label()),
@@ -456,6 +474,11 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
         return Ok(())
     }
 
+    if args.contains(&"--fleet-slots-sweep".to_string()) {
+        experiment::sweeps::fleet_slots::run_fleet_slots_sweep(profile, &base_output)?;
+        return Ok(())
+    }
+
     if args.contains(&"--field-sweep".to_string()) {
         // Vineyard-only: see run_field_size_sweep's doc comment.
         experiment::sweeps::field::run_field_size_sweep(&base_output)?;
@@ -464,6 +487,21 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
 
     if args.contains(&"--soc-sweep".to_string()) {
         experiment::sweeps::soc::run_soc_sweep(profile, &base_output)?;
+        return Ok(())
+    }
+
+    if args.contains(&"--initial-soc-sweep".to_string()) {
+        experiment::sweeps::initial_soc::run_initial_soc_sweep(profile, &base_output)?;
+        return Ok(())
+    }
+
+    if args.contains(&"--baseline-comparison-sweep".to_string()) {
+        experiment::sweeps::baseline_comparison::run_baseline_comparison_sweep(profile, &base_output)?;
+        return Ok(())
+    }
+
+    if args.contains(&"--task-duration-jitter-sweep".to_string()) {
+        experiment::sweeps::task_duration_jitter::run_task_duration_jitter_sweep(profile, &base_output)?;
         return Ok(())
     }
 

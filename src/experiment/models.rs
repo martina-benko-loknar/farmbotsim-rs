@@ -61,9 +61,13 @@ pub enum ExperimentType {
     MultiStation,
     FieldSweep,
     FleetSweep,
+    FleetSlotsSweep,
     BatterySweep,
     SocSweep,
+    InitialSocSweep,
+    TaskDurationJitterSweep,
     SocOptimization,
+    BaselineComparison,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 

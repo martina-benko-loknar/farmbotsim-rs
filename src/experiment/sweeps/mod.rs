@@ -1,6 +1,10 @@
 pub mod battery;
+pub mod baseline_comparison;
 pub mod field;
 pub mod fleet;
+pub mod fleet_slots;
+pub mod initial_soc;
 pub mod soc;
 pub mod sweep_utils;
+pub mod task_duration_jitter;
 //pub mod matrix;
