@@ -3,7 +3,22 @@ use crate::units::{angle::Angle, length::Length, linear_velocity::LinearVelocity
 pub const TOLERANCE_DISTANCE: Length = Length::meters(0.005);
 pub const TOLERANCE_ANGLE: Angle = Angle::degrees(0.05);
 
-pub const POWER_CONSUMPTION_WAIT: Power = Power::watts(10.0); // W/s
+/// Idle draw for an agent parked with motors off (Wait state, including
+/// station-queue waits) -- applied regardless of profile/hardware.
+///
+/// No manufacturer idle/standby spec exists for the Leo Rover (unlike
+/// LEO_ROVER_NOMINAL_DRIVING_POWER_W below, which is backed out from a
+/// published runtime figure); this is a bottom-up estimate from the
+/// platform's known components instead: Raspberry Pi 5 idle (~2.7 W,
+/// https://www.tomshardware.com/reviews/raspberry-pi-5), plus LeoCore
+/// (STM32F401) + motor encoders/IMU + idle WiFi (~1-2 W, no rover-specific
+/// spec), plus cooling fan/LEDs/DC-DC regulator losses (~1-2 W, fan
+/// connector rated 5V/1A but idle draw is a small fraction of that) -->
+/// roughly 5-7 W total, so 6.0 W is used as the midpoint. Treat this as a
+/// soft estimate, not a calibrated figure -- and note it's shared across
+/// all profiles (including Legacy, whose hardware this wasn't derived
+/// from) since Wait-state discharge isn't profile-specific today.
+pub const POWER_CONSUMPTION_WAIT: Power = Power::watts(6.0);
 pub const POWER_CONSUMPTION_TRAVEL: Power = Power::watts(2.0*350.0); // W/s
 
 /// Leo Rover's official average power draw while driving, backed out from
