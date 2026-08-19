@@ -39,6 +39,23 @@ enum EvalPhase {
     BO,
 }
 
+/// A candidate is only a legitimate optimization result if every station in
+/// it sits outside all field groups' (padded) bounding rectangles -- the
+/// same rule `generate_valid_grid_points` enforces for grid search. Unlike
+/// grid search, EGO's Bayesian-optimization iterations aren't filtered
+/// before evaluation (only the initial DOE samples are, via
+/// `generate_initial_population`); the solver's `subject_to` constraint
+/// only discourages the acquisition search from proposing invalid points,
+/// it doesn't forbid evaluating or reporting them. So "best so far" and the
+/// final best-candidate pick both need this check applied explicitly, or
+/// EGO can "win" by reporting a station placed inside the rows.
+fn candidate_is_valid(candidate: &EvaluatedCandidate, field_group_bounds: &[FieldBounds]) -> bool {
+    candidate
+        .positions
+        .iter()
+        .all(|(x, y)| is_position_valid(Pos2::new(*x, *y), field_group_bounds))
+}
+
 // ============================================================
 // Logging + Record creation
 // ============================================================
@@ -47,17 +64,23 @@ fn log_evaluation(
     eval_id: usize,
     phase_iter: usize,
     candidate: &EvaluatedCandidate,
+    field_group_bounds: &[FieldBounds],
     best_energy: &Arc<RwLock<f64>>,
     best_positions: &Arc<RwLock<Vec<(f32, f32)>>>,
 ) -> EvaluationRecord {
 
     let stations = &candidate.positions;
     let energy = candidate.metrics.energy_wh;
+    let is_valid = candidate_is_valid(candidate, field_group_bounds);
 
     let mut best_e = best_energy.write().unwrap();
     let mut best_pos = best_positions.write().unwrap();
 
-    let is_new_best = energy < *best_e;
+    // Only a valid candidate (no station inside a field group's bounding
+    // box) may become the new "best" -- otherwise the running best (and the
+    // convergence trace built from it) could track a physically invalid
+    // placement.
+    let is_new_best = is_valid && energy < *best_e;
 
     if is_new_best {
         *best_e = energy;
@@ -86,7 +109,7 @@ fn log_evaluation(
     };
 
     println!(
-        "[{:>2}] | {} | {:.2} kWh | {:.2} km | {:.2} km | {:.2} s{}",
+        "[{:>2}] | {} | {:.2} kWh | {:.2} km | {:.2} km | {:.2} s{}{}",
         phase_iter,
         position_string,
         candidate.metrics.energy_wh / 1000.0,
@@ -94,6 +117,7 @@ fn log_evaluation(
         candidate.metrics.charging_distance_m / 1000.0,
         candidate.metrics.evaluation_time_sec,
         if is_new_best { "  <-- New best" } else { "" },
+        if is_valid { "" } else { "  (invalid: inside field bounds)" },
     );
 
     // ---------------- RECORD ----------------
@@ -249,6 +273,7 @@ pub fn optimize_station_positions_ego(
     let best_positions_wrapped = Arc::clone(&best_positions);
     let history_wrapped = Arc::clone(&evaluation_history);
     let evaluated_candidates_wrapped = Arc::clone(&evaluated_candidates);
+    let field_group_bounds_for_log = field_group_bounds.clone();
 
     let n_initial = initial_x.nrows();
 
@@ -300,6 +325,7 @@ pub fn optimize_station_positions_ego(
                 eval_id,
                 phase_iter,
                 &candidate,
+                &field_group_bounds_for_log,
                 &best_energy_wrapped,
                 &best_positions_wrapped,
             );
@@ -360,15 +386,22 @@ pub fn optimize_station_positions_ego(
 
             let candidates = evaluated_candidates.read().unwrap();
 
+            // Only ever report a candidate whose station(s) actually sit
+            // outside the field groups -- see candidate_is_valid. Without
+            // this filter EGO can "win" the EGO-vs-grid-search comparison
+            // by reporting a station placed inside the rows, which the sim
+            // scores as artificially cheap but grid search could never
+            // produce (its candidates are filtered before evaluation).
             let best_candidate = candidates
                 .iter()
+                .filter(|c| candidate_is_valid(c, &field_group_bounds))
                 .min_by(|a, b| {
                     a.metrics
                         .energy_wh
                         .partial_cmp(&b.metrics.energy_wh)
                         .unwrap()
                 })
-                .expect("No evaluated candidates found");
+                .expect("No valid evaluated candidates found");
 
             let best_positions: Vec<Pos2> = best_candidate.positions
                 .iter()
@@ -419,10 +452,12 @@ pub fn optimize_station_positions_ego(
             let candidates = evaluated_candidates.read().unwrap();
 
             // ------------------------------------------------------------
-            // Case 1: Use best already evaluated candidate
+            // Case 1: Use best already evaluated candidate (valid ones
+            // only -- see candidate_is_valid)
             // ------------------------------------------------------------
             if let Some(best_candidate) = candidates
                 .iter()
+                .filter(|c| candidate_is_valid(c, &field_group_bounds))
                 .min_by(|a, b| {
                     a.metrics
                         .energy_wh
