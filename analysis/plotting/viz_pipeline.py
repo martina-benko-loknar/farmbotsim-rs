@@ -22,8 +22,15 @@ def generate_all_grid_plots(
     optimization_minimum: Optional[Tuple[Pos2, float]] = None,
     output_dir: str = "results",
     prefix: Optional[str] = None,
+    ego_best: Optional[Tuple[Pos2, float]] = None,
 ):
-    """Generate all plots for grid search results"""
+    """
+    Generate all plots for grid search results. `ego_best` (EGO's own
+    best-found position/energy, from the same input file's `ego` block) is
+    optional -- pass it to overlay EGO's result on the grid-search
+    heatmaps/3D plot as a star marker next to the grid optimum's circle, for
+    a visual EGO-vs-grid comparison. None (default) plots grid search alone.
+    """
     os.makedirs(output_dir, exist_ok=True)
 
     generate_3d_plot(
@@ -39,6 +46,7 @@ def generate_all_grid_plots(
         results.obstacles,
         results.grid_resolution,
         optimization_minimum,
+        ego_best,
         output_dir,
         prefix,
     )
@@ -47,6 +55,7 @@ def generate_all_grid_plots(
         results.obstacles,
         results.grid_resolution,
         optimization_minimum,
+        ego_best,
         output_dir,
         prefix,
     )
@@ -55,6 +64,7 @@ def generate_all_grid_plots(
         results.obstacles,
         results.grid_resolution,
         optimization_minimum,
+        ego_best,
         output_dir,
         prefix,
     )

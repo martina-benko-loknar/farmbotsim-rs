@@ -38,6 +38,26 @@ def resolve_results_root():
     return candidates[-1]
 
 
+def resolve_profile():
+    """
+    Resolve which experiment profile ('legacy' or 'vineyard') a sweep
+    script should read raw JSON from -- results are namespaced by profile
+    under raw/<profile>/<sweep_name> since ExperimentProfile was added
+    (farmbotsim-rs commit 6925e47), which predates these scripts. Pass
+    --profile to override; defaults to 'vineyard' (matches the Rust CLI's
+    own default in ExperimentProfile::from_flag).
+    """
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument(
+        "--profile",
+        default="vineyard",
+        choices=["legacy", "vineyard"],
+        help="Which experiment profile's results to read (default: vineyard).",
+    )
+    args, _ = parser.parse_known_args()
+    return args.profile
+
+
 def results_root_tag(results_root):
     """
     Short, filesystem-safe tag identifying a results_root, e.g. '2026-07-13'

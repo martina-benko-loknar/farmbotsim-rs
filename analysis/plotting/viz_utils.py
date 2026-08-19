@@ -38,20 +38,40 @@ def add_obstacles_to_2d_plot(ax, obstacles: List[Obstacle]):
 
 
 def add_optimization_minimum_to_2d_plot(
-    ax, 
+    ax,
     optimization_minimum: Optional[Tuple[Pos2, float]],
     marker_size: int = 15,
     marker_color: str = 'black'
 ):
-    """Add optimization minimum marker to 2D plot"""
+    """Add grid-search optimum marker to 2D plot"""
     if optimization_minimum is not None:
         opt_pos, _ = optimization_minimum
         # Layer 1: Larger white circle with black border (background)
-        ax.scatter([opt_pos.x], [opt_pos.y], c='white', marker='o', s=400, 
+        ax.scatter([opt_pos.x], [opt_pos.y], c='white', marker='o', s=400,
                   edgecolors='black', linewidths=3.5, zorder=100)
         # Layer 2: Black circle on top
-        ax.scatter([opt_pos.x], [opt_pos.y], c='black', marker='o', s=250, 
-                  edgecolors='white', linewidths=2.5, label='Optimization Minimum', zorder=101)
+        ax.scatter([opt_pos.x], [opt_pos.y], c='black', marker='o', s=250,
+                  edgecolors='white', linewidths=2.5, label='Grid search optimum', zorder=101)
+
+
+def add_ego_best_to_2d_plot(
+    ax,
+    ego_best: Optional[Tuple[Pos2, float]],
+):
+    """
+    Add EGO's best-found position to a 2D plot, distinguished from the grid
+    search optimum (circle, see add_optimization_minimum_to_2d_plot) by a
+    star marker rather than color, since the same black/white layering is
+    used for both so they still read cleanly on the RdYlBu_r heatmaps.
+    """
+    if ego_best is not None:
+        pos, _ = ego_best
+        # Layer 1: Larger white star with black border (background)
+        ax.scatter([pos.x], [pos.y], c='white', marker='*', s=650,
+                  edgecolors='black', linewidths=3, zorder=102)
+        # Layer 2: Black star on top
+        ax.scatter([pos.x], [pos.y], c='black', marker='*', s=380,
+                  edgecolors='white', linewidths=1.5, label='EGO best', zorder=103)
 
 
 def add_field_boundaries_to_plot(ax, field_bounds: Tuple[float, float, float, float]):

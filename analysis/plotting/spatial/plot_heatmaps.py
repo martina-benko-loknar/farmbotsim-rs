@@ -2,7 +2,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import List, Tuple, Optional
-from viz_utils import setup_latex_fonts, add_obstacles_to_2d_plot, add_optimization_minimum_to_2d_plot
+from viz_utils import (
+    setup_latex_fonts,
+    add_obstacles_to_2d_plot,
+    add_optimization_minimum_to_2d_plot,
+    add_ego_best_to_2d_plot,
+)
 from viz_models import Pos2, Obstacle
 
 # ============================================================================
@@ -14,6 +19,7 @@ def generate_energy_heatmap_plot(
     obstacles: List[Obstacle], 
     grid_resolution: int, 
     optimization_minimum: Optional[Tuple[Pos2, float]] = None,
+    ego_best: Optional[Tuple[Pos2, float]] = None,
     output_dir: str = "results",
     prefix: Optional[str] = None,
 ):
@@ -38,22 +44,25 @@ def generate_energy_heatmap_plot(
     
     # Create discrete heatmap (blue to red)
     im = ax.pcolormesh(x_vals, y_vals, Z_grid, cmap='RdYlBu_r', shading='auto')
+    ax.set_aspect('equal', adjustable='box')
     cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04, shrink=0.8)
     cbar.ax.set_title(r'$E_{\mathrm{tot}}$ (Wh)', fontsize=25, pad=20, loc='left')
     cbar.ax.tick_params(labelsize=25)
     
     add_obstacles_to_2d_plot(ax, obstacles)
     add_optimization_minimum_to_2d_plot(ax, optimization_minimum)
-    
+    add_ego_best_to_2d_plot(ax, ego_best)
+
     # Add annotation if minimum exists
-    if optimization_minimum is not None:
-        opt_pos, _ = optimization_minimum
-        ax.annotate('minimum', xy=(opt_pos.x, opt_pos.y), xytext=(opt_pos.x, opt_pos.y +  0.75),
-                   fontsize=25, ha='center', va='bottom',
-                   bbox=dict(boxstyle='round,pad=0.1', facecolor='white', edgecolor='black', linewidth=1))
-    
+    #if optimization_minimum is not None:
+    #    opt_pos, _ = optimization_minimum
+    #    ax.annotate('minimum', xy=(opt_pos.x, opt_pos.y), xytext=(opt_pos.x, opt_pos.y +  0.75),
+    #               fontsize=25, ha='center', va='bottom',
+    #               bbox=dict(boxstyle='round,pad=0.1', facecolor='white', edgecolor='black', linewidth=1))
+
     ax.set_xlabel('$x$ (m)')
-    ax.set_ylabel('$y$ (m)')
+    ax.set_ylabel('$y$ (m)', rotation=0, labelpad=15, ha='center')
+    ax.yaxis.set_label_coords(0.5, 1.03)
     #(f'Grid Search Results - Energy Consumption Heatmap ({grid_resolution}x{grid_resolution})', fontsize=25)
     ax.tick_params(labelsize=25)
     
@@ -73,6 +82,7 @@ def generate_distance_heatmap_plot(
     obstacles: List[Obstacle], 
     grid_resolution: int, 
     optimization_minimum: Optional[Tuple[Pos2, float]] = None,
+    ego_best: Optional[Tuple[Pos2, float]] = None,
     output_dir: str = "results",
     prefix: Optional[str] = None,
 ):
@@ -97,22 +107,25 @@ def generate_distance_heatmap_plot(
     
     # Create discrete heatmap (blue to red)
     im = ax.pcolormesh(x_vals, y_vals, Z_grid, cmap='RdYlBu_r', shading='auto')
+    ax.set_aspect('equal', adjustable='box')
     cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04, shrink=0.8)
     cbar.ax.set_title('$d$ (m)', fontsize=25, pad=10, loc='left')
     cbar.ax.tick_params(labelsize=25)
     
     add_obstacles_to_2d_plot(ax, obstacles)
     add_optimization_minimum_to_2d_plot(ax, optimization_minimum)
-    
+    add_ego_best_to_2d_plot(ax, ego_best)
+
     # Add annotation if minimum exists
-    if optimization_minimum is not None:
-        opt_pos, _ = optimization_minimum
-        ax.annotate('minimum', xy=(opt_pos.x, opt_pos.y), xytext=(opt_pos.x, opt_pos.y +  0.75),
-                   fontsize=25, ha='center', va='bottom',
-                   bbox=dict(boxstyle='round,pad=0.1', facecolor='white', edgecolor='black', linewidth=1))
-    
+    #if optimization_minimum is not None:
+    #    opt_pos, _ = optimization_minimum
+    #    ax.annotate('minimum', xy=(opt_pos.x, opt_pos.y), xytext=(opt_pos.x, opt_pos.y +  0.75),
+    #               fontsize=25, ha='center', va='bottom',
+    #               bbox=dict(boxstyle='round,pad=0.1', facecolor='white', edgecolor='black', linewidth=1))
+
     ax.set_xlabel('$x$ (m)')
-    ax.set_ylabel('$y$ (m)')
+    ax.set_ylabel('$y$ (m)', rotation=0, labelpad=15, ha='center')
+    ax.yaxis.set_label_coords(0.5, 1.03)
     #ax.set_title(f'Grid Search Results - Total Distance Heatmap ({grid_resolution}x{grid_resolution})', fontsize=25)
     ax.tick_params(labelsize=25)
     
@@ -132,6 +145,7 @@ def generate_charging_distance_heatmap_plot(
     obstacles: List[Obstacle], 
     grid_resolution: int, 
     optimization_minimum: Optional[Tuple[Pos2, float]] = None,
+    ego_best: Optional[Tuple[Pos2, float]] = None,
     output_dir: str = "results",
     prefix: Optional[str] = None,
 ):
@@ -156,22 +170,25 @@ def generate_charging_distance_heatmap_plot(
     
     # Create discrete heatmap (blue to red)
     im = ax.pcolormesh(x_vals, y_vals, Z_grid, cmap='RdYlBu_r', shading='auto')
+    ax.set_aspect('equal', adjustable='box')
     cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04, shrink=0.8)
     cbar.ax.set_title(r'$d^{\mathrm{chg}}$ (m)', fontsize=25, pad=10, loc='left')
     cbar.ax.tick_params(labelsize=25)
     
     add_obstacles_to_2d_plot(ax, obstacles)
     add_optimization_minimum_to_2d_plot(ax, optimization_minimum)
-    
+    add_ego_best_to_2d_plot(ax, ego_best)
+
     # Add annotation if minimum exists
-    if optimization_minimum is not None:
-        opt_pos, _ = optimization_minimum
-        ax.annotate('minimum', xy=(opt_pos.x, opt_pos.y), xytext=(opt_pos.x, opt_pos.y +  0.75),
-                   fontsize=25, ha='center', va='bottom',
-                   bbox=dict(boxstyle='round,pad=0.1', facecolor='white', edgecolor='black', linewidth=1))
-    
+    #if optimization_minimum is not None:
+    #    opt_pos, _ = optimization_minimum
+    #    ax.annotate('minimum', xy=(opt_pos.x, opt_pos.y), xytext=(opt_pos.x, opt_pos.y +  0.75),
+    #               fontsize=25, ha='center', va='bottom',
+    #               bbox=dict(boxstyle='round,pad=0.1', facecolor='white', edgecolor='black', linewidth=1))
+
     ax.set_xlabel('$x$ (m)')
-    ax.set_ylabel('$y$ (m)')
+    ax.set_ylabel('$y$ (m)', rotation=0, labelpad=15, ha='center')
+    ax.yaxis.set_label_coords(0.5, 1.03)
     #ax.set_title(f'Grid Search Results - Charging Distance Heatmap ({grid_resolution}x{grid_resolution})', fontsize=25)
     ax.tick_params(labelsize=25)
     
