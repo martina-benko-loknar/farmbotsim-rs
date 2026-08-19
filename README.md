@@ -77,30 +77,34 @@ The **farmbotsim-rs** project is organized into several directories that help se
 - `movement_configs/` - Contains movement configs. (movement)
 - `scene_configs/` - Contains parameters for scene config. (field + stations + spawn area)
 
-`experiments/` - Experiment definitions and data.
-
 `general_help/` - Contains markdown and images for overview of project.
 
 `media/`- Contains screenshots of app.
 
 `performance_matrix/` - Stores all evaluations
 
-`results/` - JSON outputs generated from experiments and optimizations.
+`results/` - JSON outputs generated from experiments, optimizations, and sweeps, organized by run date (`results/<date>/raw/...`, `results/<date>/figures/...`).
+
+`various/` - Physical calibration data (voltage-drop-vs-slope measurements, seasonal-solar charging curves, slip-model fits) used to build the calibrated battery/terrain models.
 
 `src/` - Contains the core logic of the application:
 - `agent_module/` - Contains the agent struct and its associated logic, state machine.
 - `app_module/` - Main app functionality.
-- `battery_module/` - Containing battery logic.
+- `battery_module/` - Containing battery logic (charging/discharging models, including the calibrated slope-dependent and seasonal-solar models).
 - `environment/` - Contains all environment structs (Crop, Field, Station, Env, Config, ...).
   - `env_module/` - Contains logic for env.
   - `farm_entity_module/` - Contains logic for farm entity.
   - `spawn_area_module/` - Contains logic for spawn area.
   - `station_module/` - Contains logic for station.
   - `...`
+- `experiment/` - Experiment configs, runners, sweeps (`sweeps/`: battery, fleet, field, soc), and result export.
 - `movement_module/` - Contains movement logic
+- `optimization/` - EGO/Bayesian optimization and grid search.
 - `path_finding_module/` - Includes code related to navigation and pathfinding algorithms.
 - `rendering/` - Responsible for rendering.
+- `results/` - Result data structures shared across experiment types.
 - `task_module/` - Includes files for task creation and task handling.
+- `terrain/` - Terrain elevation map, slope, and wheel-slip model.
 - `tool_module/` - Contains files for app modes (simulation, editor, path, task, ...).
 - `units/` - Unit system.
 - `utilities/` - Common utilities and helper functions used across the project.
@@ -108,7 +112,9 @@ The **farmbotsim-rs** project is organized into several directories that help se
 - `logger.rs` - Logger for application.
 - `main.rs` - Contains entry point into application.
 
-`viz/` - Python scripts for visualizing JSON output.
+`analysis/` - Python pipeline that aggregates and plots the Rust sweep experiments (sensitivity, scaling, convergence, EGO-vs-grid-search comparison). See `analysis/README.md` for the script-by-script breakdown and known caveats (e.g. which sweeps currently have real seed-to-seed variance vs. none).
+
+`viz/` - Python script (`build_consumption_lut.py`) that builds the discharge-model lookup table from calibration data.
 
 `.gitignore` - Ignores files/folders.
 
@@ -120,77 +126,47 @@ The **farmbotsim-rs** project is organized into several directories that help se
 
 ## Run Rust Modes
 
-`main.rs` supports several command-line modes for running experiments, optimizations, and visualizations. When using `cargo run`, always place your program flags after `--` to separate them from Cargo’s own options.
+`main.rs` supports several command-line modes for running experiments, optimizations, and sweeps. When using `cargo run`, always place your program flags after `--` to separate them from Cargo's own options. With no mode flag, `cargo run` launches the GUI application.
 
-**Experiment mode** runs a standard experiment and saves results as JSON.
+All modes accept `--profile <legacy|vineyard>` to select the experiment "story" (paired field set + battery model); default is `legacy`. Add `--viz` to also invoke the matching plotting script in `analysis/plotting/` after the run.
 
+**Single evaluation** runs one experiment configuration and saves results as JSON.
 ```
-cargo run -- --experiment
-```
-
-**Optimization mode** performs station-position optimization.
-
-```
-cargo run -- --optimize
+cargo run -- --single-evaluation
 ```
 
-**Grid search mode** performs a grid search with a customizable grid resolution (default = 10)
+**EGO optimization** performs Bayesian (EGO) station-position optimization for `n` stations (default = 1).
+```
+cargo run -- --optimize-ego 2
+```
 
+**Grid search** performs an exhaustive grid search over station positions, with a customizable grid resolution.
 ```
 cargo run -- --grid-search 50
 ```
 
-or with a specified minimum (x, y, value):
+**Single-station study** runs EGO and grid search back-to-back for one station, for direct comparison.
 ```
-cargo run -- --grid-search 50 --min 1.0 2.0 3.5
-```
-
-**Multi-plot mode** generates multiple plots for different station configurations.
-
-```
-cargo run -- --experiment
+cargo run -- --single-station-study
 ```
 
-## Visualization (Python)
-
-The `viz/` folder contains Python scripts for analyzing and visualizing JSON data generated by the Rust simulations.  
-
-### Setup
-
-Use your existing Conda environment or create a new one: 
-```bash
-cd viz
-conda activate myenv
-pip install -r requirements.txt
+**Multi-station study** runs EGO against the specialist heuristic 2-station layouts (diagonal corners, horizontal/vertical symmetry, split-center, tight-center).
 ```
-### Usage
-
-After running a Rust experiment (which produces JSON files in `results/`) go into `viz/` directory.  
-
-
-**Single-station visualization**
-
-```
-python single_station_viz.py <input_json> <output_dir>
-```
-Example: 
-
-```
-python single_station_viz.py ../results/paper_results_v2/basic/grid_search_50x50_results.json ../results/paper_results_v2/basic
+cargo run -- --multi-station-study
 ```
 
-**Multi-station visualization**
-
+**Sweeps** run a battery of experiments across a parameter axis; each has a dedicated `analysis/` script (see below).
 ```
-python multi_station_viz.py <output_dir>
-```
-Example: 
-```
-python multi_station_viz.py ../results/paper_results_v2/multi
+cargo run -- --battery-sweep
+cargo run -- --fleet-sweep
+cargo run -- --field-sweep
+cargo run -- --soc-sweep
 ```
 
-### Output
+## Analysis (Python)
 
-Figures are generated as `.pdf` files (or `.png`/`.svg` if configured) and saved in the specified output directory.
+The `analysis/` folder contains the Python pipeline that aggregates and plots the JSON output of the sweep experiments above (mean/std summaries, sensitivity/scaling/convergence/comparison figures). See `analysis/README.md` for the full script-by-script breakdown, the conda environment to use, and important caveats about which sweeps currently have real seed-to-seed variance and which don't.
+
+The `viz/` folder is unrelated: it holds `build_consumption_lut.py`, which builds the discharge-model lookup table from the calibration data in `various/`.
 
 
