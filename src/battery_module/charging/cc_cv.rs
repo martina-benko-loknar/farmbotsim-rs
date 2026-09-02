@@ -11,6 +11,15 @@ use crate::units::{
 /// (`cc_power`). Above it, the charger holds voltage constant and the charge
 /// current tapers off, which is approximated here as an exponential approach
 /// to `capacity` with time constant `cv_time_constant`.
+///
+/// The two phases are fit/configured independently, so nothing forces charging
+/// *power* to be continuous at the `cv_fraction` boundary in general: the CV
+/// phase's instantaneous power at the transition is
+/// `(1 - cv_fraction) * capacity / cv_time_constant`, which only matches
+/// `cc_power` if `cv_time_constant` is chosen as
+/// `(1 - cv_fraction) * capacity / cc_power`. Configs should set
+/// `cv_time_constant` this way unless deliberately modeling a discontinuous
+/// (e.g. measured) taper -- see `configs/batteries/leo_rover/config.json`.
 #[derive(Clone, Debug, PartialEq)]
 pub struct CcCvChargingModel {
     pub capacity: Energy,
