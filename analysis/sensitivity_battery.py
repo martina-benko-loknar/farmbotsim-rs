@@ -94,7 +94,7 @@ def main():
     vspans = [
         {
             "xmin": xmin, "xmax": xmax, "kind": "transition",
-            "label": "charging-events step (spawn_only)" if i == 0 else None,
+            "label": "charging-events step" if i == 0 else None,
         }
         for i, (xmin, xmax) in enumerate(step_boundaries)
     ]
@@ -145,13 +145,20 @@ def main():
                 "y2_mean": full_noise["charging_distance_m_mean"] if has_full_noise else None,
                 "y2_std": full_noise["charging_distance_m_std"] if has_full_noise else None,
             },
-            {
-                "ylabel": "charging events",
-                "y_mean": spawn_only["charging_events_mean"],
-                "y_std": spawn_only["charging_events_std"],
-                "y2_mean": full_noise["charging_events_mean"] if has_full_noise else None,
-                "y2_std": full_noise["charging_events_std"] if has_full_noise else None,
-            },
+            # Charging-events panel dropped from the published figure -- the
+            # staircase and the deployed-capacity plateau value now live in
+            # the paper's body text instead of a third panel (2026-09-01).
+            # The vspans below (computed from this same charging_events
+            # data) still shade the step bands on the two remaining panels,
+            # so this data is still visually referenced even without its
+            # own panel. Left here commented out in case we want it back.
+            # {
+            #     "ylabel": "charging events",
+            #     "y_mean": spawn_only["charging_events_mean"],
+            #     "y_std": spawn_only["charging_events_std"],
+            #     "y2_mean": full_noise["charging_events_mean"] if has_full_noise else None,
+            #     "y2_std": full_noise["charging_events_std"] if has_full_noise else None,
+            # },
         ],
         xlabel="battery capacity (Wh)",
         output_dir=FIGURES_DIR,
@@ -161,6 +168,18 @@ def main():
         label2="full_noise" if has_full_noise else None,
         vlines=vlines,
         vspans=vspans,
+        # Bottom panel (charging distance) is high on the left, dropping to
+        # a low plateau from the deployed capacity onward -- its lower-left
+        # corner is clear.
+        legend_in_panel=True,
+        legend_panel=-1,
+        legend_loc="lower left",
+        legend_fontsize=13,
+        # Exact-canvas output (default figsize (8, 4.2*2)=(8, 8.4)) so
+        # soc_convergence.pdf -- a single n=1 panel at figsize (8, 4.2),
+        # also crop=False -- renders as exactly half this figure's height,
+        # matching one of its panels precisely. See convergence_soc.py.
+        crop=False,
     )
     generate_sensitivity_errorbar_plot(
         x=spawn_only["battery_wh"],

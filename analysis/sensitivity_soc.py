@@ -125,6 +125,12 @@ def main():
         x2=full_noise["soc_threshold"] if has_full_noise else None,
         label2="full_noise" if has_full_noise else None,
         vlines=vlines,
+        # Bottom panel (charging distance) rises monotonically across the
+        # whole sweep, leaving its upper-left corner clear -- move the
+        # legend in there instead of the default above-the-top-panel strip.
+        legend_in_panel=True,
+        legend_panel=-1,
+        legend_loc="upper left",
     )
     generate_sensitivity_errorbar_plot(
         x=spawn_only["soc_threshold"],
