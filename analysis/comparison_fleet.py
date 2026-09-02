@@ -7,6 +7,7 @@ from results_dir import resolve_results_root, resolve_profile, results_root_tag
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "plotting"))
 from sensitivity import generate_sensitivity_mechanism_plot
+from convergence import PAIRED_FIGURE_MARGINS, PAIRED_FIGURE_FIGSIZE
 
 SWEEP_NAME = "fleet_sweep"
 EXPORTS_BASE_DIR = "exports"
@@ -73,15 +74,30 @@ def main():
                 "y_mean": summary["ego_energy_wh_per_task_mean"],
                 "y_std": summary["ego_energy_wh_per_task_std"],
             },
-            {
-                "ylabel": "time / evaluation (s)",
-                "y_mean": summary["ego_time_per_eval_sec_mean"],
-                "y_std": summary["ego_time_per_eval_sec_std"],
-            },
+            # Time/evaluation panel dropped from the published figure -- the
+            # numbers now live in the paper's body text instead of a subplot
+            # (2026-09-01). Left here commented out in case we want it back.
+            # {
+            #     "ylabel": "time / evaluation (s)",
+            #     "y_mean": summary["ego_time_per_eval_sec_mean"],
+            #     "y_std": summary["ego_time_per_eval_sec_std"],
+            # },
         ],
         xlabel="fleet size (/)",
         output_dir=FIGURES_DIR,
         prefix="fleet_energy_time_mechanism",
+        # Match the paired convergence plot's canvas -- see
+        # PAIRED_FIGURE_FIGSIZE's docstring (2026-09-02).
+        figsize=PAIRED_FIGURE_FIGSIZE,
+        # Matching figsize alone isn't enough: tight-cropping still depends
+        # on content (this plot has no legend, its paired convergence plot
+        # does), so both need crop=False to actually render pixel-identical.
+        crop=False,
+        # Explicit shared margins, matched with the paired convergence plot
+        # -- see PAIRED_FIGURE_MARGINS' docstring (2026-09-02). Axis-label
+        # font stays at the shared 20pt base (a since-reverted 24pt bump was
+        # tried and then unified back down, 2026-09-02).
+        margins=PAIRED_FIGURE_MARGINS,
     )
 
 

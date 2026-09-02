@@ -8,7 +8,10 @@ from aggregation.convergence import (
 from results_dir import resolve_results_root, resolve_profile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "plotting"))
-from convergence import generate_multi_convergence_plot, FLEET_SIZE_COLORS
+from convergence import (
+    generate_multi_convergence_plot, FLEET_SIZE_COLORS,
+    PAIRED_FIGURE_MARGINS, PAIRED_FIGURE_FIGSIZE,
+)
 
 SWEEP_NAME = "fleet_sweep"
 
@@ -59,6 +62,12 @@ def main():
         output_dir=FIGURES_DIR,
         prefix="fleet_convergence_overlay",
         ylabel="\\% above best found ($E_{\\mathrm{tot}}$ / task)",
+        # Paired side by side with fleet_energy_time_mechanism.pdf at the
+        # same figsize -- see generate_multi_convergence_plot's `crop`
+        # docstring for why both need crop=False to actually match.
+        crop=False,
+        margins=PAIRED_FIGURE_MARGINS,
+        figsize=PAIRED_FIGURE_FIGSIZE,
     )
 
 
