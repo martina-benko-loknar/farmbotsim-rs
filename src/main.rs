@@ -490,6 +490,11 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
         return Ok(())
     }
 
+    if args.contains(&"--soc-sweep-matched-slots".to_string()) {
+        experiment::sweeps::soc::run_soc_sweep_matched_slots(profile, &base_output)?;
+        return Ok(())
+    }
+
     if args.contains(&"--initial-soc-sweep".to_string()) {
         experiment::sweeps::initial_soc::run_initial_soc_sweep(profile, &base_output)?;
         return Ok(())
