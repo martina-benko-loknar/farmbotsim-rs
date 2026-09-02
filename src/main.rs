@@ -500,6 +500,11 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
         return Ok(())
     }
 
+    if args.contains(&"--baseline-comparison-multiagent-sweep".to_string()) {
+        experiment::sweeps::baseline_comparison::run_baseline_comparison_multiagent_sweep(profile, &base_output)?;
+        return Ok(())
+    }
+
     if args.contains(&"--task-duration-jitter-sweep".to_string()) {
         experiment::sweeps::task_duration_jitter::run_task_duration_jitter_sweep(profile, &base_output)?;
         return Ok(())
