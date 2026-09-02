@@ -1,12 +1,65 @@
 import matplotlib.pyplot as plt
-from matplotlib import cm
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from viz_utils import setup_latex_fonts, add_obstacles_to_2d_plot
 from viz_models import Pos2, Obstacle
 
 # ============================================================================
 # Multi-Station Plots
 # ============================================================================
+
+# Short legend suffixes for the specialist layouts defined in
+# station_layouts.rs (StationLayout.name), so the legend reads e.g.
+# "0.29 (DC)" instead of a bare number the reader has to match to a marker
+# shape via the caption text.
+LAYOUT_ABBREVIATIONS = {
+    "diagonal_corners": "DC",
+    "horizontal_symmetry": "HS",
+    "vertical_symmetry": "VS",
+    "split_center": "SC",
+    "tight_center": "TC",
+    "task_centroid": "CT",
+}
+
+# Fixed qualitative (Okabe-Ito colorblind-safe) palette, one color per
+# heuristic layout -- replaces a previous per-point sample of the RdYlBu_r
+# diverging colormap (the same one the energy/distance heatmaps use for a
+# *continuous* surface). Reusing a diverging heatmap colormap to color
+# discrete, unordered categories doesn't have a principled meaning here
+# (there's no ordering across DC/HS/VS/SC/TC/CT to diverge around), isn't
+# colorblind-safe, and visually put this figure in a different color
+# system from every other EGO-vs-heuristics comparison in the paper
+# (baseline_comparison_multiagent.py / baseline_comparison_oat.py both use
+# a plain black-vs-blue convention). Keyed by the same layout name used in
+# LAYOUT_ABBREVIATIONS so a given heuristic gets the same color regardless
+# of the order specialist.layouts happens to list them in (2026-09-02).
+LAYOUT_COLORS = {
+    "diagonal_corners": "#E69F00",    # orange
+    "horizontal_symmetry": "#56B4E9", # sky blue
+    "vertical_symmetry": "#009E73",   # bluish green
+    "split_center": "#F0E442",        # yellow
+    "tight_center": "#0072B2",        # blue -- same hex as the paper's
+                                       # other black/blue two-series pairs
+    "task_centroid": "#D55E00",       # vermillion
+}
+# Positional fallback (same palette, cycled by index) for the rare call
+# without layout_names -- keeps a fixed, distinct color per point instead
+# of falling back to the old colormap sampling.
+_LAYOUT_COLOR_FALLBACK = list(LAYOUT_COLORS.values())
+
+# EGO's own marker color -- black, matching the black-star convention used
+# for EGO/the anchor everywhere else in the paper (baseline_comparison_
+# multiagent.py, baseline_comparison_oat.py), not the reddish/blue extreme
+# of a colormap.
+EGO_MARKER_COLOR = "black"
+
+
+def _layout_color(i: int, layout_names: Optional[List[str]]) -> str:
+    if layout_names:
+        name = layout_names[i]
+        if name in LAYOUT_COLORS:
+            return LAYOUT_COLORS[name]
+    return _LAYOUT_COLOR_FALLBACK[i % len(_LAYOUT_COLOR_FALLBACK)]
+
 
 def generate_multi_station_plot(
     optimal_stations: List[Pos2],
@@ -16,38 +69,34 @@ def generate_multi_station_plot(
     field_bounds: Tuple[float, float, float, float],
     output_dir: str = "results",
     prefix: str = None,
+    layout_names: Optional[List[str]] = None,
 ):
     """Generate multi-station configuration plot (energy-based)"""
     setup_latex_fonts(30)
-    
-    fig, ax = plt.subplots(figsize=(10.75, 10))
 
-    # Calculate total number of configs for color mapping
-    n_configs = len(suboptimal_configs)
+    fig, ax = plt.subplots(figsize=(10.75, 10))
 
     # Plot optimal configuration
     x_coords = [s.x for s in optimal_stations]
     y_coords = [s.y for s in optimal_stations]
-    optimal_color = cm.RdYlBu_r(0) 
-    # ax.scatter(x_coords, y_coords, c=cm.hsv(1), marker='*', s=300, cmap='RdYlBu_r',
-    #           edgecolors='black', linewidths=1, 
-    #           label=f'{optimal_energy/1000:.2f}', zorder=100)
-    ax.scatter(x_coords, y_coords, c=[optimal_color], marker='*', s=300,
-              edgecolors='black', linewidths=1, 
-              label=f'{optimal_energy/1000:.2f}', zorder=100)
+    optimal_label = f'{optimal_energy/1000:.2f} (EGO)' if layout_names else f'{optimal_energy/1000:.2f}'
+    ax.scatter(x_coords, y_coords, c=EGO_MARKER_COLOR, marker='*', s=300,
+              edgecolors='black', linewidths=1,
+              label=optimal_label, zorder=100)
 
     # Plot suboptimal configurations
     for i, (stations, energy) in enumerate(suboptimal_configs):
         x_coords = [s.x for s in stations]
         y_coords = [s.y for s in stations]
-        # For each suboptimal config
-        #color_value = i / 7  # Normalize to 0-1 range
-        color_value = (i+1) / (n_configs + 1)
-        color = cm.RdYlBu_r(color_value)
-        #color = cm.hsv(color_value)  # Get RGB color from colormap
-        alpha = 0.9 
+        color = _layout_color(i, layout_names)
+        alpha = 0.9
         markers = ['o', '^', '<', 'p', 's', 'D']
         marker = markers[i % len(markers)]
+        if layout_names:
+            abbrev = LAYOUT_ABBREVIATIONS.get(layout_names[i], layout_names[i])
+            label = f'{energy/1000:.2f} ({abbrev})'
+        else:
+            label = f'{energy/1000:.2f}'
         ax.scatter(
             x_coords,
             y_coords,
@@ -57,7 +106,7 @@ def generate_multi_station_plot(
             alpha=alpha,
             edgecolors='black',
             linewidths=1,
-            label=f'{energy/1000:.2f}'
+            label=label
         )
 
     
@@ -77,14 +126,15 @@ def generate_multi_station_plot(
     #ax.set_ylim(min_y, max_y)
     ax.set_aspect('equal', adjustable='box')  # Equal aspect ratio like heatmaps
     
-    legend = ax.legend(loc='upper center', 
-              bbox_to_anchor=(1.1, 0.98),
-              fontsize=25,  
+    legend = ax.legend(loc='upper center',
+              bbox_to_anchor=(1.35, 0.98),
+              fontsize=25,
               borderpad=0,
               labelspacing=0.35,
-              handletextpad=-0.25,
+              handlelength=1.0,
+              handletextpad=0.4,
               frameon=False,
-              title=r'$E_{\mathrm{tot}}$ (kWh)', 
+              title=r'$E_{\mathrm{tot}}$ (kWh)',
               title_fontsize=25,
               alignment='left'
               )
@@ -115,6 +165,7 @@ def generate_multi_station_distance_plot(
     field_bounds: Tuple[float, float, float, float],
     output_dir: str = "results",
     prefix: str = None,
+    layout_names: Optional[List[str]] = None,
 ):
     """Generate multi-station configuration plot (distance-based)"""
     setup_latex_fonts(30)
@@ -133,35 +184,33 @@ def generate_multi_station_distance_plot(
     # Plot optimal configuration
     x_coords = [s.x for s in optimal_stations]
     y_coords = [s.y for s in optimal_stations]
-    optimal_color = cm.RdYlBu_r(0) 
-    # ax.scatter(x_coords, y_coords, c=cm.hsv(1), marker='*', s=300, cmap='RdYlBu_r',
-    #           edgecolors='black', linewidths=1, 
-    #           label=f'{optimal_energy/1000:.2f}', zorder=100)
-    ax.scatter(x_coords, y_coords, c=[optimal_color], marker='*', s=300,
-              edgecolors='black', linewidths=1, 
-              label=f'{optimal_distance/1000:.3f}', zorder=100)
+    optimal_label = f'{optimal_distance/1000:.3f} (EGO)' if layout_names else f'{optimal_distance/1000:.3f}'
+    ax.scatter(x_coords, y_coords, c=EGO_MARKER_COLOR, marker='*', s=300,
+              edgecolors='black', linewidths=1,
+              label=optimal_label, zorder=100)
 
     # Plot suboptimal configurations
     for i, (stations, distance) in enumerate(suboptimal_configs):
         x_coords = [s.x for s in stations]
         y_coords = [s.y for s in stations]
-        # For each suboptimal config
-        #color_value = i / 7  # Normalize to 0-1 range
-        color_value = (i+1) / 7
-        color = cm.RdYlBu_r(color_value)
-        #color = cm.hsv(color_value)  # Get RGB color from colormap
-        alpha = 0.9 
+        color = _layout_color(i, layout_names)
+        alpha = 0.9
         markers = ['o', '^', '<', 'p', 's', 'D']
+        if layout_names:
+            abbrev = LAYOUT_ABBREVIATIONS.get(layout_names[i], layout_names[i])
+            label = f'{distance/1000:.3f} ({abbrev})'
+        else:
+            label = f'{distance/1000:.3f}'
         ax.scatter(
             x_coords,
             y_coords,
             color=color,
-            marker=markers[i],
+            marker=markers[i % len(markers)],
             s=150,
             alpha=alpha,
             edgecolors='black',
             linewidths=1,
-            label=f'{distance/1000:.3f}'
+            label=label
         )
                   #label=f'Cfg.{i+1} ({energy/1000:.2f} kWh)')
                   #    
@@ -183,16 +232,17 @@ def generate_multi_station_distance_plot(
 
     ax.set_aspect('equal', adjustable='box')  # Equal aspect ratio like heatmaps
     
-    legend = ax.legend(loc='upper center', 
-              bbox_to_anchor=(1.1, 0.98),
-              fontsize=25,  
+    legend = ax.legend(loc='upper center',
+              bbox_to_anchor=(1.35, 0.98),
+              fontsize=25,
               borderpad=0,
               labelspacing=0.35,
-              handletextpad=-0.25,
+              handlelength=1.0,
+              handletextpad=0.4,
               frameon=False,
-              title=r'$d$ (km)', 
+              title=r'$d$ (km)',
               title_fontsize=25,
-              alignment='center'
+              alignment='left'
               )
     #legend.get_title().set_ha('left')  
     legend._legend_box.sep = 20

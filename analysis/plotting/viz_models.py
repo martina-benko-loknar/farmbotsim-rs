@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 @dataclass
 class Pos2:
@@ -30,4 +30,9 @@ class MultiStationResults:
     suboptimal_configs_distance: List[Tuple[List[Pos2], float]]
     obstacles: List[Obstacle]
     field_bounds: Tuple[float, float, float, float]
+    # Layout name per entry in suboptimal_configs_energy/distance (same
+    # order), e.g. "diagonal_corners" -- used to prefix each legend entry
+    # with a short abbreviation (see LAYOUT_ABBREVIATIONS in
+    # spatial/plot_multi_station.py). None (default) omits the prefix.
+    suboptimal_layout_names: Optional[List[str]] = None
 

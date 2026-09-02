@@ -27,6 +27,7 @@ def parse_multi_station_results(data, obstacles, field_bounds):
 
     suboptimal_energy = []
     suboptimal_distance = []
+    layout_names = []
 
     for evaluated in layouts:
         stations = [
@@ -37,6 +38,7 @@ def parse_multi_station_results(data, obstacles, field_bounds):
 
         suboptimal_energy.append((stations, metrics["energy_wh"]))
         suboptimal_distance.append((stations, metrics["total_distance_m"]))
+        layout_names.append(evaluated["layout"]["name"])
 
     return MultiStationResults(
         optimal_stations=optimal_stations,
@@ -46,6 +48,7 @@ def parse_multi_station_results(data, obstacles, field_bounds):
         suboptimal_configs_distance=suboptimal_distance,
         obstacles=obstacles,
         field_bounds=field_bounds,
+        suboptimal_layout_names=layout_names,
     )
 
 

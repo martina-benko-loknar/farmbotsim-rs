@@ -86,6 +86,7 @@ def generate_all_multi_station_plots(
         results.field_bounds,
         output_dir,
         prefix,
+        results.suboptimal_layout_names,
     )
 
     generate_multi_station_distance_plot(
@@ -96,6 +97,7 @@ def generate_all_multi_station_plots(
         results.field_bounds,
         output_dir,
         prefix,
+        results.suboptimal_layout_names,
     )
 
 
