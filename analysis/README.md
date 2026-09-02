@@ -21,6 +21,7 @@ a specific one instead (see `results_dir.py`).
 | `comparison_field.py` | `field_sweep` | energy/task (top) and time/evaluation (bottom) vs field size, EGO only (see notes below) |
 | `comparison_fleet_slots.py` | `fleet_sweep` + `fleet_slots_sweep` | 1 charging slot vs slots matched to fleet size: energy/task, mission time |
 | `sensitivity_randomization.py` | `initial_soc_sweep` + `task_duration_jitter_sweep` | fixed vs randomized condition, per (field size, fleet size): energy/task, mission time, seed-to-seed std ratio |
+| `convergence_soc.py` | `soc_optimization_exp` | Level~II SoC-threshold optimizer's own best-energy-found-so-far vs. BO evaluation count (single run, no cross-seed std) |
 
 Energy figures (`sensitivity_*`, `comparison_*`, `baseline_comparison.py`) report
 **energy per completed task** (`energy_wh / completed_tasks`), not total energy,

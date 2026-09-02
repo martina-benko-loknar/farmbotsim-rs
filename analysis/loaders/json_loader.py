@@ -246,6 +246,38 @@ def load_latest_soc_optimum(results_base="../results", profile="vineyard", fleet
     }
 
 
+def load_latest_soc_trace(results_base="../results", profile="vineyard", fleet_size=1):
+    """
+    Same file-selection logic as `load_latest_soc_optimum` (most recent
+    `soc_optimization_exp` run for the given profile/fleet size, searched
+    across every `results/<date>/` dir), but returns the full per-evaluation
+    trace (`soc.trace.evaluation_history`, a list of dicts with `evaluation`
+    and `best_energy` keys among others -- same shape `aggregation.
+    convergence.ego_best_so_far` already expects for `optimize_station_
+    positions_ego`'s trace) instead of just the final summary scalar. For
+    plotting the Level~II SoC-threshold optimizer's own convergence curve
+    (`convergence_soc.py`), not yet covered by `load_latest_soc_optimum`.
+    Returns None if no matching file exists.
+    """
+    candidates = sorted(
+        Path(results_base).glob(
+            f"*/raw/{profile}/soc_optimization_exp/*_fleet={fleet_size}_batt=*.json"
+        )
+    )
+    candidates = [f for f in candidates if not f.stem.endswith("_placement")]
+    if not candidates:
+        return None
+
+    file = candidates[-1]
+    with open(file, "r") as f:
+        data = json.load(f)
+
+    return {
+        "file": file.name,
+        "evaluation_history": data["soc"]["trace"]["evaluation_history"],
+    }
+
+
 def load_baseline_comparison_results(folder):
     """
     Load results produced by `run_baseline_comparison_sweep`: one JSON per

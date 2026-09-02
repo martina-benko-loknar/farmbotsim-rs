@@ -6,7 +6,8 @@ from aggregation.aggregate import summarize
 from results_dir import resolve_results_root, resolve_profile, results_root_tag
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "plotting"))
-from comparison import generate_grouped_bar_comparison_plot
+from sensitivity import generate_sensitivity_errorbar_plot
+from convergence import SINGLE_PANEL_MECHANISM_FIGSIZE, SINGLE_PANEL_MECHANISM_MARGINS
 
 # fleet_sweep: 1 charging slot regardless of fleet size (the historical
 # setup -- see comparison_fleet.py). fleet_slots_sweep: slots matched 1:1 to
@@ -64,24 +65,40 @@ def main():
     print(f"Saved summary to {summary_path}")
 
     os.makedirs(FIGURES_DIR, exist_ok=True)
-    group_labels = merged["fleet_size"].astype(str).tolist()
+    fleet_size = merged["fleet_size"]
 
-    generate_grouped_bar_comparison_plot(
-        group_labels,
-        merged["ego_energy_wh_per_task_mean_1slot"], merged["ego_energy_wh_per_task_std_1slot"],
-        merged["ego_energy_wh_per_task_mean_matched"], merged["ego_energy_wh_per_task_std_matched"],
+    # Dots-connected-by-lines with error bars, matching the rest of the
+    # paper's two-condition overlays (e.g. the SoC/battery sensitivity
+    # sweeps) instead of a grouped bar chart.
+    generate_sensitivity_errorbar_plot(
+        x=fleet_size,
+        y_mean=merged["ego_energy_wh_per_task_mean_1slot"], y_std=merged["ego_energy_wh_per_task_std_1slot"],
+        x2=fleet_size,
+        y2_mean=merged["ego_energy_wh_per_task_mean_matched"], y2_std=merged["ego_energy_wh_per_task_std_matched"],
         xlabel="fleet size (/)", ylabel="$E_{\\mathrm{tot}}$ / task (Wh)",
         output_dir=FIGURES_DIR, prefix="fleet_slots_comparison_energy",
-        series_a_label="1 slot", series_b_label="slots = fleet size",
+        label="1 slot", label2="slots = fleet size",
+        # figsize/margins reconstructed to land this plot's own axes box at
+        # the literal same size as one panel of battery_sensitivity_energy_
+        # mechanism.pdf / soc_sensitivity_energy_mechanism.pdf, instead of
+        # this function's own larger (8, 6) default -- this is the only
+        # figure of the pair actually published, see main.tex. `margins`
+        # locks the box itself, rather than letting this plot's own legend
+        # push tight_layout to a different box at the same nominal figsize
+        # (2026-09-02).
+        figsize=SINGLE_PANEL_MECHANISM_FIGSIZE,
+        crop=False,
+        margins=SINGLE_PANEL_MECHANISM_MARGINS,
     )
 
-    generate_grouped_bar_comparison_plot(
-        group_labels,
-        merged["ego_simulation_time_sec_mean_1slot"], merged["ego_simulation_time_sec_std_1slot"],
-        merged["ego_simulation_time_sec_mean_matched"], merged["ego_simulation_time_sec_std_matched"],
+    generate_sensitivity_errorbar_plot(
+        x=fleet_size,
+        y_mean=merged["ego_simulation_time_sec_mean_1slot"], y_std=merged["ego_simulation_time_sec_std_1slot"],
+        x2=fleet_size,
+        y2_mean=merged["ego_simulation_time_sec_mean_matched"], y2_std=merged["ego_simulation_time_sec_std_matched"],
         xlabel="fleet size (/)", ylabel="mission time (s)",
         output_dir=FIGURES_DIR, prefix="fleet_slots_comparison_mission_time",
-        series_a_label="1 slot", series_b_label="slots = fleet size",
+        label="1 slot", label2="slots = fleet size",
     )
 
 
