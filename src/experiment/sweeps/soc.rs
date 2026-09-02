@@ -82,10 +82,16 @@ pub fn run_soc_sweep(
     // then run the sensitivity sweep around that fixed position.
     // ---------------------------------------------------------
 
-    let baseline_exp = ExperimentConfig {
-        n_agents: 3,
-        ..ExperimentConfig::for_profile(profile)
-    };
+    // n_agents left at ExperimentConfig::for_profile's default (1) rather
+    // than overridden, so this sweep's fixed station position/fleet size
+    // actually matches the Level II SoC-threshold optimizer and the
+    // battery-capacity sweep it's meant to sit alongside (both also run at
+    // the default fleet=1) -- previously hardcoded to 3 here only, which
+    // silently broke the "same fixed station position"/cross-validation
+    // claims made about this sweep in the paper text. Old fleet=3 data is
+    // left in place under the same `soc_sweep` directory (filenames encode
+    // fleet size, so there's no collision).
+    let baseline_exp = ExperimentConfig::for_profile(profile);
     let filename = format!(
         "size={}_fleet={}_batt={}_soc={}",
         baseline_exp.field_size_label(),
@@ -125,7 +131,6 @@ pub fn run_soc_sweep(
             for seed in seeds.clone() {
                 let exp = ExperimentConfig {
                     seed,
-                    n_agents: 3,
                     soc_threshold_percent: threshold as f32,
                     initial_soc_min_percent: ranges.map(|(soc, _)| soc.0),
                     initial_soc_max_percent: ranges.map(|(soc, _)| soc.1),
