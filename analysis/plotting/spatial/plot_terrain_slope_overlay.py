@@ -40,7 +40,7 @@ from PIL import Image
 REPO = "/home/martinabl/Projects/farmbotsim-rs"
 CSV_PATH = f"{REPO}/configs/scene_configs/vineyard_scene/baggy-altitude-empirical-lut.csv"
 FIELD_CONFIG_PATH = f"{REPO}/configs/field_configs/vineyard/xlarge.json"
-OUT_STEM = "terrain_slope_overlay_prototype"
+OUT_STEM = "terrain_slope_overlay"
 
 R_EARTH = 6_371_000.0
 
@@ -312,7 +312,10 @@ def main(mode="none"):
     plt.rcParams["text.usetex"] = True
     plt.rcParams["font.family"] = "serif"
     plt.rcParams["font.serif"] = ["Computer Modern Roman"]
-    base_fs = 15
+    # Bumped from 15: the figure is included at a fraction of \textwidth in the
+    # paper, and with the amount of detail on the page (photo, slope tiles,
+    # hatching, grid lines) that shrink made every label illegible at print size.
+    base_fs = 20
     plt.rcParams["font.size"] = base_fs
     plt.rcParams["axes.labelsize"] = base_fs
     plt.rcParams["xtick.labelsize"] = base_fs - 2
@@ -358,11 +361,11 @@ def main(mode="none"):
         unmeasured_patches = [p for p, m in zip(patches, edge_styles) if not m]
 
         pc = PatchCollection(measured_patches, facecolor=measured_colors,
-                              edgecolor="white", linewidth=0.15, alpha=0.4, zorder=2)
+                              edgecolor="white", linewidth=0.2, alpha=0.4, zorder=2)
         ax.add_collection(pc)
 
         pc_un = PatchCollection(unmeasured_patches, facecolor="none",
-                                 edgecolor="white", linewidth=0.5, hatch="////",
+                                 edgecolor="white", linewidth=0.7, hatch="////",
                                  alpha=0.5, zorder=2)
         ax.add_collection(pc_un)
 
@@ -373,7 +376,7 @@ def main(mode="none"):
                 if hm["count"][gy, gx] > 0:
                     mx.append(hm["origin_x"] + gx * hm["cell_w"])
                     my.append(hm["origin_y"] + gy * hm["cell_h"])
-        ax.scatter(mx, my, s=3, c="white", edgecolors="black", linewidths=0.25,
+        ax.scatter(mx, my, s=6, c="white", edgecolors="black", linewidths=0.35,
                    alpha=0.8, zorder=3, label="GNSS-sampled\ncells")
     elif mode == "subtle":
         # thin dotted edge on interpolated/extrapolated cells only; measured cells
@@ -391,16 +394,19 @@ def main(mode="none"):
         ax.add_collection(pc)
 
     # -- XL field row geometry --
+    # Thickened line + a heavier black halo (was 0.9/1.6): at half-textwidth print
+    # size the old weights all but disappeared against the slope tiles/hatching,
+    # which is exactly the "cyan rows don't stand out" complaint.
     row_color = "#00E5FF"
-    row_fx = [patheffects.withStroke(linewidth=1.6, foreground="black")]
+    row_fx = [patheffects.withStroke(linewidth=2.8, foreground="black")]
     for k, (p1, p2) in enumerate(row_segments):
-        ax.plot([p1[0], p2[0]], [p1[1], p2[1]], color=row_color, linewidth=0.9,
-                alpha=0.95, zorder=4, path_effects=row_fx,
+        ax.plot([p1[0], p2[0]], [p1[1], p2[1]], color=row_color, linewidth=1.7,
+                alpha=1.0, zorder=4, path_effects=row_fx,
                 label="vineyard\nrows" if k == 0 else None)
 
     # -- field/terrain bounding box --
     ax.plot([fx0, fx1, fx1, fx0, fx0], [fy0, fy0, fy1, fy1, fy0],
-            "k-", linewidth=1.3, zorder=4, label="terrain grid\nextent")
+            "k-", linewidth=2.0, zorder=4, label="terrain grid\nextent")
 
     # No in-map scale bar: the grid cell size (printed above, "Elevation grid: ...")
     # already fixes the scale via the visible tile grid itself, and belongs in the
