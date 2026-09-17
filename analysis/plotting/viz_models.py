@@ -35,4 +35,10 @@ class MultiStationResults:
     # with a short abbreviation (see LAYOUT_ABBREVIATIONS in
     # spatial/plot_multi_station.py). None (default) omits the prefix.
     suboptimal_layout_names: Optional[List[str]] = None
+    # Charging distance $d^{\mathrm{ch}}$ counterpart to
+    # optimal_distance/suboptimal_configs_distance (which are *total* travel
+    # distance) -- optional since older exports may not carry
+    # charging_distance_m; None (default) skips the charging-distance plot.
+    optimal_charging_distance: Optional[float] = None
+    suboptimal_configs_charging_distance: Optional[List[Tuple[List[Pos2], float]]] = None
 

@@ -22,11 +22,13 @@ def parse_multi_station_results(data, obstacles, field_bounds):
     best_metrics = ego_summary.get("best_metrics", {})
     optimal_energy = best_metrics.get("energy_wh", 0.0)
     optimal_distance = best_metrics.get("total_distance_m", 0.0)
+    optimal_charging_distance = best_metrics.get("charging_distance_m", 0.0)
 
     layouts = data.get("specialist", {}).get("layouts", [])
 
     suboptimal_energy = []
     suboptimal_distance = []
+    suboptimal_charging_distance = []
     layout_names = []
 
     for evaluated in layouts:
@@ -38,6 +40,7 @@ def parse_multi_station_results(data, obstacles, field_bounds):
 
         suboptimal_energy.append((stations, metrics["energy_wh"]))
         suboptimal_distance.append((stations, metrics["total_distance_m"]))
+        suboptimal_charging_distance.append((stations, metrics["charging_distance_m"]))
         layout_names.append(evaluated["layout"]["name"])
 
     return MultiStationResults(
@@ -49,6 +52,8 @@ def parse_multi_station_results(data, obstacles, field_bounds):
         obstacles=obstacles,
         field_bounds=field_bounds,
         suboptimal_layout_names=layout_names,
+        optimal_charging_distance=optimal_charging_distance,
+        suboptimal_configs_charging_distance=suboptimal_charging_distance,
     )
 
 

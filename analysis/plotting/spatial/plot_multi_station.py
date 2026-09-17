@@ -13,9 +13,9 @@ from viz_models import Pos2, Obstacle
 # shape via the caption text.
 LAYOUT_ABBREVIATIONS = {
     "diagonal_corners": "DC",
+    "anti_diagonal_corners": "AC",
     "horizontal_symmetry": "HS",
     "vertical_symmetry": "VS",
-    "split_center": "SC",
     "tight_center": "TC",
     "task_centroid": "CT",
 }
@@ -25,7 +25,7 @@ LAYOUT_ABBREVIATIONS = {
 # diverging colormap (the same one the energy/distance heatmaps use for a
 # *continuous* surface). Reusing a diverging heatmap colormap to color
 # discrete, unordered categories doesn't have a principled meaning here
-# (there's no ordering across DC/HS/VS/SC/TC/CT to diverge around), isn't
+# (there's no ordering across DC/AC/HS/VS/TC/CT to diverge around), isn't
 # colorblind-safe, and visually put this figure in a different color
 # system from every other EGO-vs-heuristics comparison in the paper
 # (baseline_comparison_multiagent.py / baseline_comparison_oat.py both use
@@ -33,13 +33,13 @@ LAYOUT_ABBREVIATIONS = {
 # LAYOUT_ABBREVIATIONS so a given heuristic gets the same color regardless
 # of the order specialist.layouts happens to list them in (2026-09-02).
 LAYOUT_COLORS = {
-    "diagonal_corners": "#E69F00",    # orange
-    "horizontal_symmetry": "#56B4E9", # sky blue
-    "vertical_symmetry": "#009E73",   # bluish green
-    "split_center": "#F0E442",        # yellow
-    "tight_center": "#0072B2",        # blue -- same hex as the paper's
-                                       # other black/blue two-series pairs
-    "task_centroid": "#D55E00",       # vermillion
+    "diagonal_corners": "#E69F00",      # orange
+    "anti_diagonal_corners": "#CC79A7", # reddish purple
+    "horizontal_symmetry": "#56B4E9",   # sky blue
+    "vertical_symmetry": "#009E73",     # bluish green
+    "tight_center": "#0072B2",          # blue -- same hex as the paper's
+                                         # other black/blue two-series pairs
+    "task_centroid": "#D55E00",         # vermillion
 }
 # Positional fallback (same palette, cycled by index) for the rare call
 # without layout_names -- keeps a fixed, distinct color per point instead
@@ -79,7 +79,7 @@ def generate_multi_station_plot(
     # Plot optimal configuration
     x_coords = [s.x for s in optimal_stations]
     y_coords = [s.y for s in optimal_stations]
-    optimal_label = f'{optimal_energy/1000:.2f} (EGO)' if layout_names else f'{optimal_energy/1000:.2f}'
+    optimal_label = f'{optimal_energy:.2f} (EGO)' if layout_names else f'{optimal_energy:.2f}'
     ax.scatter(x_coords, y_coords, c=EGO_MARKER_COLOR, marker='*', s=300,
               edgecolors='black', linewidths=1,
               label=optimal_label, zorder=100)
@@ -94,9 +94,9 @@ def generate_multi_station_plot(
         marker = markers[i % len(markers)]
         if layout_names:
             abbrev = LAYOUT_ABBREVIATIONS.get(layout_names[i], layout_names[i])
-            label = f'{energy/1000:.2f} ({abbrev})'
+            label = f'{energy:.2f} ({abbrev})'
         else:
-            label = f'{energy/1000:.2f}'
+            label = f'{energy:.2f}'
         ax.scatter(
             x_coords,
             y_coords,
@@ -134,7 +134,7 @@ def generate_multi_station_plot(
               handlelength=1.0,
               handletextpad=0.4,
               frameon=False,
-              title=r'$E_{\mathrm{tot}}$ (kWh)',
+              title=r'$E_{\mathrm{tot}}$ (Wh)',
               title_fontsize=25,
               alignment='left'
               )
@@ -259,5 +259,96 @@ def generate_multi_station_distance_plot(
     #plt.savefig(f"{filename}.png", dpi=150, bbox_inches='tight')
     plt.savefig(f"{filename}.pdf", bbox_inches='tight')
     #print(f"Plot saved to: {filename}.png and {filename}.pdf")
+    print(f"- {fname}.pdf")
+    plt.close()
+
+
+def generate_multi_station_charging_distance_plot(
+    optimal_stations: List[Pos2],
+    optimal_charging_distance: float,
+    suboptimal_configs: List[Tuple[List[Pos2], float]],
+    obstacles: List[Obstacle],
+    field_bounds: Tuple[float, float, float, float],
+    output_dir: str = "results",
+    prefix: str = None,
+    layout_names: Optional[List[str]] = None,
+):
+    """
+    Generate multi-station configuration plot (charging-distance-based) --
+    same layout as generate_multi_station_distance_plot, but for
+    charging_distance_m rather than total_distance_m. Kept in meters (not
+    km): charging distance is a small fraction of total travel distance
+    (hundreds of meters vs. tens of km for the vineyard field), so km would
+    read as near-zero.
+    """
+    setup_latex_fonts(30)
+
+    fig, ax = plt.subplots(figsize=(10.75, 10))
+
+    # Plot optimal configuration
+    x_coords = [s.x for s in optimal_stations]
+    y_coords = [s.y for s in optimal_stations]
+    optimal_label = f'{optimal_charging_distance:.1f} (EGO)' if layout_names else f'{optimal_charging_distance:.1f}'
+    ax.scatter(x_coords, y_coords, c=EGO_MARKER_COLOR, marker='*', s=300,
+              edgecolors='black', linewidths=1,
+              label=optimal_label, zorder=100)
+
+    # Plot suboptimal configurations
+    for i, (stations, charging_distance) in enumerate(suboptimal_configs):
+        x_coords = [s.x for s in stations]
+        y_coords = [s.y for s in stations]
+        color = _layout_color(i, layout_names)
+        alpha = 0.9
+        markers = ['o', '^', '<', 'p', 's', 'D']
+        if layout_names:
+            abbrev = LAYOUT_ABBREVIATIONS.get(layout_names[i], layout_names[i])
+            label = f'{charging_distance:.1f} ({abbrev})'
+        else:
+            label = f'{charging_distance:.1f}'
+        ax.scatter(
+            x_coords,
+            y_coords,
+            color=color,
+            marker=markers[i % len(markers)],
+            s=150,
+            alpha=alpha,
+            edgecolors='black',
+            linewidths=1,
+            label=label
+        )
+
+    # Add obstacles and field boundaries
+    add_obstacles_to_2d_plot(ax, obstacles)
+
+    ax.set_xlabel('$x$ (m)')
+    ax.set_ylabel('$y$ (m)')
+    ax.tick_params(labelsize=25)
+
+    ax.set_aspect('equal', adjustable='box')  # Equal aspect ratio like heatmaps
+
+    legend = ax.legend(loc='upper center',
+              bbox_to_anchor=(1.35, 0.98),
+              fontsize=25,
+              borderpad=0,
+              labelspacing=0.35,
+              handlelength=1.0,
+              handletextpad=0.4,
+              frameon=False,
+              title=r'$d^{\mathrm{ch}}$ (m)',
+              title_fontsize=25,
+              alignment='left'
+              )
+    legend._legend_box.sep = 20
+    ax.grid(False)
+    ax.spines['top'].set_visible(True)
+    ax.spines['right'].set_visible(True)
+    ax.spines['bottom'].set_color('black')
+    ax.spines['left'].set_color('black')
+
+    plt.tight_layout()
+    stem = prefix or f"multi_station_{len(optimal_stations)}"
+    filename = f"{output_dir}/{stem}_charging_distance"
+    fname = f"{stem}_charging_distance"
+    plt.savefig(f"{filename}.pdf", bbox_inches='tight')
     print(f"- {fname}.pdf")
     plt.close()

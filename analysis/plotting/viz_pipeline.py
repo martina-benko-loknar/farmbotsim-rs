@@ -9,7 +9,7 @@ from typing import List, Tuple, Optional
 import os
 from spatial.plot_heatmaps import generate_energy_heatmap_plot, generate_charging_distance_heatmap_plot, generate_distance_heatmap_plot
 from spatial.plot_surface_3d import generate_3d_plot
-from spatial.plot_multi_station import generate_multi_station_distance_plot, generate_multi_station_plot
+from spatial.plot_multi_station import generate_multi_station_distance_plot, generate_multi_station_plot, generate_multi_station_charging_distance_plot
 from spatial.plot_ego import generate_optimization_landscape_plot, generate_convergence_plot
 from viz_models import Pos2, Obstacle, GridSearchResults, MultiStationResults
 
@@ -99,6 +99,18 @@ def generate_all_multi_station_plots(
         prefix,
         results.suboptimal_layout_names,
     )
+
+    if results.optimal_charging_distance is not None and results.suboptimal_configs_charging_distance is not None:
+        generate_multi_station_charging_distance_plot(
+            results.optimal_stations,
+            results.optimal_charging_distance,
+            results.suboptimal_configs_charging_distance,
+            results.obstacles,
+            results.field_bounds,
+            output_dir,
+            prefix,
+            results.suboptimal_layout_names,
+        )
 
 
 def generate_all_ego_plots(
