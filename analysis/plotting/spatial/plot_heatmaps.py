@@ -61,8 +61,7 @@ def generate_energy_heatmap_plot(
     #               bbox=dict(boxstyle='round,pad=0.1', facecolor='white', edgecolor='black', linewidth=1))
 
     ax.set_xlabel('$x$ (m)')
-    ax.set_ylabel('$y$ (m)', rotation=0, labelpad=15, ha='center')
-    ax.yaxis.set_label_coords(0.5, 1.03)
+    ax.set_ylabel('$y$ (m)')
     #(f'Grid Search Results - Energy Consumption Heatmap ({grid_resolution}x{grid_resolution})', fontsize=25)
     ax.tick_params(labelsize=25)
     
@@ -124,8 +123,7 @@ def generate_distance_heatmap_plot(
     #               bbox=dict(boxstyle='round,pad=0.1', facecolor='white', edgecolor='black', linewidth=1))
 
     ax.set_xlabel('$x$ (m)')
-    ax.set_ylabel('$y$ (m)', rotation=0, labelpad=15, ha='center')
-    ax.yaxis.set_label_coords(0.5, 1.03)
+    ax.set_ylabel('$y$ (m)')
     #ax.set_title(f'Grid Search Results - Total Distance Heatmap ({grid_resolution}x{grid_resolution})', fontsize=25)
     ax.tick_params(labelsize=25)
     
@@ -187,8 +185,7 @@ def generate_charging_distance_heatmap_plot(
     #               bbox=dict(boxstyle='round,pad=0.1', facecolor='white', edgecolor='black', linewidth=1))
 
     ax.set_xlabel('$x$ (m)')
-    ax.set_ylabel('$y$ (m)', rotation=0, labelpad=15, ha='center')
-    ax.yaxis.set_label_coords(0.5, 1.03)
+    ax.set_ylabel('$y$ (m)')
     #ax.set_title(f'Grid Search Results - Charging Distance Heatmap ({grid_resolution}x{grid_resolution})', fontsize=25)
     ax.tick_params(labelsize=25)
     

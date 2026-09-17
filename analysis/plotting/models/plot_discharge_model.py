@@ -109,11 +109,11 @@ def main():
     ax_v.legend(loc="upper left", frameon=False)
 
     ax_v.text(
-        0.15, 0.06, "downhill: flat", transform=ax_v.transAxes,
+        0.15, 0.35, "downhill: flat", transform=ax_v.transAxes,
         ha="left", va="bottom", fontsize=12, color="0.35",
     )
     ax_v.text(
-        0.8, 0.06, "uphill: linear", transform=ax_v.transAxes,
+        0.8, 0.35, "uphill: linear", transform=ax_v.transAxes,
         ha="right", va="bottom", fontsize=12, color="0.35",
     )
 

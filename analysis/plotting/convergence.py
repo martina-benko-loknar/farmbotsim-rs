@@ -18,8 +18,14 @@ GRID_COLOR = "#0072B2"
 # recurring "second series" hue (GRID_COLOR above, SPAWN_ONLY/FULL_NOISE in
 # sensitivity.py), so a second, unrelated hue family (green) here read as
 # an extra, unexplained color system rather than reinforcing that
-# convention.
-_SEQUENTIAL_BLUE_RAMP = ["#bdd7e7", "#6baed6", "#3182bd", "#08519c"]
+# convention. The lightest class (originally #bdd7e7, ColorBrewer 9-class
+# Blues #3) washed out to near-invisible against the white axes background
+# once shaded/printed. A first fix (2026-09-15) moved to 9-class Blues
+# #4/#6/#7/#9 (#9ecae1 lightest) but that was still too pale to read
+# clearly -- sampled directly from mpl's continuous "Blues" colormap at
+# fractions 0.55/0.7/0.85/1.0 instead, pushing the lightest step to a
+# solidly medium blue rather than a tint.
+_SEQUENTIAL_BLUE_RAMP = ["#5ba3d0", "#2e7ebc", "#0d57a1", "#08306b"]
 FIELD_SIZE_COLORS = dict(zip(["S", "M", "L", "XL"], _SEQUENTIAL_BLUE_RAMP))
 FLEET_SIZE_COLORS = dict(zip([1, 2, 3, 4], _SEQUENTIAL_BLUE_RAMP))
 
