@@ -35,6 +35,7 @@ import matplotlib.patheffects as patheffects
 import numpy as np
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
+from matplotlib.transforms import Bbox
 from PIL import Image
 
 REPO = "/home/martinabl/Projects/farmbotsim-rs"
@@ -255,17 +256,31 @@ def lonlat_extent_to_meters(extent, lat0, lon0):
 # 4. Build the figure
 # ============================================================================
 
-def main(mode="none"):
+def main(mode="none", show_slope=True, match_width_in=None):
     """mode:
       "none"   -- every cell colored by slope, no measured/interpolated distinction
                   at all (max legibility of the slope pattern itself).
       "subtle" -- same, but interpolated/extrapolated cells (count==0) get a thin
                   dotted edge instead of the default hairline -- discoverable on
                   close inspection, not something that competes for attention.
+      "hatched" -- unmeasured cells get no slope fill, just a hatch pattern.
+    show_slope: False drops the slope-tile overlay (and its colorbar) entirely,
+      leaving just the basemap photo + row grid + terrain extent box -- a
+      simpler companion figure to the full slope overlay. `mode` is ignored
+      in that case.
+    match_width_in: pad the saved figure's right edge (blank space, same visual
+      origin) so its total width equals this many inches -- used so the
+      show_slope=True/False companion figures come out at the *same* PDF page
+      aspect ratio despite the colorbar only existing in one of them. Without
+      this, bbox_inches="tight" crops each figure to its own content width;
+      the two pages end up with equal height but different width in points,
+      so placing them at equal \\includegraphics widths in LaTeX (as intended,
+      side by side) silently renders them at different heights. Returns the
+      actual saved width in inches so a caller can chain this across figures.
     """
     rows = load_lut(CSV_PATH)
     hm = build_height_map(rows)
-    slope = local_slope_deg(hm)
+    slope = local_slope_deg(hm) if show_slope else None
     row_segments = load_row_segments(FIELD_CONFIG_PATH)
 
     lat_min = hm["anchor_lat"]
@@ -334,70 +349,86 @@ def main(mode="none"):
     # slope the same way -- the measured/interpolated split is not a coloring
     # decision, it's at most a subtle edge-style cue (mode="subtle") so the slope
     # pattern itself is what the reader's eye lands on.
-    cmap = plt.get_cmap("inferno")
-    vmin, vmax = 0.0, np.percentile(slope, 98)  # robust to a couple of extreme edge cells
-    norm = plt.Normalize(vmin=vmin, vmax=vmax)
+    if show_slope:
+        cmap = plt.get_cmap("inferno")
+        vmin, vmax = 0.0, np.percentile(slope, 98)  # robust to a couple of extreme edge cells
+        norm = plt.Normalize(vmin=vmin, vmax=vmax)
 
-    patches, colors, edge_styles = [], [], []
+        patches, colors, edge_styles = [], [], []
 
-    for gy in range(hm["height"]):
-        for gx in range(hm["width"]):
-            x0 = hm["origin_x"] + (gx - 0.5) * hm["cell_w"]
-            y0 = hm["origin_y"] + (gy - 0.5) * hm["cell_h"]
-            poly = Polygon([
-                (x0, y0), (x0 + hm["cell_w"], y0),
-                (x0 + hm["cell_w"], y0 + hm["cell_h"]), (x0, y0 + hm["cell_h"]),
-            ])
-            patches.append(poly)
-            colors.append(cmap(norm(slope[gy, gx])))
-            edge_styles.append(hm["count"][gy, gx] > 0)
-
-    if mode == "hatched":
-        # original design: unmeasured cells get NO slope fill at all, just a
-        # hatch pattern, so the measured/interpolated split is the dominant visual
-        # cue rather than a subtle one -- kept around as the default for now.
-        measured_patches = [p for p, m in zip(patches, edge_styles) if m]
-        measured_colors = [c for c, m in zip(colors, edge_styles) if m]
-        unmeasured_patches = [p for p, m in zip(patches, edge_styles) if not m]
-
-        pc = PatchCollection(measured_patches, facecolor=measured_colors,
-                              edgecolor="white", linewidth=0.2, alpha=0.4, zorder=2)
-        ax.add_collection(pc)
-
-        pc_un = PatchCollection(unmeasured_patches, facecolor="none",
-                                 edgecolor="white", linewidth=0.7, hatch="////",
-                                 alpha=0.5, zorder=2)
-        ax.add_collection(pc_un)
-
-        # measured-cell centers (documents real GNSS sample density)
-        mx, my = [], []
         for gy in range(hm["height"]):
             for gx in range(hm["width"]):
-                if hm["count"][gy, gx] > 0:
-                    mx.append(hm["origin_x"] + gx * hm["cell_w"])
-                    my.append(hm["origin_y"] + gy * hm["cell_h"])
-        ax.scatter(mx, my, s=6, c="white", edgecolors="black", linewidths=0.35,
-                   alpha=0.8, zorder=3, label="GNSS-sampled\ncells")
-    elif mode == "subtle":
-        # thin dotted edge on interpolated/extrapolated cells only; measured cells
-        # get the same near-invisible hairline as before
-        edgecolors = ["white" if m else "white" for m in edge_styles]
-        linewidths = [0.15 if m else 0.45 for m in edge_styles]
-        linestyles = ["solid" if m else "dotted" for m in edge_styles]
-        pc = PatchCollection(patches, facecolor=colors, edgecolor=edgecolors,
-                              linewidth=linewidths, linestyle=linestyles,
-                              alpha=0.55, zorder=2)
-        ax.add_collection(pc)
-    else:
-        pc = PatchCollection(patches, facecolor=colors, edgecolor="white",
-                              linewidth=0.15, alpha=0.55, zorder=2)
-        ax.add_collection(pc)
+                x0 = hm["origin_x"] + (gx - 0.5) * hm["cell_w"]
+                y0 = hm["origin_y"] + (gy - 0.5) * hm["cell_h"]
+                poly = Polygon([
+                    (x0, y0), (x0 + hm["cell_w"], y0),
+                    (x0 + hm["cell_w"], y0 + hm["cell_h"]), (x0, y0 + hm["cell_h"]),
+                ])
+                patches.append(poly)
+                colors.append(cmap(norm(slope[gy, gx])))
+                edge_styles.append(hm["count"][gy, gx] > 0)
+
+        if mode == "hatched":
+            # original design: unmeasured cells get NO slope fill at all, just a
+            # hatch pattern, so the measured/interpolated split is the dominant visual
+            # cue rather than a subtle one -- kept around as the default for now.
+            measured_patches = [p for p, m in zip(patches, edge_styles) if m]
+            measured_colors = [c for c, m in zip(colors, edge_styles) if m]
+            unmeasured_patches = [p for p, m in zip(patches, edge_styles) if not m]
+
+            pc = PatchCollection(measured_patches, facecolor=measured_colors,
+                                  edgecolor="white", linewidth=0.2, alpha=0.4, zorder=2)
+            ax.add_collection(pc)
+
+            pc_un = PatchCollection(unmeasured_patches, facecolor="none",
+                                     edgecolor="white", linewidth=0.7, hatch="////",
+                                     alpha=0.5, zorder=2)
+            ax.add_collection(pc_un)
+
+            # measured-cell centers (documents real GNSS sample density)
+            mx, my = [], []
+            for gy in range(hm["height"]):
+                for gx in range(hm["width"]):
+                    if hm["count"][gy, gx] > 0:
+                        mx.append(hm["origin_x"] + gx * hm["cell_w"])
+                        my.append(hm["origin_y"] + gy * hm["cell_h"])
+            # Cross markers (was a small white-fill/black-edge dot, s=6): at print
+            # size that dot vanished both against the white cell-grid hairlines
+            # (same color) and against the light hatched cells (low contrast).
+            # An x-marker's arms extend past that clutter, and the black halo
+            # (matching the rows/extent-box treatment) keeps it visible over both
+            # the darkest and lightest tiles. zorder=5 (above the rows' zorder=4)
+            # so a marker under a row is still drawn on top of it, not hidden.
+            gnss_marks = ax.scatter(mx, my, s=34, c="white", marker="x",
+                                     linewidths=1.0, alpha=0.95, zorder=5,
+                                     label="GNSS-sampled\ncells")
+            gnss_marks.set_path_effects(
+                [patheffects.withStroke(linewidth=1.6, foreground="black")])
+        elif mode == "subtle":
+            # thin dotted edge on interpolated/extrapolated cells only; measured cells
+            # get the same near-invisible hairline as before
+            edgecolors = ["white" if m else "white" for m in edge_styles]
+            linewidths = [0.15 if m else 0.45 for m in edge_styles]
+            linestyles = ["solid" if m else "dotted" for m in edge_styles]
+            pc = PatchCollection(patches, facecolor=colors, edgecolor=edgecolors,
+                                  linewidth=linewidths, linestyle=linestyles,
+                                  alpha=0.55, zorder=2)
+            ax.add_collection(pc)
+        else:
+            pc = PatchCollection(patches, facecolor=colors, edgecolor="white",
+                                  linewidth=0.15, alpha=0.55, zorder=2)
+            ax.add_collection(pc)
 
     # -- XL field row geometry --
     # Thickened line + a heavier black halo (was 0.9/1.6): at half-textwidth print
     # size the old weights all but disappeared against the slope tiles/hatching,
     # which is exactly the "cyan rows don't stand out" complaint.
-    row_color = "#00E5FF"
+    # Blue/orange (dataviz palette slots 1/2) replace the old cyan/black pairing:
+    # validated CVD-safe (worst-pair Delta E 24.7 protan, 33.6 normal-vision) and,
+    # as a warm/cool pair, distinct from each other and from the basemap's
+    # dominant greens even where cyan washed out over the vineyard canopy.
+    row_color = "#2a78d6"
+    extent_color = "#eb6834"
     row_fx = [patheffects.withStroke(linewidth=2.8, foreground="black")]
     for k, (p1, p2) in enumerate(row_segments):
         ax.plot([p1[0], p2[0]], [p1[1], p2[1]], color=row_color, linewidth=1.7,
@@ -405,8 +436,10 @@ def main(mode="none"):
                 label="vineyard\nrows" if k == 0 else None)
 
     # -- field/terrain bounding box --
+    extent_fx = [patheffects.withStroke(linewidth=3.0, foreground="black")]
     ax.plot([fx0, fx1, fx1, fx0, fx0], [fy0, fy0, fy1, fy1, fy0],
-            "k-", linewidth=2.0, zorder=4, label="terrain grid\nextent")
+            color=extent_color, linewidth=2.0, zorder=4, path_effects=extent_fx,
+            label="terrain grid\nextent")
 
     # No in-map scale bar: the grid cell size (printed above, "Elevation grid: ...")
     # already fixes the scale via the visible tile grid itself, and belongs in the
@@ -430,7 +463,11 @@ def main(mode="none"):
     # The compass symbol sits flush to the top of the margin column (level with
     # the map's top edge), then margin_gap separates compass<->colorbar and,
     # further down, colorbar<->box-legend by the same amount, so the vertical
-    # rhythm down this right-hand margin column is even.
+    # rhythm down this right-hand margin column is even. The colorbar's
+    # reserved slot (cbar_y0) is computed the same way regardless of
+    # show_slope -- even when there's no colorbar to draw there -- so the
+    # legend's top edge lands at the same figure-fraction height in both
+    # figures and the two align when placed side by side in LaTeX.
     icon_n_len = 0.045 * ax_pos.height   # compass tip length, north half
     icon_s_len = 0.026 * ax_pos.height   # compass tip length, south half
     compass_h = icon_n_len + icon_s_len  # total height the compass icon occupies
@@ -439,9 +476,11 @@ def main(mode="none"):
     cbar_h = cbar_shrink * ax_pos.height
     cbar_x0 = ax_pos.x1 + cbar_pad * ax_pos.width
     cbar_y0 = ax_pos.y1 - compass_h - margin_gap - cbar_h
-    cax = fig.add_axes([cbar_x0, cbar_y0, cbar_w, cbar_h])
-    cbar = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax)
-    cbar.set_label(r"local terrain slope $|\nabla h|$ (deg)")
+    if show_slope:
+        cax = fig.add_axes([cbar_x0, cbar_y0, cbar_w, cbar_h])
+        cbar = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), cax=cax)
+        cbar.set_label(r"local terrain slope $|\nabla h|$ (deg)")
+    legend_top = cbar_y0
 
     # -- compass symbol -- placed above the colorbar with a margin_gap gap between
     # them, in figure coordinates (not over the photo, so no path-effect stroke is
@@ -461,7 +500,7 @@ def main(mode="none"):
                              (cx_fig - half_w, cy_fig)],
                             facecolor="white", **compass_kwargs))
 
-    legend_y_axes_frac = (cbar_y0 - margin_gap - ax_pos.y0) / ax_pos.height
+    legend_y_axes_frac = (legend_top - margin_gap - ax_pos.y0) / ax_pos.height
     # handleheight=2 makes each entry's handle box as tall as the two-line labels
     # below, so the marker/line/patch sits centered against both lines rather
     # than pinned to the first one; multialignment left-aligns "cells"/"rows"/
@@ -486,16 +525,31 @@ def main(mode="none"):
 
     # No fig.tight_layout() here: it fights the manually-positioned colorbar axes
     # (added via fig.add_axes, not fig.colorbar(ax=...)) and squeezed/clipped the
-    # legend. savefig(bbox_inches="tight") below already crops the final figure.
-    out_stem = f"{OUT_STEM}_{mode}"
-    fig.savefig(f"{out_stem}.pdf", bbox_inches="tight")
-    fig.savefig(f"{out_stem}.png", dpi=200, bbox_inches="tight")
+    # legend. bbox_inches computed explicitly below (replicating what
+    # bbox_inches="tight", pad_inches=0.1 does) so match_width_in can pad it.
+    out_stem = f"{OUT_STEM}_{mode}" if show_slope else f"{OUT_STEM}_no_slope"
+    fig.canvas.draw()
+    pad_inches = 0.1
+    tb = fig.get_tightbbox(fig.canvas.get_renderer())
+    bbox = Bbox.from_extents(tb.x0 - pad_inches, tb.y0 - pad_inches,
+                              tb.x1 + pad_inches, tb.y1 + pad_inches)
+    width_in = bbox.x1 - bbox.x0
+    if match_width_in is not None and match_width_in > width_in:
+        bbox = Bbox.from_extents(bbox.x0, bbox.y0,
+                                  bbox.x0 + match_width_in, bbox.y1)
+        width_in = match_width_in
+    fig.savefig(f"{out_stem}.pdf", bbox_inches=bbox)
+    fig.savefig(f"{out_stem}.png", dpi=200, bbox_inches=bbox)
     print(f"Saved {out_stem}.pdf / .png")
+    return width_in
 
 
 if __name__ == "__main__":
     # "hatched" is the current default (kept for now); "none" and "subtle" are the
     # de-emphasized-distinction variants explored alongside it -- swap/extend this
-    # tuple to regenerate any of them.
-    for mode in ("hatched",):
-        main(mode)
+    # tuple to regenerate any of them. The no-slope companion figure (basemap +
+    # row grid + terrain extent box only) is generated alongside it below, padded
+    # to the same page width so the two sit at equal height when placed side by
+    # side (e.g. as subfigures) at equal \includegraphics widths in LaTeX.
+    widths_in = [main(mode, show_slope=True) for mode in ("hatched",)]
+    main(show_slope=False, match_width_in=max(widths_in))
