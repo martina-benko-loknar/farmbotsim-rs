@@ -139,14 +139,18 @@ def main():
     ax_e.set_xlim(0, t_full_s / 60.0)
     ax_e.set_ylim(0, 103)
     ax_e.text(
-        0.04, 0.94, "CC phase (constant power)\n"
-        rf"$P_{{\mathrm{{cc}}}} = {cc_power_w:g}$ W", transform=ax_e.transAxes,
+        0.3, 0.25, "CC phase \n(constant power)\n",
+        transform=ax_e.transAxes,
+        ha="center", va="top", fontsize=11, color="0.35",
+    )
+    ax_e.text(
+        0.15, 0.85, rf"$P_{{\mathrm{{cc}}}} = {cc_power_w:g}$ W", transform=ax_e.transAxes,
         ha="left", va="top", fontsize=11, color="0.35",
     )
     ax_e.text(
-        0.96, 0.5, "CV phase (exponential taper)\n"
+        0.6, 0.25, "CV phase \n (exponential decay)\n"
         rf"$\tau = {tau_s:g}$ s", transform=ax_e.transAxes,
-        ha="right", va="top", fontsize=11, color="0.35",
+        ha="center", va="top", fontsize=11, color="0.35",
     )
     # ax_e.set_title(
     #     rf"Charging model: $P_{{\mathrm{{cc}}}}={cc_power_w:g}$ W, "
