@@ -87,6 +87,7 @@ def generate_sensitivity_errorbar_plot(
     figsize=(8, 6),
     crop: bool = True,
     margins: dict = None,
+    fmt: str = 'o-',
 ):
     """
     Plot mean +/- std of a metric against a swept parameter. Pass
@@ -117,6 +118,12 @@ def generate_sensitivity_errorbar_plot(
     companion figure's does regardless of content -- tight_layout alone
     still sizes the box to this plot's own content (a legend, more/fewer
     tick digits), which drifts from a same-figsize companion plot's box.
+
+    `fmt` (default 'o-', solid): matplotlib errorbar format string for
+    both series. Pass 'o:' (dotted) for a swept axis whose intermediate
+    values were never actually simulated -- see
+    generate_sensitivity_mechanism_plot's matching `fmt` docstring
+    (2026-09-03).
     """
     setup_latex_fonts(20)
 
@@ -127,7 +134,7 @@ def generate_sensitivity_errorbar_plot(
 
     ax.errorbar(
         x, y_mean, yerr=y_std,
-        fmt='o-', color=color, ecolor=color,
+        fmt=fmt, color=color, ecolor=color,
         elinewidth=1.5, capsize=5, markersize=7, linewidth=1.5,
         label=label,
     )
@@ -135,7 +142,7 @@ def generate_sensitivity_errorbar_plot(
     if has_second_series:
         ax.errorbar(
             x2, y2_mean, yerr=y2_std,
-            fmt='o-', color=FULL_NOISE_COLOR, ecolor=FULL_NOISE_COLOR,
+            fmt=fmt, color=FULL_NOISE_COLOR, ecolor=FULL_NOISE_COLOR,
             elinewidth=1.5, capsize=5, markersize=7, linewidth=1.5,
             label=label2,
         )
@@ -178,6 +185,8 @@ def generate_sensitivity_mechanism_plot(
     crop: bool = True,
     margins: dict = None,
     label_fontsize: int = None,
+    fmt: str = 'o-',
+    xticks=None,
 ):
     """
     Stacked, N-panel version of generate_sensitivity_errorbar_plot sharing
@@ -237,6 +246,20 @@ def generate_sensitivity_mechanism_plot(
     (tick labels stay at whatever `setup_latex_fonts` set). Use to make a
     figure's axis labels stand out beyond the shared base size without
     changing every other calibrated figure that shares that base.
+
+    `fmt` (default 'o-', solid): matplotlib errorbar format string for
+    every series in every panel. Pass 'o:' (dotted) for a swept axis whose
+    intermediate values were never actually simulated -- e.g. field/fleet
+    *size* (comparison_field.py/comparison_fleet.py, only a handful of
+    discrete sizes exist, unlike soc_sweep/battery_sweep's dense
+    real-valued sweeps) -- so a solid line doesn't visually imply
+    interpolated data between the markers (2026-09-03).
+
+    `xticks` (default None): explicit tick positions for the shared x-axis.
+    Pass the swept parameter's actual sampled values (e.g. fleet sizes
+    [1, 2, 3, 4]) when `x` is a small set of discrete integers -- otherwise
+    matplotlib's default locator can insert non-physical intermediate ticks
+    (e.g. 1.5, 2.5, 3.5 agents) that were never simulated.
     """
     setup_latex_fonts(20)
 
@@ -256,14 +279,14 @@ def generate_sensitivity_mechanism_plot(
         is_top = i == 0
         ax.errorbar(
             x, panel["y_mean"], yerr=panel["y_std"],
-            fmt='o-', color=color, ecolor=color,
+            fmt=fmt, color=color, ecolor=color,
             elinewidth=1.5, capsize=5, markersize=7, linewidth=1.5,
             label=label if is_top else None,
         )
         if has_second_series:
             ax.errorbar(
                 x2, panel["y2_mean"], yerr=panel["y2_std"],
-                fmt='o-', color=FULL_NOISE_COLOR, ecolor=FULL_NOISE_COLOR,
+                fmt=fmt, color=FULL_NOISE_COLOR, ecolor=FULL_NOISE_COLOR,
                 elinewidth=1.5, capsize=5, markersize=7, linewidth=1.5,
                 label=label2 if is_top else None,
             )
@@ -276,6 +299,8 @@ def generate_sensitivity_mechanism_plot(
         ax.set_ylabel(panel["ylabel"], fontsize=label_fontsize)
         ax.tick_params(labelsize=20)
         ax.grid(True, linewidth=0.5, alpha=0.5)
+        if xticks is not None:
+            ax.set_xticks(xticks)
 
     axes[-1].set_xlabel(xlabel, fontsize=label_fontsize)
     if has_second_series or label or vlines or vspans:

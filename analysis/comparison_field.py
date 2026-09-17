@@ -92,6 +92,10 @@ def main():
         xlabel="field size (/)",
         output_dir=FIGURES_DIR,
         prefix="field_energy_time_mechanism",
+        # Dotted, not solid: only 4 discrete field sizes were ever
+        # simulated, so a solid connecting line would visually imply
+        # interpolated data in between (2026-09-03).
+        fmt='o:',
         # Match the paired convergence plot's canvas -- see
         # PAIRED_FIGURE_FIGSIZE's docstring (2026-09-02).
         figsize=PAIRED_FIGURE_FIGSIZE,

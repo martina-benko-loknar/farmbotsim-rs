@@ -78,6 +78,10 @@ def main():
         xlabel="fleet size (/)", ylabel="$E_{\\mathrm{tot}}$ / task (Wh)",
         output_dir=FIGURES_DIR, prefix="fleet_slots_comparison_energy",
         label="1 slot", label2="slots = fleet size",
+        # Dotted, not solid: only these 8 discrete fleet sizes were ever
+        # simulated, so a solid connecting line would visually imply
+        # interpolated data in between (2026-09-03).
+        fmt='o:',
         # figsize/margins reconstructed to land this plot's own axes box at
         # the literal same size as one panel of battery_sensitivity_energy_
         # mechanism.pdf / soc_sensitivity_energy_mechanism.pdf, instead of
@@ -99,6 +103,7 @@ def main():
         xlabel="fleet size (/)", ylabel="mission time (s)",
         output_dir=FIGURES_DIR, prefix="fleet_slots_comparison_mission_time",
         label="1 slot", label2="slots = fleet size",
+        fmt='o:',
     )
 
 

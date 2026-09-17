@@ -23,6 +23,14 @@ def main():
     df = load_single_station_results(RESULTS_DIR)
     print(f"Loaded {len(df)} single-station runs from {RESULTS_DIR}")
 
+    # This directory also holds the fleet_slots_sweep's "1 slot" baseline
+    # at larger fleet sizes (8, 10, 12, 14 -- see fleet_slots.rs's
+    # EXTRA_FLEET_SIZES), backfilled here 2026-09-03 for
+    # comparison_fleet_slots.py's own merge. This figure's own published
+    # scope is still the original 1..=4 scaling range, so filter those
+    # extra sizes back out rather than silently widening it.
+    df = df[df["fleet_size"] <= 4]
+
     # Energy per completed task rather than total energy, since fleet size
     # directly changes how many tasks get completed in a run.
     df["ego_energy_wh_per_task"] = df["ego_energy_wh"] / df["ego_completed_tasks"]
@@ -86,6 +94,13 @@ def main():
         xlabel="fleet size (/)",
         output_dir=FIGURES_DIR,
         prefix="fleet_energy_time_mechanism",
+        # Dotted, not solid: only 4 discrete fleet sizes were ever
+        # simulated, so a solid connecting line would visually imply
+        # interpolated data in between (2026-09-03).
+        fmt='o:',
+        # Integer fleet sizes only: matplotlib's default locator otherwise
+        # inserts non-physical intermediate ticks (1.5, 2.5, 3.5 agents).
+        xticks=sorted(summary["fleet_size"].unique()),
         # Match the paired convergence plot's canvas -- see
         # PAIRED_FIGURE_FIGSIZE's docstring (2026-09-02).
         figsize=PAIRED_FIGURE_FIGSIZE,

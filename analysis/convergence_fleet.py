@@ -25,6 +25,12 @@ def main():
     df = load_optimization_traces(RESULTS_DIR)
     print(f"Loaded {len(df)} optimization traces from {RESULTS_DIR}")
 
+    # See comparison_fleet.py's matching filter: this directory also holds
+    # the fleet_slots_sweep's backfilled "1 slot" baseline at fleet sizes
+    # 8/10/12/14 (2026-09-03), out of scope for this figure's own published
+    # 1..=4 range (and FLEET_SIZE_COLORS below has no entries for them).
+    df = df[df["fleet_size"] <= 4]
+
     os.makedirs(FIGURES_DIR, exist_ok=True)
 
     # fleet_sweep is EGO-only (run_ego_experiment, no grid_search block --
