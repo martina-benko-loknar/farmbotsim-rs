@@ -17,20 +17,20 @@ EXPORTS_BASE_DIR = "exports"
 # Display order: geometry-only heuristics first, task-aware heuristic next,
 # EGO's own result last (the thing everything else is compared against).
 LAYOUT_ORDER = [
-    "diagonal_corners", "horizontal_symmetry", "vertical_symmetry",
-    "split_center", "tight_center", "task_centroid", "ego_best",
+    "diagonal_corners", "anti_diagonal_corners", "horizontal_symmetry",
+    "vertical_symmetry", "tight_center", "task_centroid", "ego_best",
 ]
 
 LAYOUT_LABELS = {
     # Same abbreviations introduced in the multi-station-placement text
-    # (Section 4.3.1, "diagonal corners, DC; horizontal symmetry, HS; ...")
+    # (Section 4.3.1, "diagonal corners, DC; anti-diagonal corners, AC; ...")
     # rather than the full names -- keeps the x-axis readable at this
     # figure's family-matched (8, 4.2) size without needing rotated labels
     # (2026-09-02).
     "diagonal_corners": "DC",
+    "anti_diagonal_corners": "AC",
     "horizontal_symmetry": "HS",
     "vertical_symmetry": "VS",
-    "split_center": "SC",
     "tight_center": "TC",
     "task_centroid": "CT",
     "ego_best": "EGO",
@@ -87,13 +87,13 @@ def main():
     # for EGO), but should still look like the same family, not smaller.
     setup_latex_fonts(20)
 
-    # Dots-connected-by-lines, matching the rest of the paper's sweep/
-    # sensitivity plots, instead of a bar chart. The x-axis is categorical
-    # (seven named layouts, not a real sweep), so the connecting line is
-    # purely a visual guide across categories, not a trend -- EGO's point
-    # is overlaid as a black star to keep it visually distinct, matching
-    # the EGO-vs-heuristics star/circle convention used in the multi-station
-    # layout figure.
+    # Bare dots (no connecting line), unlike the rest of the paper's sweep/
+    # sensitivity plots. The x-axis is categorical (seven named layouts, not
+    # a real sweep), so a connecting line would imply a continuous trend
+    # between unrelated layouts, which isn't physically meaningful -- EGO's
+    # point is overlaid as a black star to keep it visually distinct,
+    # matching the EGO-vs-heuristics star/circle convention used in the
+    # multi-station layout figure.
     #
     # figsize/margins reconstructed so this plot's own axes box lands at the
     # literal same size as one panel of battery_sensitivity_energy_
@@ -108,8 +108,8 @@ def main():
 
     ax.errorbar(
         x, summary["energy_wh_per_task_mean"], yerr=summary["energy_wh_per_task_std"],
-        fmt='o-', color="#0072B2", ecolor="#0072B2",
-        elinewidth=1.5, capsize=5, markersize=7, linewidth=1.5,
+        fmt='o', color="#0072B2", ecolor="#0072B2",
+        elinewidth=1.5, capsize=5, markersize=7,
     )
     if is_ego.any():
         ego_x = [i for i, e in enumerate(is_ego) if e]

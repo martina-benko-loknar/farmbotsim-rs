@@ -15,8 +15,8 @@ SWEEP_NAME = "baseline_comparison"
 EXPORTS_BASE_DIR = "exports"
 
 HEURISTICS = [
-    "diagonal_corners", "horizontal_symmetry", "vertical_symmetry",
-    "split_center", "tight_center", "task_centroid",
+    "diagonal_corners", "anti_diagonal_corners", "horizontal_symmetry",
+    "vertical_symmetry", "tight_center", "task_centroid",
 ]
 
 # Anchor: XL field, 73.2 Wh, fleet 4 -- shared by all three axes below.

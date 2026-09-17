@@ -16,15 +16,15 @@ EXPORTS_BASE_DIR = "exports"
 # Display order: geometry-only heuristics first, task-aware heuristic next,
 # EGO's own result last (the thing everything else is compared against).
 LAYOUT_ORDER = [
-    "diagonal_corners", "horizontal_symmetry", "vertical_symmetry",
-    "split_center", "tight_center", "task_centroid", "ego_best",
+    "diagonal_corners", "anti_diagonal_corners", "horizontal_symmetry",
+    "vertical_symmetry", "tight_center", "task_centroid", "ego_best",
 ]
 
 LAYOUT_LABELS = {
     "diagonal_corners": "diagonal\ncorners",
+    "anti_diagonal_corners": "anti-diagonal\ncorners",
     "horizontal_symmetry": "horizontal\nsymmetry",
     "vertical_symmetry": "vertical\nsymmetry",
-    "split_center": "split\ncenter",
     "tight_center": "tight\ncenter",
     "task_centroid": "task\ncentroid",
     "ego_best": "EGO\n(best)",

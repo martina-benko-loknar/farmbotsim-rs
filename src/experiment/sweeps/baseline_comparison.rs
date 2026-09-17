@@ -67,10 +67,10 @@ pub fn run_baseline_comparison_sweep(
         ExperimentProfile::Legacy => vec![
             ComparisonCombo {
                 // field4, not `profile.default_field_config()` (field1): field1 is a
-                // single uninterrupted row block, so split_center/symmetry heuristics
-                // land arbitrarily between rows. field4 is two row-blocks with a real
-                // gap between them, so those heuristics correspond to an actual
-                // sub-field split.
+                // single uninterrupted row block, so tight_center/task_centroid have
+                // no real sub-field gap to land in and fall back to arbitrary
+                // placement. field4 is two row-blocks with a real gap between them,
+                // so those heuristics correspond to an actual sub-field split.
                 field_config_path: "configs/field_configs/legacy/field4.json".to_string(),
                 battery_capacity_wh: profile.battery_capacity_wh(),
                 n_agents: 4,
@@ -148,6 +148,11 @@ pub fn run_baseline_comparison_sweep(
 /// variance as a second confound. Written to its own
 /// `baseline_comparison_multiagent` results dir so it isn't pooled with the
 /// `baseline_comparison` sweep's (fleet 3, S/L, 65/80 Wh) aggregate.
+///
+/// Coordinates updated 2026-09-03 to match the `--multi-station-study`
+/// layout re-run after the slope-consumption coefficient fix
+/// (`configs/movement_configs/consumption/slope_consumption.json`) --
+/// previously (3.36, 51.96), (4.96, 19.90), the pre-fix layout, now stale.
 pub fn run_baseline_comparison_multiagent_sweep(
     profile: ExperimentProfile,
     output_dir: &str,
@@ -158,8 +163,8 @@ pub fn run_baseline_comparison_multiagent_sweep(
         battery_capacity_wh: profile.battery_capacity_wh(),
         n_agents: 4,
         fixed_ego_layout: Some(vec![
-            Pos2::new(3.36, 51.96),
-            Pos2::new(4.96, 19.90),
+            Pos2::new(0.63, 21.46),
+            Pos2::new(4.31, 36.45),
         ]),
         n_ego_restarts: 1, // unused: fixed_ego_layout takes precedence
     };
