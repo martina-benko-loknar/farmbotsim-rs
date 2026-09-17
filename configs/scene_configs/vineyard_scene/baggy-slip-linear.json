@@ -1,5 +1,11 @@
 {
   "exportedAt": "2026-05-22T07:17:28.262Z",
+  "unitsConfirmation": {
+    "field": "definition.predictors[0] (/gnss/fix, grade)",
+    "units": "radians",
+    "note": "Confirmed by the person who performed the GNSS/slip measurements and analysis: the 'grade' field is the slope angle in radians, not a rise/run ratio or degrees. This matches how src/terrain/slip.rs::compute_slip consumes it (slope argument documented and used as radians, fed from height_map.rs's atan()-based slope_between, which also returns radians) -- no unit mismatch.",
+    "addedAt": "2026-09-02"
+  },
   "definition": {
     "target": {
       "topicName": "/gnss/vel",
@@ -8,7 +14,8 @@
     "predictors": [
       {
         "topicName": "/gnss/fix",
-        "fieldPath": "grade"
+        "fieldPath": "grade",
+        "units": "radians"
       },
       {
         "topicName": "/firmware/wheel_odom",

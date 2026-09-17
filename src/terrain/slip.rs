@@ -1,5 +1,5 @@
 
-/// Slip model (TODO: CHECK):
+/// Slip model
 ///
 /// slip = K + K1 * slope + K2 * speed
 ///
