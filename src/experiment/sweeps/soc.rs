@@ -95,6 +95,27 @@ pub fn run_soc_sweep(
 /// fleet=1 already exist; this adds one more point, not a full slots x
 /// fleet_size matrix), matching `fleet_slots.rs`'s own scope for the
 /// analogous fleet-size-sweep question.
+///
+/// Companion to `run_soc_sweep_matched_slots` below: same sweep, same
+/// shared single-slot config as `run_soc_sweep`, but at a caller-chosen
+/// fleet size instead of `for_profile`'s default (1). Reproduces the
+/// `fig:soc-sensitivity-sweep-fleet3` comparison figure (previously a
+/// one-off, undocumented `n_agents: 3` hardcoded directly into
+/// `run_soc_sweep`, see that function's doc comment) without baking a
+/// specific fleet size back into the default sweep. Writes into the same
+/// `soc_sweep` raw directory as `run_soc_sweep` -- filenames encode fleet
+/// size, so runs at different fleet sizes coexist without collision, and
+/// downstream analysis scripts filter by `fleet_size` (`sensitivity_soc.py`
+/// for fleet=1, a dedicated `sensitivity_soc_fleet3.py` for other sizes).
+pub fn run_soc_sweep_at_fleet_size(
+    profile: ExperimentProfile,
+    output_dir: &str,
+    n_agents: u32,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let default_exp = ExperimentConfig::for_profile(profile);
+    run_soc_sweep_impl(profile, output_dir, "soc_sweep", n_agents, default_exp.n_station_slots)
+}
+
 pub fn run_soc_sweep_matched_slots(
     profile: ExperimentProfile,
     output_dir: &str

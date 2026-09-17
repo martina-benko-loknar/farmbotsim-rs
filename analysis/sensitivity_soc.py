@@ -25,7 +25,15 @@ def main():
     EXPORTS_DIR = f"{EXPORTS_BASE_DIR}/{results_root_tag(results_root)}/{profile}"
 
     df = load_single_evaluation_results(RESULTS_DIR)
-    print(f"Loaded {len(df)} single-evaluation runs from {RESULTS_DIR}")
+    # This directory also holds run_soc_sweep_at_fleet_size's fleet=3 (or
+    # other) runs, since 2026-09-03 (see soc.rs's EXTRA_FLEET_SIZES-style
+    # backfill pattern) -- filter to this figure's own fleet=1 scope
+    # explicitly, or its mean/std silently blend fleet sizes together. Bug
+    # found and fixed 2026-09-03 after it had already contaminated one
+    # regenerated figure/summary; see sensitivity_soc_fleet3.py for the
+    # analogous fleet=3 figure.
+    df = df[df["fleet_size"] == 1]
+    print(f"Loaded {len(df)} single-evaluation runs (fleet_size=1) from {RESULTS_DIR}")
 
     # Energy per completed task rather than total energy, since task count
     # can drift slightly between runs (termination is a >= check, not ==).
@@ -62,7 +70,7 @@ def main():
     # is already near the optimizer's answer.
     vlines = [{
         "x": DEPLOYED_SOC_THRESHOLD_PERCENT,
-        "label": f"deployed default (${DEPLOYED_SOC_THRESHOLD_PERCENT:.0f}\\%$)",
+        "label": f"default (${DEPLOYED_SOC_THRESHOLD_PERCENT:.0f}\\%$)",
         "kind": "deployed",
     }]
     soc_optimum = load_latest_soc_optimum(profile=profile)

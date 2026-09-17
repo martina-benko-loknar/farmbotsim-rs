@@ -495,6 +495,12 @@ fn main() ->  Result<(), Box<dyn std::error::Error>> {
         return Ok(())
     }
 
+    if args.contains(&"--soc-sweep-fleet".to_string()) {
+        let n_agents = get_n_agents(&args, 3);
+        experiment::sweeps::soc::run_soc_sweep_at_fleet_size(profile, &base_output, n_agents)?;
+        return Ok(())
+    }
+
     if args.contains(&"--initial-soc-sweep".to_string()) {
         experiment::sweeps::initial_soc::run_initial_soc_sweep(profile, &base_output)?;
         return Ok(())

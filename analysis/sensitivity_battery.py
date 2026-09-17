@@ -80,7 +80,7 @@ def main():
 
     vlines = [{
         "x": DEPLOYED_BATTERY_WH,
-        "label": f"deployed capacity (${DEPLOYED_BATTERY_WH:.1f}$ Wh)",
+        "label": f"capacity (${DEPLOYED_BATTERY_WH:.1f}$ Wh)",
         "kind": "deployed",
     }]
 
