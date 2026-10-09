@@ -47,6 +47,7 @@ commented out (not deleted) in case we want it back.
 """
 
 import json
+import os
 import re
 
 import matplotlib.pyplot as plt
@@ -57,7 +58,7 @@ CONFIG_PATH = f"{REPO}/configs/batteries/leo_rover/config.json"
 
 FULL_CHARGE_EPSILON = 0.001  # CcCvChargingModel::FULL_CHARGE_EPSILON
 
-OUT_STEM = "charging_model"
+OUT_STEM = os.path.join(os.path.dirname(os.path.abspath(__file__)), "charging_model")
 
 ENERGY_COLOR = "#0072B2"  # Okabe-Ito blue
 POWER_COLOR = "#E69F00"   # Okabe-Ito orange (only used by the commented-out power panel below)
@@ -197,9 +198,9 @@ def main():
 
     fig.tight_layout()
     fig.savefig(f"{OUT_STEM}.pdf", bbox_inches="tight")
-    fig.savefig(f"{OUT_STEM}.png", dpi=200, bbox_inches="tight")
+    #fig.savefig(f"{OUT_STEM}.png", dpi=200, bbox_inches="tight")
     print(
-        f"wrote {OUT_STEM}.pdf / .png "
+        f"wrote {OUT_STEM}.pdf "
         f"(t_cv={t_cv_s/60:.1f} min, t_full={t_full_s/60:.1f} min)"
     )
 

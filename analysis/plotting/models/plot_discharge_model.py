@@ -26,6 +26,7 @@ applied to distance travelled, not to this voltage-drop curve.
 """
 
 import json
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -37,7 +38,7 @@ CONFIG_PATH = f"{REPO}/configs/movement_configs/consumption/slope_consumption.js
 NOMINAL_DRIVING_POWER_W = 18.3
 SECONDS_PER_HOUR = 3600.0
 
-OUT_STEM = "discharge_model"
+OUT_STEM = os.path.join(os.path.dirname(os.path.abspath(__file__)), "discharge_model")
 
 TRAVEL_COLOR = "#0072B2"  # Okabe-Ito blue, matches analysis/plotting/convergence.py::GRID_COLOR
 WORK_COLOR = "black"      # was Okabe-Ito vermillion ("#D55E00") -- switched to black so the
@@ -130,8 +131,8 @@ def main():
 
     fig.tight_layout()
     fig.savefig(f"{OUT_STEM}.pdf", bbox_inches="tight")
-    fig.savefig(f"{OUT_STEM}.png", dpi=200, bbox_inches="tight")
-    print(f"wrote {OUT_STEM}.pdf / .png (wh_scale={wh_scale:.5f} Wh per V*m)")
+    #fig.savefig(f"{OUT_STEM}.png", dpi=200, bbox_inches="tight")
+    print(f"wrote {OUT_STEM}.pdf (wh_scale={wh_scale:.5f} Wh per V*m)")
 
 
 if __name__ == "__main__":

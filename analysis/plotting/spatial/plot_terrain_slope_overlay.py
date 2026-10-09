@@ -27,6 +27,7 @@ import csv
 import io
 import json
 import math
+import os
 import re
 import subprocess
 
@@ -41,7 +42,7 @@ from PIL import Image
 REPO = "/home/martinabl/Projects/farmbotsim-rs"
 CSV_PATH = f"{REPO}/configs/scene_configs/vineyard_scene/baggy-altitude-empirical-lut.csv"
 FIELD_CONFIG_PATH = f"{REPO}/configs/field_configs/vineyard/xlarge.json"
-OUT_STEM = "terrain_slope_overlay"
+OUT_STEM = os.path.join(os.path.dirname(os.path.abspath(__file__)), "terrain_slope_overlay")
 
 R_EARTH = 6_371_000.0
 
@@ -539,8 +540,8 @@ def main(mode="none", show_slope=True, match_width_in=None):
                                   bbox.x0 + match_width_in, bbox.y1)
         width_in = match_width_in
     fig.savefig(f"{out_stem}.pdf", bbox_inches=bbox)
-    fig.savefig(f"{out_stem}.png", dpi=200, bbox_inches=bbox)
-    print(f"Saved {out_stem}.pdf / .png")
+    #fig.savefig(f"{out_stem}.png", dpi=200, bbox_inches=bbox)
+    print(f"Saved {out_stem}.pdf")
     return width_in
 
 

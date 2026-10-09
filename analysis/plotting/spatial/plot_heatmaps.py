@@ -191,8 +191,10 @@ def generate_charging_distance_heatmap_plot(
     
     plt.tight_layout()
     stem = prefix or f"grid_search_{grid_resolution}x{grid_resolution}"
-    filename = f"{output_dir}/{stem}_charging_distance_heatmap"
-    fname = f"{stem}_charging_distance_heatmap"
+    # "dist", not "distance": keeps run-prefixed names within the journal
+    # upload system's 64-character filename limit
+    filename = f"{output_dir}/{stem}_charging_dist_heatmap"
+    fname = f"{stem}_charging_dist_heatmap"
     #plt.savefig(f"{filename}.png", dpi=150, bbox_inches='tight')
     plt.savefig(f"{filename}.pdf", bbox_inches='tight')
     #print(f"Plot saved to: {filename}.png and {filename}.pdf")
