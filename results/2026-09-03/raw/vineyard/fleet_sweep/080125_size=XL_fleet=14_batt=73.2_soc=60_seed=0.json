@@ -1,0 +1,3286 @@
+{
+  "metadata": {
+    "experiment_type": "FleetSweep",
+    "config": {
+      "seed": 0,
+      "agent_config_path": "configs/agent_configs/leo_rover.json",
+      "battery_capacity_wh": 73.2,
+      "battery_voltage_v": 10.8,
+      "n_agents": 14,
+      "n_station_slots": 1,
+      "critical_soc_percent": 45.0,
+      "soc_threshold_percent": 60.0,
+      "initial_soc_min_percent": null,
+      "initial_soc_max_percent": null,
+      "initial_soc_seed": null,
+      "task_duration_jitter_min_factor": null,
+      "task_duration_jitter_max_factor": null,
+      "task_duration_jitter_seed": null,
+      "field_resolution": 50,
+      "field_config_path": "configs/field_configs/vineyard/xlarge.json",
+      "n_tasks_target": 250
+    },
+    "timestamp": "080125",
+    "seed": 0
+  },
+  "ego": {
+    "summary": {
+      "best_metrics": {
+        "energy_wh": 786.99609375,
+        "total_distance_m": 29996.033203125,
+        "charging_distance_m": 60.19969940185547,
+        "simulation_time_sec": 37994.0,
+        "evaluation_time_sec": 0.057902068,
+        "charging_events": 1,
+        "completed_tasks": 250
+      },
+      "optimal_position": [
+        {
+          "x": 6.95,
+          "y": 48.09
+        }
+      ],
+      "optimization_time_sec": 6.345911508,
+      "total_evaluations": 90
+    },
+    "trace": {
+      "evaluation_history": [
+        {
+          "evaluation": 1,
+          "phase": "init",
+          "phase_iteration": 1,
+          "metrics": {
+            "energy_wh": 788.5255737304688,
+            "total_distance_m": 30255.001953125,
+            "charging_distance_m": 145.59397888183594,
+            "simulation_time_sec": 38421.0,
+            "evaluation_time_sec": 0.063536058,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 788.5255737304688,
+          "is_new_best": true,
+          "positions": [
+            [
+              51.81,
+              76.34
+            ]
+          ],
+          "best_positions": [
+            [
+              51.81,
+              76.34
+            ]
+          ]
+        },
+        {
+          "evaluation": 2,
+          "phase": "init",
+          "phase_iteration": 2,
+          "metrics": {
+            "energy_wh": 787.856689453125,
+            "total_distance_m": 31079.91015625,
+            "charging_distance_m": 102.60162353515625,
+            "simulation_time_sec": 38213.0,
+            "evaluation_time_sec": 0.064540402,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.856689453125,
+          "is_new_best": true,
+          "positions": [
+            [
+              1.74,
+              21.43
+            ]
+          ],
+          "best_positions": [
+            [
+              1.74,
+              21.43
+            ]
+          ]
+        },
+        {
+          "evaluation": 3,
+          "phase": "init",
+          "phase_iteration": 3,
+          "metrics": {
+            "energy_wh": 788.6234741210938,
+            "total_distance_m": 30366.44921875,
+            "charging_distance_m": 187.42820739746094,
+            "simulation_time_sec": 38574.0,
+            "evaluation_time_sec": 0.064514354,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.856689453125,
+          "is_new_best": false,
+          "positions": [
+            [
+              52.56,
+              1.63
+            ]
+          ],
+          "best_positions": [
+            [
+              1.74,
+              21.43
+            ]
+          ]
+        },
+        {
+          "evaluation": 4,
+          "phase": "init",
+          "phase_iteration": 4,
+          "metrics": {
+            "energy_wh": 787.0201416015625,
+            "total_distance_m": 29996.693359375,
+            "charging_distance_m": 59.72517013549805,
+            "simulation_time_sec": 37968.0,
+            "evaluation_time_sec": 0.063329576,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": true,
+          "positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 5,
+          "phase": "init",
+          "phase_iteration": 5,
+          "metrics": {
+            "energy_wh": 789.1255493164062,
+            "total_distance_m": 30520.703125,
+            "charging_distance_m": 181.4639892578125,
+            "simulation_time_sec": 38551.0,
+            "evaluation_time_sec": 0.063555357,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              52.07,
+              97.54
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 6,
+          "phase": "init",
+          "phase_iteration": 6,
+          "metrics": {
+            "energy_wh": 788.378173828125,
+            "total_distance_m": 30164.5625,
+            "charging_distance_m": 145.4766387939453,
+            "simulation_time_sec": 38403.0,
+            "evaluation_time_sec": 0.063833462,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              52.13,
+              64.01
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 7,
+          "phase": "init",
+          "phase_iteration": 7,
+          "metrics": {
+            "energy_wh": 787.7859497070312,
+            "total_distance_m": 29999.669921875,
+            "charging_distance_m": 123.08074951171875,
+            "simulation_time_sec": 38234.0,
+            "evaluation_time_sec": 0.063694725,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              39.12,
+              49.23
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 8,
+          "phase": "init",
+          "phase_iteration": 8,
+          "metrics": {
+            "energy_wh": 788.1980590820312,
+            "total_distance_m": 30559.798828125,
+            "charging_distance_m": 107.31317138671875,
+            "simulation_time_sec": 38216.0,
+            "evaluation_time_sec": 0.063949547,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              0.93,
+              103.04
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 9,
+          "phase": "init",
+          "phase_iteration": 9,
+          "metrics": {
+            "energy_wh": 787.9822387695312,
+            "total_distance_m": 30220.357421875,
+            "charging_distance_m": 143.88238525390625,
+            "simulation_time_sec": 38487.0,
+            "evaluation_time_sec": 0.063493116,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              28.71,
+              0.46
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 10,
+          "phase": "init",
+          "phase_iteration": 10,
+          "metrics": {
+            "energy_wh": 789.006103515625,
+            "total_distance_m": 30461.17578125,
+            "charging_distance_m": 173.24444580078125,
+            "simulation_time_sec": 38526.0,
+            "evaluation_time_sec": 0.063451812,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              51.57,
+              93.45
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 11,
+          "phase": "init",
+          "phase_iteration": 11,
+          "metrics": {
+            "energy_wh": 787.3043212890625,
+            "total_distance_m": 29989.591796875,
+            "charging_distance_m": 82.22493743896484,
+            "simulation_time_sec": 38085.0,
+            "evaluation_time_sec": 0.063102098,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              18.66,
+              47.66
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 12,
+          "phase": "init",
+          "phase_iteration": 12,
+          "metrics": {
+            "energy_wh": 788.6119384765625,
+            "total_distance_m": 30646.455078125,
+            "charging_distance_m": 138.1216583251953,
+            "simulation_time_sec": 38498.0,
+            "evaluation_time_sec": 0.063468572,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              22.66,
+              100.73
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 13,
+          "phase": "init",
+          "phase_iteration": 13,
+          "metrics": {
+            "energy_wh": 787.5126342773438,
+            "total_distance_m": 30863.78125,
+            "charging_distance_m": 85.10131072998047,
+            "simulation_time_sec": 38115.0,
+            "evaluation_time_sec": 0.064019701,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              2.04,
+              35.05
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 14,
+          "phase": "init",
+          "phase_iteration": 14,
+          "metrics": {
+            "energy_wh": 789.0309448242188,
+            "total_distance_m": 30584.365234375,
+            "charging_distance_m": 170.7365264892578,
+            "simulation_time_sec": 38612.0,
+            "evaluation_time_sec": 0.062922227,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              38.84,
+              103.46
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 15,
+          "phase": "init",
+          "phase_iteration": 15,
+          "metrics": {
+            "energy_wh": 788.7526245117188,
+            "total_distance_m": 30362.462890625,
+            "charging_distance_m": 157.38742065429688,
+            "simulation_time_sec": 38468.0,
+            "evaluation_time_sec": 0.063813045,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              54.24,
+              84.86
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 16,
+          "phase": "init",
+          "phase_iteration": 16,
+          "metrics": {
+            "energy_wh": 788.3694458007812,
+            "total_distance_m": 30163.68359375,
+            "charging_distance_m": 157.83084106445312,
+            "simulation_time_sec": 38501.0,
+            "evaluation_time_sec": 0.06430526,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              49.79,
+              39.54
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 17,
+          "phase": "init",
+          "phase_iteration": 17,
+          "metrics": {
+            "energy_wh": 787.7109985351562,
+            "total_distance_m": 30270.3671875,
+            "charging_distance_m": 106.09901428222656,
+            "simulation_time_sec": 38123.0,
+            "evaluation_time_sec": 0.063211875,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              1.46,
+              0.78
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 18,
+          "phase": "init",
+          "phase_iteration": 18,
+          "metrics": {
+            "energy_wh": 787.5296020507812,
+            "total_distance_m": 30931.142578125,
+            "charging_distance_m": 86.2534408569336,
+            "simulation_time_sec": 38122.0,
+            "evaluation_time_sec": 0.064053972,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              3.09,
+              34.34
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 19,
+          "phase": "init",
+          "phase_iteration": 19,
+          "metrics": {
+            "energy_wh": 788.0562744140625,
+            "total_distance_m": 30519.072265625,
+            "charging_distance_m": 98.42945861816406,
+            "simulation_time_sec": 38234.0,
+            "evaluation_time_sec": 0.062707002,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              3.07,
+              98.77
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 20,
+          "phase": "init",
+          "phase_iteration": 20,
+          "metrics": {
+            "energy_wh": 787.2465209960938,
+            "total_distance_m": 30016.443359375,
+            "charging_distance_m": 65.23856353759766,
+            "simulation_time_sec": 37975.0,
+            "evaluation_time_sec": 0.063682163,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              0.65,
+              47.14
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 21,
+          "phase": "init",
+          "phase_iteration": 21,
+          "metrics": {
+            "energy_wh": 788.1980590820312,
+            "total_distance_m": 30138.857421875,
+            "charging_distance_m": 148.67111206054688,
+            "simulation_time_sec": 38298.0,
+            "evaluation_time_sec": 0.06412558,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              52.95,
+              48.63
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 22,
+          "phase": "init",
+          "phase_iteration": 22,
+          "metrics": {
+            "energy_wh": 787.2742919921875,
+            "total_distance_m": 29993.80859375,
+            "charging_distance_m": 79.41386413574219,
+            "simulation_time_sec": 38076.0,
+            "evaluation_time_sec": 0.063320112,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              17.25,
+              47.8
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 23,
+          "phase": "init",
+          "phase_iteration": 23,
+          "metrics": {
+            "energy_wh": 787.8976440429688,
+            "total_distance_m": 31087.0859375,
+            "charging_distance_m": 102.53136444091797,
+            "simulation_time_sec": 38219.0,
+            "evaluation_time_sec": 0.063645703,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              1.97,
+              24.33
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 24,
+          "phase": "init",
+          "phase_iteration": 24,
+          "metrics": {
+            "energy_wh": 788.2494506835938,
+            "total_distance_m": 30117.541015625,
+            "charging_distance_m": 145.43673706054688,
+            "simulation_time_sec": 38380.0,
+            "evaluation_time_sec": 0.064092911,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              51.53,
+              54.01
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 25,
+          "phase": "init",
+          "phase_iteration": 25,
+          "metrics": {
+            "energy_wh": 788.5794677734375,
+            "total_distance_m": 30647.125,
+            "charging_distance_m": 136.7729949951172,
+            "simulation_time_sec": 38482.0,
+            "evaluation_time_sec": 0.062640707,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              21.99,
+              100.6
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 26,
+          "phase": "init",
+          "phase_iteration": 26,
+          "metrics": {
+            "energy_wh": 788.4533081054688,
+            "total_distance_m": 30653.833984375,
+            "charging_distance_m": 126.87885284423828,
+            "simulation_time_sec": 38463.0,
+            "evaluation_time_sec": 0.062841667,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              16.97,
+              101.82
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 27,
+          "phase": "init",
+          "phase_iteration": 27,
+          "metrics": {
+            "energy_wh": 788.6763916015625,
+            "total_distance_m": 30339.369140625,
+            "charging_distance_m": 184.95343017578125,
+            "simulation_time_sec": 38606.0,
+            "evaluation_time_sec": 0.064286974,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              51.64,
+              7.31
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 28,
+          "phase": "init",
+          "phase_iteration": 28,
+          "metrics": {
+            "energy_wh": 787.22802734375,
+            "total_distance_m": 30122.431640625,
+            "charging_distance_m": 59.8612060546875,
+            "simulation_time_sec": 38026.0,
+            "evaluation_time_sec": 0.062765057,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              3.72,
+              61.9
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 29,
+          "phase": "init",
+          "phase_iteration": 29,
+          "metrics": {
+            "energy_wh": 787.247802734375,
+            "total_distance_m": 29999.28515625,
+            "charging_distance_m": 76.86215209960938,
+            "simulation_time_sec": 38069.0,
+            "evaluation_time_sec": 0.06315726,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              15.93,
+              49.0
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 30,
+          "phase": "init",
+          "phase_iteration": 30,
+          "metrics": {
+            "energy_wh": 788.5504150390625,
+            "total_distance_m": 30270.26171875,
+            "charging_distance_m": 145.10910034179688,
+            "simulation_time_sec": 38364.0,
+            "evaluation_time_sec": 0.06326112,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              51.59,
+              78.18
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 31,
+          "phase": "ego",
+          "phase_iteration": 1,
+          "metrics": {
+            "energy_wh": 787.1770629882812,
+            "total_distance_m": 30003.177734375,
+            "charging_distance_m": 61.73231506347656,
+            "simulation_time_sec": 37965.0,
+            "evaluation_time_sec": 0.06053815,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              2.88,
+              48.47
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 32,
+          "phase": "ego",
+          "phase_iteration": 2,
+          "metrics": {
+            "energy_wh": 787.1431884765625,
+            "total_distance_m": 30000.12109375,
+            "charging_distance_m": 67.14485931396484,
+            "simulation_time_sec": 38034.0,
+            "evaluation_time_sec": 0.061761846,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              10.96,
+              48.88
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 33,
+          "phase": "ego",
+          "phase_iteration": 3,
+          "metrics": {
+            "energy_wh": 787.1580810546875,
+            "total_distance_m": 30118.607421875,
+            "charging_distance_m": 65.85552978515625,
+            "simulation_time_sec": 38156.0,
+            "evaluation_time_sec": 0.061796702,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.51,
+              52.14
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 34,
+          "phase": "ego",
+          "phase_iteration": 4,
+          "metrics": {
+            "energy_wh": 787.1805419921875,
+            "total_distance_m": 30297.80859375,
+            "charging_distance_m": 67.59381866455078,
+            "simulation_time_sec": 38039.0,
+            "evaluation_time_sec": 0.06270174,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              4.78,
+              43.59
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 35,
+          "phase": "ego",
+          "phase_iteration": 5,
+          "metrics": {
+            "energy_wh": 787.1387329101562,
+            "total_distance_m": 29999.5078125,
+            "charging_distance_m": 66.41156768798828,
+            "simulation_time_sec": 38031.0,
+            "evaluation_time_sec": 0.062919561,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0201416015625,
+          "is_new_best": false,
+          "positions": [
+            [
+              10.64,
+              48.41
+            ]
+          ],
+          "best_positions": [
+            [
+              5.99,
+              48.76
+            ]
+          ]
+        },
+        {
+          "evaluation": 36,
+          "phase": "ego",
+          "phase_iteration": 6,
+          "metrics": {
+            "energy_wh": 787.0062255859375,
+            "total_distance_m": 29996.068359375,
+            "charging_distance_m": 60.3282356262207,
+            "simulation_time_sec": 37963.0,
+            "evaluation_time_sec": 0.062675341,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 787.0062255859375,
+          "is_new_best": true,
+          "positions": [
+            [
+              7.29,
+              47.75
+            ]
+          ],
+          "best_positions": [
+            [
+              7.29,
+              47.75
+            ]
+          ]
+        },
+        {
+          "evaluation": 37,
+          "phase": "ego",
+          "phase_iteration": 7,
+          "metrics": {
+            "energy_wh": 786.99609375,
+            "total_distance_m": 29996.033203125,
+            "charging_distance_m": 60.19969940185547,
+            "simulation_time_sec": 37994.0,
+            "evaluation_time_sec": 0.057902068,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": true,
+          "positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 38,
+          "phase": "ego",
+          "phase_iteration": 8,
+          "metrics": {
+            "energy_wh": 787.212890625,
+            "total_distance_m": 30178.330078125,
+            "charging_distance_m": 66.40892028808594,
+            "simulation_time_sec": 38046.0,
+            "evaluation_time_sec": 0.061225711,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              2.33,
+              44.86
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 39,
+          "phase": "ego",
+          "phase_iteration": 9,
+          "metrics": {
+            "energy_wh": 787.1052856445312,
+            "total_distance_m": 29997.11328125,
+            "charging_distance_m": 62.643310546875,
+            "simulation_time_sec": 38019.0,
+            "evaluation_time_sec": 0.062760116,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              8.47,
+              48.82
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 40,
+          "phase": "ego",
+          "phase_iteration": 10,
+          "metrics": {
+            "energy_wh": 787.0322265625,
+            "total_distance_m": 29998.76171875,
+            "charging_distance_m": 60.91590881347656,
+            "simulation_time_sec": 37978.0,
+            "evaluation_time_sec": 0.061489427,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              6.33,
+              49.78
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 41,
+          "phase": "ego",
+          "phase_iteration": 11,
+          "metrics": {
+            "energy_wh": 787.1431884765625,
+            "total_distance_m": 30000.12109375,
+            "charging_distance_m": 67.14485931396484,
+            "simulation_time_sec": 38034.0,
+            "evaluation_time_sec": 0.05948605,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              10.96,
+              48.88
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 42,
+          "phase": "ego",
+          "phase_iteration": 12,
+          "metrics": {
+            "energy_wh": 787.027099609375,
+            "total_distance_m": 29998.39453125,
+            "charging_distance_m": 60.45750045776367,
+            "simulation_time_sec": 37975.0,
+            "evaluation_time_sec": 0.06173205,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              6.03,
+              49.63
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 43,
+          "phase": "ego",
+          "phase_iteration": 13,
+          "metrics": {
+            "energy_wh": 787.0069580078125,
+            "total_distance_m": 29996.126953125,
+            "charging_distance_m": 60.01158905029297,
+            "simulation_time_sec": 37963.0,
+            "evaluation_time_sec": 0.059110917,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              6.64,
+              48.25
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 44,
+          "phase": "ego",
+          "phase_iteration": 14,
+          "metrics": {
+            "energy_wh": 787.143310546875,
+            "total_distance_m": 29999.830078125,
+            "charging_distance_m": 60.17799377441406,
+            "simulation_time_sec": 37961.0,
+            "evaluation_time_sec": 0.071342484,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              4.18,
+              49.16
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 45,
+          "phase": "ego",
+          "phase_iteration": 15,
+          "metrics": {
+            "energy_wh": 787.0134887695312,
+            "total_distance_m": 29996.5234375,
+            "charging_distance_m": 60.467803955078125,
+            "simulation_time_sec": 37969.0,
+            "evaluation_time_sec": 0.059337168,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              6.81,
+              48.76
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 46,
+          "phase": "ego",
+          "phase_iteration": 16,
+          "metrics": {
+            "energy_wh": 787.0095825195312,
+            "total_distance_m": 29996.103515625,
+            "charging_distance_m": 60.11083221435547,
+            "simulation_time_sec": 37962.0,
+            "evaluation_time_sec": 0.059619463,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              6.8,
+              48.17
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 47,
+          "phase": "ego",
+          "phase_iteration": 17,
+          "metrics": {
+            "energy_wh": 786.8511352539062,
+            "total_distance_m": 30416.861328125,
+            "charging_distance_m": 59.84584426879883,
+            "simulation_time_sec": 38006.0,
+            "evaluation_time_sec": 0.061789168,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              6.5,
+              41.96
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 48,
+          "phase": "ego",
+          "phase_iteration": 18,
+          "metrics": {
+            "energy_wh": 787.1345825195312,
+            "total_distance_m": 30104.072265625,
+            "charging_distance_m": 60.802635192871094,
+            "simulation_time_sec": 38133.0,
+            "evaluation_time_sec": 0.06034315,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              5.02,
+              55.84
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 49,
+          "phase": "ego",
+          "phase_iteration": 19,
+          "metrics": {
+            "energy_wh": 787.1818237304688,
+            "total_distance_m": 30003.515625,
+            "charging_distance_m": 71.01313781738281,
+            "simulation_time_sec": 38048.0,
+            "evaluation_time_sec": 0.059621421,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              12.74,
+              50.02
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 50,
+          "phase": "ego",
+          "phase_iteration": 20,
+          "metrics": {
+            "energy_wh": 787.211669921875,
+            "total_distance_m": 30130.123046875,
+            "charging_distance_m": 65.56076049804688,
+            "simulation_time_sec": 38158.0,
+            "evaluation_time_sec": 0.060173301,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.37,
+              55.79
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 51,
+          "phase": "ego",
+          "phase_iteration": 21,
+          "metrics": {
+            "energy_wh": 787.2259521484375,
+            "total_distance_m": 30139.900390625,
+            "charging_distance_m": 70.94441223144531,
+            "simulation_time_sec": 38166.0,
+            "evaluation_time_sec": 0.060852158,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              10.06,
+              52.91
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 52,
+          "phase": "ego",
+          "phase_iteration": 22,
+          "metrics": {
+            "energy_wh": 787.1629028320312,
+            "total_distance_m": 30122.20703125,
+            "charging_distance_m": 66.6431884765625,
+            "simulation_time_sec": 38154.0,
+            "evaluation_time_sec": 0.062161043,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.92,
+              52.31
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 53,
+          "phase": "ego",
+          "phase_iteration": 23,
+          "metrics": {
+            "energy_wh": 787.0369262695312,
+            "total_distance_m": 30000.03515625,
+            "charging_distance_m": 62.154850006103516,
+            "simulation_time_sec": 37979.0,
+            "evaluation_time_sec": 0.06051863,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.15,
+              50.15
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 54,
+          "phase": "ego",
+          "phase_iteration": 24,
+          "metrics": {
+            "energy_wh": 787.2161254882812,
+            "total_distance_m": 30123.126953125,
+            "charging_distance_m": 64.6607894897461,
+            "simulation_time_sec": 38158.0,
+            "evaluation_time_sec": 0.061099176,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              6.47,
+              54.07
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 55,
+          "phase": "ego",
+          "phase_iteration": 25,
+          "metrics": {
+            "energy_wh": 787.1105346679688,
+            "total_distance_m": 29997.212890625,
+            "charging_distance_m": 63.06298828125,
+            "simulation_time_sec": 38023.0,
+            "evaluation_time_sec": 0.062214223,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              8.8,
+              48.57
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 56,
+          "phase": "ego",
+          "phase_iteration": 26,
+          "metrics": {
+            "energy_wh": 787.1573486328125,
+            "total_distance_m": 30084.427734375,
+            "charging_distance_m": 60.103515625,
+            "simulation_time_sec": 38011.0,
+            "evaluation_time_sec": 0.060215839,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              2.89,
+              55.12
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 57,
+          "phase": "ego",
+          "phase_iteration": 27,
+          "metrics": {
+            "energy_wh": 787.009033203125,
+            "total_distance_m": 29996.337890625,
+            "charging_distance_m": 59.86267852783203,
+            "simulation_time_sec": 38005.0,
+            "evaluation_time_sec": 0.061396429,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              6.31,
+              48.51
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 58,
+          "phase": "ego",
+          "phase_iteration": 28,
+          "metrics": {
+            "energy_wh": 787.0340576171875,
+            "total_distance_m": 30101.5625,
+            "charging_distance_m": 59.831111907958984,
+            "simulation_time_sec": 38059.0,
+            "evaluation_time_sec": 0.065002041,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              4.86,
+              55.33
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 59,
+          "phase": "ego",
+          "phase_iteration": 29,
+          "metrics": {
+            "energy_wh": 787.1901245117188,
+            "total_distance_m": 30131.814453125,
+            "charging_distance_m": 68.77438354492188,
+            "simulation_time_sec": 38157.0,
+            "evaluation_time_sec": 0.06164669,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              8.99,
+              52.61
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 60,
+          "phase": "ego",
+          "phase_iteration": 30,
+          "metrics": {
+            "energy_wh": 787.2015380859375,
+            "total_distance_m": 30125.767578125,
+            "charging_distance_m": 64.7643051147461,
+            "simulation_time_sec": 38195.0,
+            "evaluation_time_sec": 0.062679763,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              6.92,
+              54.93
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 61,
+          "phase": "ego",
+          "phase_iteration": 31,
+          "metrics": {
+            "energy_wh": 787.1248779296875,
+            "total_distance_m": 29999.068359375,
+            "charging_distance_m": 64.82252502441406,
+            "simulation_time_sec": 38027.0,
+            "evaluation_time_sec": 0.062772798,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              9.72,
+              48.85
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 62,
+          "phase": "ego",
+          "phase_iteration": 32,
+          "metrics": {
+            "energy_wh": 787.1849975585938,
+            "total_distance_m": 30123.77734375,
+            "charging_distance_m": 67.1445541381836,
+            "simulation_time_sec": 38158.0,
+            "evaluation_time_sec": 0.065920886,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.95,
+              53.77
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 63,
+          "phase": "ego",
+          "phase_iteration": 33,
+          "metrics": {
+            "energy_wh": 787.0596923828125,
+            "total_distance_m": 30092.314453125,
+            "charging_distance_m": 59.847625732421875,
+            "simulation_time_sec": 38014.0,
+            "evaluation_time_sec": 0.065341186,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              3.95,
+              55.53
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 64,
+          "phase": "ego",
+          "phase_iteration": 34,
+          "metrics": {
+            "energy_wh": 787.0349731445312,
+            "total_distance_m": 29999.09375,
+            "charging_distance_m": 61.29821014404297,
+            "simulation_time_sec": 37980.0,
+            "evaluation_time_sec": 0.060589306,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              6.59,
+              49.89
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 65,
+          "phase": "ego",
+          "phase_iteration": 35,
+          "metrics": {
+            "energy_wh": 787.1676635742188,
+            "total_distance_m": 30121.064453125,
+            "charging_distance_m": 66.41746520996094,
+            "simulation_time_sec": 38158.0,
+            "evaluation_time_sec": 0.061039879,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.75,
+              51.87
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 66,
+          "phase": "ego",
+          "phase_iteration": 36,
+          "metrics": {
+            "energy_wh": 787.1905517578125,
+            "total_distance_m": 30120.88671875,
+            "charging_distance_m": 64.0048599243164,
+            "simulation_time_sec": 38152.0,
+            "evaluation_time_sec": 0.060865105,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              6.49,
+              54.81
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 67,
+          "phase": "ego",
+          "phase_iteration": 37,
+          "metrics": {
+            "energy_wh": 787.1895751953125,
+            "total_distance_m": 30130.953125,
+            "charging_distance_m": 68.59492492675781,
+            "simulation_time_sec": 38155.0,
+            "evaluation_time_sec": 0.062374801,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              8.9,
+              52.39
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 68,
+          "phase": "ego",
+          "phase_iteration": 38,
+          "metrics": {
+            "energy_wh": 787.1849975585938,
+            "total_distance_m": 30123.77734375,
+            "charging_distance_m": 67.1445541381836,
+            "simulation_time_sec": 38158.0,
+            "evaluation_time_sec": 0.061723625,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.95,
+              53.77
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 69,
+          "phase": "ego",
+          "phase_iteration": 39,
+          "metrics": {
+            "energy_wh": 787.1709594726562,
+            "total_distance_m": 30116.44140625,
+            "charging_distance_m": 65.66942596435547,
+            "simulation_time_sec": 38162.0,
+            "evaluation_time_sec": 0.062170873,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.09,
+              53.88
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 70,
+          "phase": "ego",
+          "phase_iteration": 40,
+          "metrics": {
+            "energy_wh": 787.252197265625,
+            "total_distance_m": 30138.298828125,
+            "charging_distance_m": 67.59786987304688,
+            "simulation_time_sec": 38165.0,
+            "evaluation_time_sec": 0.062578871,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              8.18,
+              54.2
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 71,
+          "phase": "ego",
+          "phase_iteration": 41,
+          "metrics": {
+            "energy_wh": 787.04052734375,
+            "total_distance_m": 30001.580078125,
+            "charging_distance_m": 62.858543395996094,
+            "simulation_time_sec": 37983.0,
+            "evaluation_time_sec": 0.063561433,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.36,
+              50.54
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 72,
+          "phase": "ego",
+          "phase_iteration": 42,
+          "metrics": {
+            "energy_wh": 787.1309814453125,
+            "total_distance_m": 30111.8125,
+            "charging_distance_m": 64.53041076660156,
+            "simulation_time_sec": 38149.0,
+            "evaluation_time_sec": 0.062343353,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              6.85,
+              52.79
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 73,
+          "phase": "ego",
+          "phase_iteration": 43,
+          "metrics": {
+            "energy_wh": 787.1619262695312,
+            "total_distance_m": 30118.625,
+            "charging_distance_m": 65.90750885009766,
+            "simulation_time_sec": 38195.0,
+            "evaluation_time_sec": 0.062515144,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.5,
+              53.09
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 74,
+          "phase": "ego",
+          "phase_iteration": 44,
+          "metrics": {
+            "energy_wh": 787.1148681640625,
+            "total_distance_m": 30107.08984375,
+            "charging_distance_m": 63.65281295776367,
+            "simulation_time_sec": 38145.0,
+            "evaluation_time_sec": 0.062926486,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              6.42,
+              52.31
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 75,
+          "phase": "ego",
+          "phase_iteration": 45,
+          "metrics": {
+            "energy_wh": 787.1573486328125,
+            "total_distance_m": 30117.779296875,
+            "charging_distance_m": 65.68816375732422,
+            "simulation_time_sec": 38158.0,
+            "evaluation_time_sec": 0.062257083,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.42,
+              52.88
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 76,
+          "phase": "ego",
+          "phase_iteration": 46,
+          "metrics": {
+            "energy_wh": 787.2030639648438,
+            "total_distance_m": 30129.11328125,
+            "charging_distance_m": 68.21918487548828,
+            "simulation_time_sec": 38164.0,
+            "evaluation_time_sec": 0.063324393,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              8.6,
+              51.53
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 77,
+          "phase": "ego",
+          "phase_iteration": 47,
+          "metrics": {
+            "energy_wh": 787.1160888671875,
+            "total_distance_m": 30107.0,
+            "charging_distance_m": 63.63502502441406,
+            "simulation_time_sec": 38144.0,
+            "evaluation_time_sec": 0.062591504,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              6.41,
+              52.3
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 78,
+          "phase": "ego",
+          "phase_iteration": 48,
+          "metrics": {
+            "energy_wh": 787.1586303710938,
+            "total_distance_m": 30116.837890625,
+            "charging_distance_m": 65.5665283203125,
+            "simulation_time_sec": 38154.0,
+            "evaluation_time_sec": 0.063903635,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.25,
+              53.38
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 79,
+          "phase": "ego",
+          "phase_iteration": 49,
+          "metrics": {
+            "energy_wh": 787.151123046875,
+            "total_distance_m": 30116.767578125,
+            "charging_distance_m": 65.48416137695312,
+            "simulation_time_sec": 38153.0,
+            "evaluation_time_sec": 0.064458623,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.3,
+              53.01
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 80,
+          "phase": "ego",
+          "phase_iteration": 50,
+          "metrics": {
+            "energy_wh": 787.1577758789062,
+            "total_distance_m": 30116.60546875,
+            "charging_distance_m": 65.59034729003906,
+            "simulation_time_sec": 38155.0,
+            "evaluation_time_sec": 0.065346282,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.17,
+              53.63
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 81,
+          "phase": "ego",
+          "phase_iteration": 51,
+          "metrics": {
+            "energy_wh": 787.0549926757812,
+            "total_distance_m": 30002.6015625,
+            "charging_distance_m": 63.40932846069336,
+            "simulation_time_sec": 37991.0,
+            "evaluation_time_sec": 0.065414288,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.62,
+              50.76
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 82,
+          "phase": "ego",
+          "phase_iteration": 52,
+          "metrics": {
+            "energy_wh": 787.1333618164062,
+            "total_distance_m": 30112.98828125,
+            "charging_distance_m": 64.72686004638672,
+            "simulation_time_sec": 38149.0,
+            "evaluation_time_sec": 0.065997937,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              6.96,
+              52.69
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 83,
+          "phase": "ego",
+          "phase_iteration": 53,
+          "metrics": {
+            "energy_wh": 787.1490478515625,
+            "total_distance_m": 30119.376953125,
+            "charging_distance_m": 66.02278137207031,
+            "simulation_time_sec": 38152.0,
+            "evaluation_time_sec": 0.064989316,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.61,
+              52.66
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 84,
+          "phase": "ego",
+          "phase_iteration": 54,
+          "metrics": {
+            "energy_wh": 787.1695556640625,
+            "total_distance_m": 30124.181640625,
+            "charging_distance_m": 67.09828186035156,
+            "simulation_time_sec": 38156.0,
+            "evaluation_time_sec": 0.063272823,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              8.14,
+              52.81
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 85,
+          "phase": "ego",
+          "phase_iteration": 55,
+          "metrics": {
+            "energy_wh": 787.2279052734375,
+            "total_distance_m": 30129.75390625,
+            "charging_distance_m": 65.75162506103516,
+            "simulation_time_sec": 38166.0,
+            "evaluation_time_sec": 0.064024614,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.22,
+              54.29
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 86,
+          "phase": "ego",
+          "phase_iteration": 56,
+          "metrics": {
+            "energy_wh": 787.1766967773438,
+            "total_distance_m": 30121.5546875,
+            "charging_distance_m": 66.73027801513672,
+            "simulation_time_sec": 38159.0,
+            "evaluation_time_sec": 0.064346208,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.72,
+              53.79
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 87,
+          "phase": "ego",
+          "phase_iteration": 57,
+          "metrics": {
+            "energy_wh": 787.1588745117188,
+            "total_distance_m": 30116.734375,
+            "charging_distance_m": 65.57598876953125,
+            "simulation_time_sec": 38153.0,
+            "evaluation_time_sec": 0.064744119,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.21,
+              53.51
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 88,
+          "phase": "ego",
+          "phase_iteration": 58,
+          "metrics": {
+            "energy_wh": 787.2194213867188,
+            "total_distance_m": 30128.37890625,
+            "charging_distance_m": 65.53593444824219,
+            "simulation_time_sec": 38160.0,
+            "evaluation_time_sec": 0.06549942,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.07,
+              54.22
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 89,
+          "phase": "ego",
+          "phase_iteration": 59,
+          "metrics": {
+            "energy_wh": 787.1475219726562,
+            "total_distance_m": 30110.0703125,
+            "charging_distance_m": 64.68880462646484,
+            "simulation_time_sec": 38192.0,
+            "evaluation_time_sec": 0.065372464,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              6.5,
+              51.09
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        },
+        {
+          "evaluation": 90,
+          "phase": "ego",
+          "phase_iteration": 60,
+          "metrics": {
+            "energy_wh": 787.1640014648438,
+            "total_distance_m": 30119.16796875,
+            "charging_distance_m": 66.15277862548828,
+            "simulation_time_sec": 38157.0,
+            "evaluation_time_sec": 0.066005479,
+            "charging_events": 1,
+            "completed_tasks": 250
+          },
+          "best_energy": 786.99609375,
+          "is_new_best": false,
+          "positions": [
+            [
+              7.44,
+              53.71
+            ]
+          ],
+          "best_positions": [
+            [
+              6.95,
+              48.09
+            ]
+          ]
+        }
+      ],
+      "max_iterations": 60
+    }
+  },
+  "timing": {
+    "average_evaluation_time_sec": 0.06290783527777781,
+    "minimum_evaluation_time_sec": 0.057902068,
+    "maximum_evaluation_time_sec": 0.071342484,
+    "total_evaluation_time_sec": 5.661705175000003
+  },
+  "field": {
+    "config_path": "configs/field_configs/vineyard/xlarge.json",
+    "obstacle_count": 39,
+    "obstacles": [
+      [
+        {
+          "x": 50.2,
+          "y": 50.96
+        },
+        {
+          "x": 50.2,
+          "y": 51.04
+        },
+        {
+          "x": 4.799999,
+          "y": 51.039997
+        },
+        {
+          "x": 4.799999,
+          "y": 50.959995
+        }
+      ],
+      [
+        {
+          "x": 50.2,
+          "y": 53.96
+        },
+        {
+          "x": 50.2,
+          "y": 54.04
+        },
+        {
+          "x": 4.799999,
+          "y": 54.039997
+        },
+        {
+          "x": 4.799999,
+          "y": 53.959995
+        }
+      ],
+      [
+        {
+          "x": 50.2,
+          "y": 56.96
+        },
+        {
+          "x": 50.2,
+          "y": 57.04
+        },
+        {
+          "x": 4.799999,
+          "y": 57.039997
+        },
+        {
+          "x": 4.799999,
+          "y": 56.959995
+        }
+      ],
+      [
+        {
+          "x": 50.2,
+          "y": 59.96
+        },
+        {
+          "x": 50.2,
+          "y": 60.04
+        },
+        {
+          "x": 4.799999,
+          "y": 60.039997
+        },
+        {
+          "x": 4.799999,
+          "y": 59.959995
+        }
+      ],
+      [
+        {
+          "x": 50.2,
+          "y": 62.96
+        },
+        {
+          "x": 50.2,
+          "y": 63.04
+        },
+        {
+          "x": 4.799999,
+          "y": 63.039997
+        },
+        {
+          "x": 4.799999,
+          "y": 62.959995
+        }
+      ],
+      [
+        {
+          "x": 50.2,
+          "y": 65.96
+        },
+        {
+          "x": 50.2,
+          "y": 66.04
+        },
+        {
+          "x": 4.799999,
+          "y": 66.03999
+        },
+        {
+          "x": 4.799999,
+          "y": 65.95999
+        }
+      ],
+      [
+        {
+          "x": 50.2,
+          "y": 68.96
+        },
+        {
+          "x": 50.2,
+          "y": 69.04
+        },
+        {
+          "x": 4.799999,
+          "y": 69.03999
+        },
+        {
+          "x": 4.799999,
+          "y": 68.95999
+        }
+      ],
+      [
+        {
+          "x": 50.2,
+          "y": 71.96
+        },
+        {
+          "x": 50.2,
+          "y": 72.04
+        },
+        {
+          "x": 4.799999,
+          "y": 72.03999
+        },
+        {
+          "x": 4.799999,
+          "y": 71.95999
+        }
+      ],
+      [
+        {
+          "x": 50.2,
+          "y": 74.96
+        },
+        {
+          "x": 50.2,
+          "y": 75.04
+        },
+        {
+          "x": 4.799999,
+          "y": 75.03999
+        },
+        {
+          "x": 4.799999,
+          "y": 74.95999
+        }
+      ],
+      [
+        {
+          "x": 50.2,
+          "y": 77.96
+        },
+        {
+          "x": 50.2,
+          "y": 78.04
+        },
+        {
+          "x": 4.799999,
+          "y": 78.03999
+        },
+        {
+          "x": 4.799999,
+          "y": 77.95999
+        }
+      ],
+      [
+        {
+          "x": 50.2,
+          "y": 80.96
+        },
+        {
+          "x": 50.2,
+          "y": 81.04
+        },
+        {
+          "x": 4.799999,
+          "y": 81.03999
+        },
+        {
+          "x": 4.799999,
+          "y": 80.95999
+        }
+      ],
+      [
+        {
+          "x": 50.2,
+          "y": 83.96
+        },
+        {
+          "x": 50.2,
+          "y": 84.04
+        },
+        {
+          "x": 4.799999,
+          "y": 84.03999
+        },
+        {
+          "x": 4.799999,
+          "y": 83.95999
+        }
+      ],
+      [
+        {
+          "x": 50.2,
+          "y": 86.96
+        },
+        {
+          "x": 50.2,
+          "y": 87.04
+        },
+        {
+          "x": 4.799999,
+          "y": 87.03999
+        },
+        {
+          "x": 4.799999,
+          "y": 86.95999
+        }
+      ],
+      [
+        {
+          "x": 50.2,
+          "y": 89.96
+        },
+        {
+          "x": 50.2,
+          "y": 90.04
+        },
+        {
+          "x": 4.799999,
+          "y": 90.03999
+        },
+        {
+          "x": 4.799999,
+          "y": 89.95999
+        }
+      ],
+      [
+        {
+          "x": 50.2,
+          "y": 92.96
+        },
+        {
+          "x": 50.2,
+          "y": 93.04
+        },
+        {
+          "x": 4.799999,
+          "y": 93.03999
+        },
+        {
+          "x": 4.799999,
+          "y": 92.95999
+        }
+      ],
+      [
+        {
+          "x": 50.2,
+          "y": 95.96
+        },
+        {
+          "x": 50.2,
+          "y": 96.04
+        },
+        {
+          "x": 4.799999,
+          "y": 96.03999
+        },
+        {
+          "x": 4.799999,
+          "y": 95.95999
+        }
+      ],
+      [
+        {
+          "x": 50.2,
+          "y": 98.96
+        },
+        {
+          "x": 50.2,
+          "y": 99.04
+        },
+        {
+          "x": 4.799999,
+          "y": 99.03999
+        },
+        {
+          "x": 4.799999,
+          "y": 98.95999
+        }
+      ],
+      [
+        {
+          "x": 5.96,
+          "y": 1.3
+        },
+        {
+          "x": 6.04,
+          "y": 1.3
+        },
+        {
+          "x": 6.039998,
+          "y": 46.7
+        },
+        {
+          "x": 5.959998,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 7.96,
+          "y": 1.3
+        },
+        {
+          "x": 8.04,
+          "y": 1.3
+        },
+        {
+          "x": 8.039998,
+          "y": 46.7
+        },
+        {
+          "x": 7.959998,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 9.96,
+          "y": 1.3
+        },
+        {
+          "x": 10.04,
+          "y": 1.3
+        },
+        {
+          "x": 10.039998,
+          "y": 46.7
+        },
+        {
+          "x": 9.959998,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 11.96,
+          "y": 1.3
+        },
+        {
+          "x": 12.04,
+          "y": 1.3
+        },
+        {
+          "x": 12.039998,
+          "y": 46.7
+        },
+        {
+          "x": 11.959998,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 13.96,
+          "y": 1.3
+        },
+        {
+          "x": 14.04,
+          "y": 1.3
+        },
+        {
+          "x": 14.039998,
+          "y": 46.7
+        },
+        {
+          "x": 13.959998,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 15.96,
+          "y": 1.3
+        },
+        {
+          "x": 16.04,
+          "y": 1.3
+        },
+        {
+          "x": 16.039999,
+          "y": 46.7
+        },
+        {
+          "x": 15.959998,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 17.96,
+          "y": 1.3
+        },
+        {
+          "x": 18.04,
+          "y": 1.3
+        },
+        {
+          "x": 18.039999,
+          "y": 46.7
+        },
+        {
+          "x": 17.959997,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 19.96,
+          "y": 1.3
+        },
+        {
+          "x": 20.04,
+          "y": 1.3
+        },
+        {
+          "x": 20.039999,
+          "y": 46.7
+        },
+        {
+          "x": 19.959997,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 21.96,
+          "y": 1.3
+        },
+        {
+          "x": 22.04,
+          "y": 1.3
+        },
+        {
+          "x": 22.039999,
+          "y": 46.7
+        },
+        {
+          "x": 21.959997,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 23.96,
+          "y": 1.3
+        },
+        {
+          "x": 24.04,
+          "y": 1.3
+        },
+        {
+          "x": 24.039999,
+          "y": 46.7
+        },
+        {
+          "x": 23.959997,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 25.96,
+          "y": 1.3
+        },
+        {
+          "x": 26.04,
+          "y": 1.3
+        },
+        {
+          "x": 26.039999,
+          "y": 46.7
+        },
+        {
+          "x": 25.959997,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 27.96,
+          "y": 1.3
+        },
+        {
+          "x": 28.04,
+          "y": 1.3
+        },
+        {
+          "x": 28.039999,
+          "y": 46.7
+        },
+        {
+          "x": 27.959997,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 29.96,
+          "y": 1.3
+        },
+        {
+          "x": 30.04,
+          "y": 1.3
+        },
+        {
+          "x": 30.039999,
+          "y": 46.7
+        },
+        {
+          "x": 29.959997,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 31.96,
+          "y": 1.3
+        },
+        {
+          "x": 32.04,
+          "y": 1.3
+        },
+        {
+          "x": 32.039997,
+          "y": 46.7
+        },
+        {
+          "x": 31.959997,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 33.96,
+          "y": 1.3
+        },
+        {
+          "x": 34.04,
+          "y": 1.3
+        },
+        {
+          "x": 34.039997,
+          "y": 46.7
+        },
+        {
+          "x": 33.959995,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 35.96,
+          "y": 1.3
+        },
+        {
+          "x": 36.04,
+          "y": 1.3
+        },
+        {
+          "x": 36.039997,
+          "y": 46.7
+        },
+        {
+          "x": 35.959995,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 37.96,
+          "y": 1.3
+        },
+        {
+          "x": 38.04,
+          "y": 1.3
+        },
+        {
+          "x": 38.039997,
+          "y": 46.7
+        },
+        {
+          "x": 37.959995,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 39.96,
+          "y": 1.3
+        },
+        {
+          "x": 40.04,
+          "y": 1.3
+        },
+        {
+          "x": 40.039997,
+          "y": 46.7
+        },
+        {
+          "x": 39.959995,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 41.96,
+          "y": 1.3
+        },
+        {
+          "x": 42.04,
+          "y": 1.3
+        },
+        {
+          "x": 42.039997,
+          "y": 46.7
+        },
+        {
+          "x": 41.959995,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 43.96,
+          "y": 1.3
+        },
+        {
+          "x": 44.04,
+          "y": 1.3
+        },
+        {
+          "x": 44.039997,
+          "y": 46.7
+        },
+        {
+          "x": 43.959995,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 45.96,
+          "y": 1.3
+        },
+        {
+          "x": 46.04,
+          "y": 1.3
+        },
+        {
+          "x": 46.039997,
+          "y": 46.7
+        },
+        {
+          "x": 45.959995,
+          "y": 46.7
+        }
+      ],
+      [
+        {
+          "x": 47.96,
+          "y": 1.3
+        },
+        {
+          "x": 48.04,
+          "y": 1.3
+        },
+        {
+          "x": 48.039997,
+          "y": 46.7
+        },
+        {
+          "x": 47.959995,
+          "y": 46.7
+        }
+      ]
+    ]
+  }
+}
